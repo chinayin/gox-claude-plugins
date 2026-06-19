@@ -1,0 +1,8 @@
+{
+  "extraKnownMarketplaces": {
+    "chinayin": {
+      "source": { "source": "github", "repo": "chinayin/gox-claude-plugins" }
+    }
+  },
+  "enabledPlugins": ["gox-code-rules@chinayin"]
+}

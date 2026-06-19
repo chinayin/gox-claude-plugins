@@ -1,0 +1,11 @@
+{
+  "name": "chinayin",
+  "owner": { "name": "chinayin", "url": "https://github.com/chinayin" },
+  "plugins": [
+    {
+      "name": "gox-code-rules",
+      "source": "./plugins/gox-code-rules",
+      "description": "团队统一代码规范:会话启动注入团队规范(MVP:common + Go)"
+    }
+  ]
+}

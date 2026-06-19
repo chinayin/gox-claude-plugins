@@ -1,6 +1,6 @@
 {
   "name": "gox-code-rules",
   "version": "0.0.1",
-  "description": "团队统一代码规范(MVP:SessionStart 注入 common + Go 规范)",
+  "description": "团队统一代码规范技能:Go 架构/编码规范(cobra/config/迁移/脚手架)+ 通用工程准则,写 Go 代码时自动激活。",
   "author": { "name": "chinayin" }
 }

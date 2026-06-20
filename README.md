@@ -3,6 +3,8 @@
 团队内部 Claude Code 规范插件 marketplace(marketplace 名:`chinayin`)。
 采用 **Agent Skills** 方案:规范以技能形式按需加载,写代码时自动激活,对你的 repo 零写入。
 
+> **怎么用 / 怎么问 / 没触发怎么办** → 见 [`USAGE.md`](USAGE.md)。
+
 ## 插件
 - `gox-code-rules` — 团队代码规范:
   - `engineering` 技能:通用工程行为准则(Karpathy)。

@@ -15,8 +15,8 @@ Follow team conventions when writing or designing Go code in this repo. **Reply 
 | Writing **any** Go code (baseline: versions, logging, errors, concurrency, naming…) | `references/rules.md` ← read first by default |
 | Designing/writing CLI commands under `cmd/**` (cobra + gox/cli) | `references/cli.md` |
 | Configuration loading (`config/**`, `main.go`/`config.go`, `bootstrap/`, gox/config) | `references/config.md` |
-| Database migrations / schema (`migrations/`, `*migrate*`, `store.go`, goose) | `references/db-migrations.md` |
-| Project scaffolding (`Makefile`, `.golangci`, `.github/workflows/*`, `.editorconfig`) | `references/scaffold.md` |
+| Database migrations / schema (`migrations/`, `dbmigrate/`, `store.go`, `*migrate*`, `*migration*`, `*schema*`, goose) | `references/db-migrations.md` |
+| Project scaffolding (`Makefile`, `.gitignore`, `.editorconfig`, `.golangci-lint-version`, `.github/workflows/*.yml`) | `references/scaffold.md` |
 
 ## Core rules (highest priority; details in rules.md)
 

@@ -1,4 +1,15 @@
+# macOS
 .DS_Store
+
+# Logs
 *.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Scratch (skill-creator eval / superpowers)
 .superpowers/
 gox-code-rules-workspace/

@@ -62,9 +62,9 @@ gox-claude-plugins/
       .claude-plugin/plugin.json
       hooks/
         hooks.json                       # SessionStart → 薄提示
-        session-nudge.sh                 # 只注入"用 go/common 技能"的提示,不含规则正文
+        session-nudge.sh                 # 只注入"用 go/engineering 技能"的提示,不含规则正文
       skills/
-        common/
+        engineering/
           SKILL.md                       # 通用行为准则(Karpathy)
         go/
           SKILL.md                       # Go 入口:description + paths + 索引
@@ -117,7 +117,7 @@ Cursor glob 同类。**所以技能只承担"软引导"。** 真正"必须遵守
 ### 2.4 薄 SessionStart 提示(兜住技能欠触发)
 
 真实测试(`docs/mvp-findings.md`)显示技能在真实编码场景激活率 ~2/3——好,但仍有 ~1/3 漏(尤其琐碎任务),且设计/意图期靠 description 偏弱。故加一个**薄 SessionStart 提示 hook**(`hooks/session-nudge.sh`):
-- 每会话注入**一句固定提示**:"本仓遵循团队规范;写/设计代码用 `gox-code-rules:go` / `:common` 技能;最终强制以 golangci-lint/CI 为准"。
+- 每会话注入**一句固定提示**:"本仓遵循团队规范;写/设计代码用 `gox-code-rules:go` / `:engineering` 技能;最终强制以 golangci-lint/CI 为准"。
 - **只提示、不含规则正文**(正文仍只在技能 `references/`,单一源不破)。
 - fail-open、绝不 exit 2、缺 jq 静默退出。
 - 作用:把模型推向技能(提升那 ~1/3 漏触发与设计期的命中),而不重塞规则、不回到 v1 的按文件注入引擎。
@@ -146,15 +146,15 @@ Cursor glob 同类。**所以技能只承担"软引导"。** 真正"必须遵守
 
 ## 4. 各技能设计
 
-### 4.1 `common`(通用行为准则)
+### 4.1 `engineering`(通用行为准则)
 ```yaml
 ---
-name: common
+name: engineering
 description: 团队通用工程准则(Karpathy:先想后写、简单优先、外科手术式改动、目标驱动)。编写、审查或重构任何代码前都应参考,即使用户未明说"规范"。
 ---
 ```
 正文 = Karpathy 四原则正文(从上游 karpathy-guidelines 抄入,MIT,注明出处;不引外部 marketplace 依赖)。
-无 `paths`(普遍适用)。**注**:技能本质按需加载;若要 common "每会话第一轮就常驻",见 §13 开放问题。
+无 `paths`(普遍适用)。**注**:技能本质按需加载;若要 engineering "每会话第一轮就常驻",见 §13 开放问题。
 
 ### 4.2 `go`(Go 架构 + 编码,一个技能管全部)
 ```yaml
@@ -246,7 +246,7 @@ PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true
 未证假设:① `paths` + `description` 的**自动触发率**(模型真会在写 Go 时调 `go` 技能吗);
 ② 技能引导下模型对 Go 规范的**采纳度**;③ project-scope 启用的**作用域**是否如预期。
 
-- **MVP(P0)**:`gox-code-rules` 插件,含 `common` + `go` 两个技能(`go` 带 `paths` 与 `references/rules.md`
+- **MVP(P0)**:`gox-code-rules` 插件,含 `engineering` + `go` 两个技能(`go` 带 `paths` 与 `references/rules.md`
   最小种子)。经 project-scope 在 3 个真实 Go repo 启用,用一周,观测上述三点 +(用 skill-creator)测 `go` 触发率。
 - **P1**:把 `references/` 补全(cli/config/db 从 steering 迁入)+ 按 skill-creator eval 优化 `description`/索引。
 - **P2**:加 `node`/`python` 技能;`gox-prd`。
@@ -261,7 +261,7 @@ PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true
 - [ ] 编辑 `*.go` 时 `go` 技能被自动激活(`paths` 生效),模型能复述/遵循 `rules.md`。
 - [ ] 设计阶段(未编辑文件)问"怎么设计这个 cmd 命令",模型能自调 `go` 技能并读 `cli.md`。
 - [ ] 编辑非 Go 文件(README 等)不激活 `go` 技能。
-- [ ] `common` 在编码/审查任务中被引用。
+- [ ] `engineering` 在编码/审查任务中被引用。
 - [ ] 规则正文仅存在于技能 `references/`,无副本。
 - [ ] 公司 repo(已 project-scope 启用)生效;未启用 repo 不生效。
 - [ ] 加一门语言只需加一个 `skills/<lang>/`(SKILL.md + references),无引擎改动。
@@ -271,7 +271,7 @@ PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true
 
 ## 13. 待深入 / 开放问题
 
-- **`common` 要不要"永远在场"**:技能是按需加载;若要 common 从第一轮常驻,需一个极薄 SessionStart hook
+- **`engineering` 要不要"永远在场"**:技能是按需加载;若要 engineering 从第一轮常驻,需一个极薄 SessionStart hook
   或写进项目 CLAUDE.md(破"零 hook/零写 repo")。**默认:做成技能(零 hook 纯净)**;若实测发现通用准则
   常被漏用,再加兜底。← 唯一可回退的取舍点。
 - **`paths` 自动激活的真实可靠性**:官方说"仅在处理匹配文件时自动加载",但仍模型参与 → 用 skill-creator

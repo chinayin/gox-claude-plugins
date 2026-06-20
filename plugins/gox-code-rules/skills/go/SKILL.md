@@ -1,29 +1,29 @@
 ---
 name: go
-description: 团队 Go 微服务架构与编码规范。设计或编写本仓 Go 代码、CLI 命令(cobra)、配置(gox/config)、数据库迁移(goose)、项目脚手架(Makefile/CI)时务必使用——只要在动 Go 代码或规划 Go 模块就该参考,即使用户没明说"规范"。
+description: Team Go microservice architecture and coding standards. Use this whenever designing or writing Go code in this repo — CLI commands (cobra), configuration (gox/config), database migrations (goose), or project scaffolding (Makefile/CI). Consult it any time you touch Go code or plan a Go module, even if the user never says "standards".
 paths: "**/*.go, go.mod, go.work, go.sum"
 ---
 
-# 团队 Go 规范
+# Team Go Standards
 
-写或设计本仓 Go 代码时遵循团队约定。**回复与代码注释用中文。** 详规按下面索引**按需读取** `references/` 对应文件——不要一次性全读,只读与当前任务相关的。
+Follow team conventions when writing or designing Go code in this repo. **Reply and write code comments in Chinese.** Read the detailed standards in `references/` **on demand** per the index below — do not read them all at once, only the file relevant to the current task.
 
-## 何时读哪份(索引)
+## When to read which (index)
 
-| 当前在做 | 读这份 |
+| What you're doing | Read this |
 |---|---|
-| 写**任何** Go 代码(基线:版本、日志、错误、并发、命名…) | `references/rules.md` ← 默认先读 |
-| 设计/编写 `cmd/**` 下的 CLI 命令(cobra + gox/cli) | `references/cli.md` |
-| 配置加载(`config/**`、`main.go`/`config.go`、`bootstrap/`,gox/config) | `references/config.md` |
-| 数据库迁移 / schema(`migrations/`、`*migrate*`、`store.go`,goose) | `references/db-migrations.md` |
-| 项目脚手架(`Makefile`、`.golangci`、`.github/workflows/*`、`.editorconfig`) | `references/scaffold.md` |
+| Writing **any** Go code (baseline: versions, logging, errors, concurrency, naming…) | `references/rules.md` ← read first by default |
+| Designing/writing CLI commands under `cmd/**` (cobra + gox/cli) | `references/cli.md` |
+| Configuration loading (`config/**`, `main.go`/`config.go`, `bootstrap/`, gox/config) | `references/config.md` |
+| Database migrations / schema (`migrations/`, `*migrate*`, `store.go`, goose) | `references/db-migrations.md` |
+| Project scaffolding (`Makefile`, `.golangci`, `.github/workflows/*`, `.editorconfig`) | `references/scaffold.md` |
 
-## 核心铁律(最高优先级,细节见 rules.md)
+## Core rules (highest priority; details in rules.md)
 
-- Go 1.26+;JSON/protobuf 字段 snake_case。
-- 日志:入口用 gox/log 初始化,业务代码用 log/slog;**不要用 fmt 打日志**。
-- 配置:统一用 gox/config,**禁止**业务代码直接用 viper 或裸 `os.Getenv`。
-- 所有外部调用必须设超时(内部 10s、外部 30s)。
-- 不使用包级可变全局状态;错误用包前缀包装。
+- Go 1.26+; JSON/protobuf fields use snake_case.
+- Logging: initialize gox/log at the entry point, use log/slog in business code; **never log with fmt**.
+- Config: use gox/config exclusively; **never** use viper directly or bare `os.Getenv` in business code.
+- All external calls must set a timeout (internal 10s, external 30s).
+- No package-level mutable global state; wrap errors with a package prefix.
 
-> 这些是会话内的**软引导**;最终强制以仓库的 `golangci-lint` / CI / PR review 为准。
+> These are in-session **soft guidance**; the final enforcement is the repo's `golangci-lint` / CI / PR review.

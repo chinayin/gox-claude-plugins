@@ -5,7 +5,7 @@
 
 ## 插件
 - `gox-code-rules` — 团队代码规范:
-  - `common` 技能:通用工程行为准则(Karpathy)。
+  - `engineering` 技能:通用工程行为准则(Karpathy)。
   - `go` 技能:Go 架构与编码规范;`paths` 限定在处理 Go 文件时自动激活,
     细节按 `references/`(rules/cli/config/db-migrations/scaffold)渐进加载。
   - 薄 `SessionStart` 提示:每会话提示模型"写/设计代码用上述技能"(只提示、不含规则正文),
@@ -28,5 +28,4 @@
 
 ## 开发
 - 校验清单(JSON):`brew install jq bats-core && bats tests/`
-  (macOS 需 `brew install bash` 保证 bash ≥ 5,以正确处理中文测试名)
 - 技能触发率:用 skill-creator 的 eval 流程评估 `go` 技能在真实 Go 任务下的自动激活率。

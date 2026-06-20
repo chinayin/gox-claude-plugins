@@ -69,6 +69,6 @@
 
 ## 据此的决策(已落地)
 - **v2 技能方案保留**(真实场景可行 + 套用质量高)。
-- **加一层薄 SessionStart 兜底 hook**(`hooks/session-nudge.sh`):每会话注一句"本仓遵循团队规范,写/设计代码用 `gox-code-rules:go` / `:common` 技能",把 ~1/3 漏触发与设计期一并兜起来。**只提示、不含规则正文**(正文仍只在技能 references),fail-open、绝不 exit 2。
+- **加一层薄 SessionStart 兜底 hook**(`hooks/session-nudge.sh`):每会话注一句"本仓遵循团队规范,写/设计代码用 `gox-code-rules:go` / `:engineering` 技能",把 ~1/3 漏触发与设计期一并兜起来。**只提示、不含规则正文**(正文仍只在技能 references),fail-open、绝不 exit 2。
 - **硬强制仍靠 golangci-lint / CI / PR review。**
 - 架构由"纯技能(零 hook)"调整为"**技能为主 + 一个薄提示 hook**"。

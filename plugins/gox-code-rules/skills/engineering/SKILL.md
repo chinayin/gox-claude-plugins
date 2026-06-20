@@ -1,6 +1,6 @@
 ---
-name: common
-description: 团队通用工程行为准则(Karpathy:先想后写、简单优先、外科手术式改动、目标驱动)。在编写、审查或重构任何代码前都应参考,即使用户未明说"规范"。
+name: engineering
+description: Team general engineering behavioral guidelines (Karpathy: think before coding, simplicity first, surgical changes, goal-driven execution). Consult before writing, reviewing, or refactoring any code in this repo, even if the user never says "standards".
 ---
 
 # Karpathy Behavioral Guidelines

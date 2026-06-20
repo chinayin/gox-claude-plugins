@@ -1,6 +1,6 @@
 ---
 name: go
-description: Team Go microservice architecture and coding standards. Use this whenever designing or writing Go code in this repo — CLI commands (cobra), configuration (gox/config), database migrations (goose), or project scaffolding (Makefile/CI). Consult it any time you touch Go code or plan a Go module, even if the user never says "standards".
+description: Team Go microservice architecture and coding standards. Use this whenever designing or writing Go code in this repo — CLI commands (cobra), configuration (gox/config), database migrations (goose), or project scaffolding (Makefile/CI). Consult it any time you touch Go code or plan a Go module — including small changes like reading a single environment variable, secret, or config value — even if the user never says "standards".
 paths: "**/*.go, go.mod, go.work, go.sum"
 ---
 

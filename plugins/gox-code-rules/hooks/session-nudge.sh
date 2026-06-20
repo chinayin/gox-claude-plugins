@@ -9,7 +9,7 @@ command -v jq >/dev/null 2>&1 || exit 0
 
 MSG=$(cat <<'EOF'
 [gox-code-rules] This repo follows team engineering standards, delivered as Claude Code skills (the rules live inside the skills, not here):
-- Before writing or designing code, use the team standards skill that matches the current language/task. Go code/CLI/config/migrations/scaffold -> use the `gox-code-rules:go` skill.
+- Before writing or designing code, use the team standards skill that matches the current language/task. Go code; CLI flags; reading configuration, environment variables, or secrets; DB migrations; project scaffolding -> use the `gox-code-rules:go` skill. Consult it even for small/obvious-looking changes (e.g. reading one env var).
 - For general engineering guidelines, see the `gox-code-rules:engineering` skill.
 - The above is guidance; final enforcement is the repo's golangci-lint / CI / PR review.
 EOF

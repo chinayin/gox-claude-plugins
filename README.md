@@ -4,10 +4,12 @@
 采用 **Agent Skills** 方案:规范以技能形式按需加载,写代码时自动激活,对你的 repo 零写入。
 
 ## 插件
-- `gox-code-rules` — 团队代码规范技能集:
+- `gox-code-rules` — 团队代码规范:
   - `common` 技能:通用工程行为准则(Karpathy)。
   - `go` 技能:Go 架构与编码规范;`paths` 限定在处理 Go 文件时自动激活,
     细节按 `references/`(rules/cli/config/db-migrations/scaffold)渐进加载。
+  - 薄 `SessionStart` 提示:每会话提示模型"写/设计代码用上述技能"(只提示、不含规则正文),
+    兜住技能偶尔欠触发与设计期。fail-open,绝不阻断会话。
 
 ## 在一个公司 repo 启用(project-scope,推荐)
 把 `templates/project-settings.json` 的内容并入该 repo 的 `.claude/settings.json` 并提交。

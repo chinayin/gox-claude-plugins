@@ -1,5 +1,7 @@
 # gox-claude-plugins
 
+> Team coding-standards plugins for Claude Code — an Agent Skills marketplace that loads team conventions on demand while you write code, with zero writes to your repo.
+
 团队内部 Claude Code 规范插件 marketplace(marketplace 名:`chinayin`)。
 采用 **Agent Skills** 方案:规范以技能形式按需加载,写代码时自动激活,对你的 repo 零写入。
 
@@ -31,3 +33,8 @@
 ## 开发
 - 校验清单(JSON):`brew install jq bats-core && bats tests/`
 - 技能触发率:用 skill-creator 的 eval 流程评估 `go` 技能在真实 Go 任务下的自动激活率。
+
+## License / 开源协议
+[Apache License 2.0](LICENSE) © 2026 chinayin.
+
+Licensed under the Apache License, Version 2.0. 本项目以 Apache-2.0 协议开源。

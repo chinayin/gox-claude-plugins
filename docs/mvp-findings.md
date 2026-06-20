@@ -72,3 +72,32 @@
 - **加一层薄 SessionStart 兜底 hook**(`hooks/session-nudge.sh`):每会话注一句"本仓遵循团队规范,写/设计代码用 `gox-code-rules:go` / `:engineering` 技能",把 ~1/3 漏触发与设计期一并兜起来。**只提示、不含规则正文**(正文仍只在技能 references),fail-open、绝不 exit 2。
 - **硬强制仍靠 golangci-lint / CI / PR review。**
 - 架构由"纯技能(零 hook)"调整为"**技能为主 + 一个薄提示 hook**"。
+
+---
+
+## 真实插件端到端验证(2026-06-20)——已发布 GitHub、用户实装后
+
+方法升级:插件已发布 `chinayin/gox-claude-plugins` 并**用户级全局安装**,故可用 headless `claude -p`(全新无预热会话、`--model sonnet`、中性 prompt、抓 stream-json)直接测**真实插件**——不再需要"装个人技能"的旧 hack。
+
+### 机制重大发现(推翻假设)
+**激活是模型*显式调用* `Skill` 工具(`{"skill":"gox-code-rules:go"}`)驱动的,不是 `paths` 自动注入。** 证据:每个 case 里"技能正文加载次数 == Skill 工具调用次数",漏触发的 case 两者都为 0;`paths` 自动注入在 CC 2.1.183 下**未观察到**。推论:真正的工作主力是 **nudge + description**(驱动模型决定调不调),`paths` 至少在此版本不是触发主力。
+
+### 结果(N=1/case,方向性)
+| Case | 场景 | Skill 调用 | 套用 |
+|---|---|---|---|
+| A | basic 加 `--port` flag | ✅ | 读 cli.md、用 cobra |
+| B | basic 读 `PORT` env(强化前) | ❌ 漏 | 直接 `os.Getenv`(违规) |
+| C | **monorepo 根无 go.mod**,改 `services/api/main.go` | ✅ | 读 cli.md/rules.md、中文注释 |
+| D | 负向:只改 README | ✅ 正确不激活 | — |
+| E | **设计期**:聊"用 Go 设计 CSV 导入 CLI",无 .go 文件 | ✅ | 显式调技能、读全部 references |
+
+要点:① **monorepo 子目录(根无 go.mod)照常触发**——`paths`/触发看的是被动文件路径,不看 go.mod 位置,老顾虑作废。② **设计期(无文件)也触发**——靠 nudge 推模型显式调,之前预测的"设计期盲区"被 nudge 堵上。③ 负向不误触发。
+
+### B 漏触发 → 强化 → 再测(关键)
+B 这类"模型自认会做"的简单 env 读取漏调技能。把 nudge/description 的触发场景**显式加入"读配置/环境变量/密钥、即使小改动"**后重测:
+- **激活救回:B2、B3 均 ✅ 调起技能、读 config.md(0→2/2)。**
+- **但遵守没救回:B2 读到了"禁 os.Getenv/用 gox/config"那条规则,仍给自己找"这只是简单示例"的例外、最终写了 `os.Getenv`。**
+
+→ 最强结论:**软层(技能/nudge)即使激活、即使读到规则,也不保证遵守;`os.Getenv` 这种只能靠 golangci-lint/CI 硬层拦。** 已据此固化 nudge/description 强化(commit `397782a`),它提升的是"咨询率",合规仍归硬层。
+
+边界:每 case N=1;model=sonnet;headless 一次性会话;CC 2.1.183。

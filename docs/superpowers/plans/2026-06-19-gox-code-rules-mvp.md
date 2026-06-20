@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 交付一个最小可用的 Claude Code 插件 `gox-code-rules`,在公司 Go repo 的会话启动时把团队规范注入上下文,用于验证「采纳率 / token 成本 / 作用域」三个核心假设。
+**Goal:** 交付一个最小可用的 Claude Code 插件 `gox-code-rules`,在团队 Go repo 的会话启动时把团队规范注入上下文,用于验证「采纳率 / token 成本 / 作用域」三个核心假设。
 
-**Architecture:** 一个 marketplace monorepo(`gox-claude-plugins`),内含单插件 `gox-code-rules`。MVP 只用**一个 SessionStart hook**(纯 bash),拼接 `rules/common/*.md` +(当 repo 有 `go.mod` 时)`rules/go/rules.md`,经 `hookSpecificOutput.additionalContext` 注入。对用户 repo 零写入。作用域靠 **project-scope 启用**(公司 repo 提交 `.claude/settings.json`),不做运行时闸门。
+**Architecture:** 一个 marketplace monorepo(`gox-claude-plugins`),内含单插件 `gox-code-rules`。MVP 只用**一个 SessionStart hook**(纯 bash),拼接 `rules/common/*.md` +(当 repo 有 `go.mod` 时)`rules/go/rules.md`,经 `hookSpecificOutput.additionalContext` 注入。对用户 repo 零写入。作用域靠 **project-scope 启用**(团队 repo 提交 `.claude/settings.json`),不做运行时闸门。
 
 **Tech Stack:** Bash、jq(JSON 构造/校验)、bats-core(hook 测试)、Claude Code plugin/marketplace 机制。
 
@@ -312,7 +312,7 @@ git commit -m "feat: SessionStart 注入 hook(common + Go,fail-open)"
 
 **Interfaces:**
 - Consumes: Task 1 的 marketplace 名 `chinayin` 与插件名 `gox-code-rules`。
-- Produces: 可直接拷进公司 repo `.claude/settings.json` 的片段,启用本插件。
+- Produces: 可直接拷进团队 repo `.claude/settings.json` 的片段,启用本插件。
 
 - [ ] **Step 1: 写失败测试 `tests/template.bats`**
 
@@ -358,12 +358,12 @@ Expected: 2 tests PASS。
 ```markdown
 # gox-claude-plugins
 
-公司内部 Claude Code 规范插件 marketplace(marketplace 名:`chinayin`)。
+团队内部 Claude Code 规范插件 marketplace(marketplace 名:`chinayin`)。
 
 ## 插件
 - `gox-code-rules` — 会话启动注入团队代码规范(MVP:common + Go)。
 
-## 在一个公司 repo 启用(project-scope,推荐)
+## 在一个团队 repo 启用(project-scope,推荐)
 把 `templates/project-settings.json` 的内容并入该 repo 的 `.claude/settings.json` 并提交。
 协作者信任该 repo 文件夹后,Claude Code 会提示安装/启用本插件 → 仅该 repo 生效。
 

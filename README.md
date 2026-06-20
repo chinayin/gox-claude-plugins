@@ -1,6 +1,6 @@
 # gox-claude-plugins
 
-公司内部 Claude Code 规范插件 marketplace(marketplace 名:`chinayin`)。
+团队内部 Claude Code 规范插件 marketplace(marketplace 名:`chinayin`)。
 采用 **Agent Skills** 方案:规范以技能形式按需加载,写代码时自动激活,对你的 repo 零写入。
 
 ## 插件
@@ -11,7 +11,7 @@
   - 薄 `SessionStart` 提示:每会话提示模型"写/设计代码用上述技能"(只提示、不含规则正文),
     兜住技能偶尔欠触发与设计期。fail-open,绝不阻断会话。
 
-## 在一个公司 repo 启用(project-scope,推荐)
+## 在一个团队 repo 启用(project-scope,推荐)
 把 `templates/project-settings.json` 的内容并入该 repo 的 `.claude/settings.json` 并提交。
 协作者信任该 repo 文件夹后,Claude Code 会提示安装/启用本插件 → 仅该 repo 生效。
 

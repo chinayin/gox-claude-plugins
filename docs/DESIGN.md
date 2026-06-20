@@ -14,7 +14,7 @@
    (插件仓即唯一源),从 org marketplace 分发,零写用户 repo。
 3. **v1 hook 方案**:用 SessionStart + PreToolUse hook + `routing.json` + bash 引擎按后缀/路径注入规则。
 4. **双评审 + 官方文档核准后的关键反转**(导致 v2):
-   - `enabledPlugins` **支持 project scope**(官方团队推荐做法)→ 作用域靠"公司 repo 提交
+   - `enabledPlugins` **支持 project scope**(官方团队推荐做法)→ 作用域靠"团队 repo 提交
      `.claude/settings.json`"收敛,**不需要运行时 repo 闸门**。
    - **command 与 skill 已合并**(官方:"Custom commands have been merged into skills")→
      一个"命令"就是带 `disable-model-invocation: true` 的技能。无需两套机制。
@@ -33,7 +33,7 @@
 | 对用户 repo 写入 | 零写入 |
 | 强制力 | 会话内技能 = **软层引导(概率)**;真强制 = **CI / golangci-lint / PR gate(硬层)** |
 | 代码规范粒度 | 一个 `go` 技能管所有 Go(架构+cli+config+db),内部 `references/` 分文件 |
-| 作用域收敛 | **project-scope 启用**(公司 repo 的 `.claude/settings.json`),非运行时闸门 |
+| 作用域收敛 | **project-scope 启用**(团队 repo 的 `.claude/settings.json`),非运行时闸门 |
 | 分发 | org marketplace `chinayin` + project-scope `enabledPlugins`(+ Managed force-enable 强制) |
 | goxctl-claude | CC 同步角色退役 |
 
@@ -181,14 +181,14 @@ PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true
 ## 5. 分发与升级
 
 - 加 marketplace:`/plugin marketplace add chinayin/gox-claude-plugins`(GitHub 源,相对路径源才解析)。
-- **作用域收敛主路径 = project-scope 启用**:公司每个 repo 提交 `.claude/settings.json`:
+- **作用域收敛主路径 = project-scope 启用**:团队每个 repo 提交 `.claude/settings.json`:
   ```json
   {
     "extraKnownMarketplaces": { "chinayin": { "source": { "source": "github", "repo": "chinayin/gox-claude-plugins" } } },
     "enabledPlugins": ["gox-code-rules@chinayin"]
   }
   ```
-  协作者信任该 repo 文件夹后被提示安装/启用 → **天然只在公司 repo 生效**,无需运行时闸门。
+  协作者信任该 repo 文件夹后被提示安装/启用 → **天然只在团队 repo 生效**,无需运行时闸门。
   分发该 settings 用 repo 模板 / scaffold(可由 goxctl 顺带写入)。
 - **企业加固**:`strictKnownMarketplaces` 只信 `chinayin`(URL 易因尾斜杠/`.git` 差异落空,优先 `hostPattern`);
   Managed 层 `enabledPlugins` force-enable = 全员强制、不可关。
@@ -263,7 +263,7 @@ PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true
 - [ ] 编辑非 Go 文件(README 等)不激活 `go` 技能。
 - [ ] `engineering` 在编码/审查任务中被引用。
 - [ ] 规则正文仅存在于技能 `references/`,无副本。
-- [ ] 公司 repo(已 project-scope 启用)生效;未启用 repo 不生效。
+- [ ] 团队 repo(已 project-scope 启用)生效;未启用 repo 不生效。
 - [ ] 加一门语言只需加一个 `skills/<lang>/`(SKILL.md + references),无引擎改动。
 - [ ] 插件不含 hook(纯技能)。
 

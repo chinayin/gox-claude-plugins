@@ -5,7 +5,7 @@
     {
       "name": "gox-code-rules",
       "source": "./plugins/gox-code-rules",
-      "description": "Team coding standards delivered as Claude Code skills (engineering + Go)"
+      "description": "Team coding standards delivered as Claude Code skills (Go + frontend + engineering)"
     }
   ]
 }

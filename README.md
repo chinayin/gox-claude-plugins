@@ -12,6 +12,7 @@
   - `engineering` 技能:通用工程行为准则(Karpathy)。
   - `go` 技能:Go 架构与编码规范;`paths` 限定在处理 Go 文件时自动激活,
     细节按 `references/`(rules/cli/config/db-migrations/scaffold)渐进加载。
+  - `frontend` 技能:前端(React/Vue/TS/JS/CSS)规范;**骨架,正文 TODO 待填**。
   - 薄 `SessionStart` 提示:每会话提示模型"写/设计代码用上述技能"(只提示、不含规则正文),
     兜住技能偶尔欠触发与设计期。fail-open,绝不阻断会话。
 

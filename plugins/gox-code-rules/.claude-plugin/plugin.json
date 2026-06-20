@@ -1,6 +1,6 @@
 {
   "name": "gox-code-rules",
   "version": "0.0.1",
-  "description": "Team coding-standards skills: Go architecture/coding standards (cobra/config/migrations/scaffold) + general engineering guidelines, auto-activated when writing Go code.",
+  "description": "Team coding-standards skills: Go (architecture/CLI/config/migrations/scaffold) + frontend (React/Vue/TS) + general engineering guidelines, auto-activated while you code.",
   "author": { "name": "chinayin" }
 }

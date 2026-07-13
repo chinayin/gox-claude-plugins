@@ -10,10 +10,11 @@ setup() {
   echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
 }
 
-@test "additionalContext mentions the go, frontend and engineering skills" {
+@test "additionalContext mentions the go, frontend, shell and engineering skills" {
   run bash "$HOOK"
   echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "gox-code-rules:go"
   echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "gox-code-rules:frontend"
+  echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "gox-code-rules:shell"
   echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "gox-code-rules:engineering"
 }
 

@@ -38,6 +38,7 @@
 | 通用工程准则 | `/gox-code-rules:engineering` | 描述匹配即可(无文件限定) | Karpathy 行为准则:先想后写、简单优先、外科手术式改动、目标驱动 |
 | Go 规范 | `/gox-code-rules:go` | **正在动 Go 文件**(`**/*.go, go.mod, go.work, go.sum`)**且**任务相关 | Go 架构/编码 + CLI(cobra)/配置(gox/config)/迁移(goose)/脚手架,正文在 `references/` 按需读 |
 | 前端规范 | `/gox-code-rules:frontend` | 正在动前端文件(`*.tsx/*.jsx/*.vue/*.ts/*.js/*.css/*.scss` 等)**且**任务相关 | React/Vue/TS/JS/样式/状态管理(**骨架,正文 TODO 待填**) |
+| Shell 规范 | `/gox-code-rules:shell` | **正在动 Shell 文件**(`**/*.sh, **/*.bash`)**且**任务相关 | bash/CLI 脚本约定:stdout·stderr 分流、状态前缀、标准 flag、退出码、`test.sh` 自测(单文件 SKILL.md,无 references) |
 
 **触发机制(重要)**:技能 `paths` 是**闸门**——给 `go` 技能加了 `paths`,意味着它**只在你正在编辑/处理 Go 文件时**才会被自动考虑;光在聊天里提"Go"但还没动 `.go` 文件,可能不会自动加载(见 §4)。`engineering` 没有 `paths`,描述匹配就能触发。
 

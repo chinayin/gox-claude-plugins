@@ -50,6 +50,7 @@
 | 通用工程准则 | `/gox-code-rules:engineering` | 描述匹配即可（无文件限定） | Karpathy 准则：先想后写、简单优先、外科手术式改动、目标驱动 |
 | Go 规范 | `/gox-code-rules:go` | 动 Go 文件（`**/*.go, go.mod...`）且任务相关 | Go 架构/编码 + cobra·gox/config·goose·脚手架，正文在 `references/` 按需读 |
 | 前端规范 | `/gox-code-rules:frontend` | 动前端文件且任务相关 | React/Vue/TS/JS/样式（**骨架，正文 TODO 待填**） |
+| Shell 规范 | `/gox-code-rules:shell` | 动 Shell 文件（`**/*.sh, **/*.bash`）且任务相关 | bash/CLI 脚本：stdout·stderr 分流、状态前缀、标准 flag、退出码、`test.sh`（单文件 SKILL.md） |
 
 **怎么问能稳定触发、没触发怎么办** → 见 [`USAGE.md`](USAGE.md)。
 

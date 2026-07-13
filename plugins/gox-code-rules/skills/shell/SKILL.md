@@ -14,6 +14,7 @@ Conventions for writing shell scripts in this repo, distilled from mature high-s
 
 - Start every script with `#!/usr/bin/env bash` and `set -euo pipefail`.
 - Always quote expansions (`"$var"`, `"${arr[@]}"`); keep `[ ]` / `[[ ]]` usage consistent.
+- Handle secrets/credentials with least privilege — e.g. a generated private key gets `chmod 600`.
 - Give destructive actions a guard: refuse by default, require an explicit `--force` (or similar).
 - Document exit codes and keep their meaning stable (see below).
 - Ship a `test.sh` next to any non-trivial script.

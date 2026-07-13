@@ -16,8 +16,8 @@ SKILLS_DIR="plugins/gox-code-rules/skills"
   done
 }
 
-@test "language skills (go, frontend) declare a non-empty paths glob" {
-  for name in go frontend; do
+@test "language skills (go, frontend, shell) declare a non-empty paths glob" {
+  for name in go frontend shell; do
     grep -qE '^paths:[[:space:]]*\S' "$SKILLS_DIR/$name/SKILL.md" \
       || { echo "missing paths: $name"; false; }
   done

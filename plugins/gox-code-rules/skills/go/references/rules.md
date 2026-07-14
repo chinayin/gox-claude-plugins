@@ -308,6 +308,7 @@ type Storage interface {
 
 ## Microservice Governance (MUST)
 
+- Naming: business microservice project name ends with `-svc` (e.g. `order-svc`, `user-svc`)
 - Service ports: HTTP `:8000` (PORT), gRPC `:9000` (GRPC_PORT)
 - Health checks: `/health/live` (liveness), `/health/ready` (readiness)
 - Tracing: propagate Trace ID across services
@@ -401,6 +402,8 @@ Refer to the `scaffold` steering file for standard templates.
 - All docs in `docs/` directory
 - Filename: UPPER_SNAKE_CASE.md
 - Must contain: title, overview, main content
+
+Exception: tool/skill-managed namespaces under `docs/` are excluded from this rule — do not rename them or their files. E.g. `docs/superpowers/` is a date-ordered namespace whose plans use `YYYY-MM-DD-*.md`; leave such subdirectories as-is.
 
 ### Naming Conventions
 

@@ -1,32 +1,27 @@
 #!/usr/bin/env bats
 #
-# Structural integrity of the SKILL.md files and their references/ index.
-# These are deterministic checks — they do NOT test model-driven activation
-# (that is the job of skill-creator eval). They guard the realistic regression:
-# a SKILL.md index and its references/ files drifting out of sync. The checks
-# loop over every skill, so new skills are covered automatically.
+# Generic SKILL.md structural integrity across ALL plugins. Deterministic only —
+# model-driven activation (does the model actually load the skill?) is
+# skill-creator eval's job, not bats. Loops every plugins/*/skills/*, so new
+# skills and new plugins are covered automatically.
+# Plugin-specific skill rules (e.g. gox's paths glob) live under that plugin's
+# own tests/ dir.
 
-SKILLS_DIR="plugins/gox-code-rules/skills"
+ROOT="$BATS_TEST_DIRNAME/.."
 
 @test "every skill has name + description frontmatter" {
-  for d in "$SKILLS_DIR"/*/; do
-    s="${d}SKILL.md"
+  for s in "$ROOT"/plugins/*/skills/*/SKILL.md; do
+    [ -e "$s" ] || continue
     grep -qE '^name:[[:space:]]*\S' "$s"        || { echo "missing name: $s"; false; }
     grep -qE '^description:[[:space:]]*\S' "$s"  || { echo "missing description: $s"; false; }
   done
 }
 
-@test "language skills (go, frontend, shell) declare a non-empty paths glob" {
-  for name in go frontend shell; do
-    grep -qE '^paths:[[:space:]]*\S' "$SKILLS_DIR/$name/SKILL.md" \
-      || { echo "missing paths: $name"; false; }
-  done
-}
-
 @test "no orphan references — every references/*.md is indexed in its SKILL.md" {
-  for d in "$SKILLS_DIR"/*/; do
+  for d in "$ROOT"/plugins/*/skills/*/; do
     [ -d "${d}references" ] || continue
     for f in "${d}references"/*.md; do
+      [ -e "$f" ] || continue
       base="$(basename "$f")"
       grep -q "references/$base" "${d}SKILL.md" \
         || { echo "orphan reference not indexed: $f"; false; }
@@ -35,9 +30,11 @@ SKILLS_DIR="plugins/gox-code-rules/skills"
 }
 
 @test "no dangling links — every references/X.md mentioned in a SKILL.md exists" {
-  for d in "$SKILLS_DIR"/*/; do
-    for ref in $(grep -oE 'references/[A-Za-z0-9._-]+\.md' "${d}SKILL.md" 2>/dev/null | sort -u); do
-      [ -f "${d}${ref}" ] || { echo "dangling link in ${d}SKILL.md: $ref"; false; }
+  for s in "$ROOT"/plugins/*/skills/*/SKILL.md; do
+    [ -e "$s" ] || continue
+    d="$(dirname "$s")/"
+    for ref in $(grep -oE 'references/[A-Za-z0-9._-]+\.md' "$s" 2>/dev/null | sort -u); do
+      [ -f "${d}${ref}" ] || { echo "dangling link in $s: $ref"; false; }
     done
   done
 }

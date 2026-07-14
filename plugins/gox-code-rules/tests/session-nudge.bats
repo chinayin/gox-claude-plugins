@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-  HOOK="$BATS_TEST_DIRNAME/../plugins/gox-code-rules/hooks/session-nudge.sh"
+  HOOK="$BATS_TEST_DIRNAME/../hooks/session-nudge.sh"
 }
 
 @test "outputs valid JSON with hookEventName=SessionStart" {

@@ -6,6 +6,11 @@
       "name": "gox-code-rules",
       "source": "./plugins/gox-code-rules",
       "description": "Team coding standards delivered as Claude Code skills (Go + frontend + shell + engineering)"
+    },
+    {
+      "name": "token-thrift",
+      "source": "./plugins/token-thrift",
+      "description": "Cheap-model subagents for token-heavy work — read=Haiku, write=Sonnet, orchestrate=Opus; raw material never enters the main context"
     }
   ]
 }

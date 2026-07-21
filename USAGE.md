@@ -66,7 +66,7 @@
 
 1. **直接手动调用**——最可靠:`/gox-code-rules:go` 或 `/gox-code-rules:engineering`,绕过一切判断强制加载。
 2. **设计期盲区**:还没动 `.go` 文件、只是在讨论方案时,`go` 技能可能不自动弹。对策:① 句子里点明语言/框架;② 或先手动 `/gox-code-rules:go` 再开聊。
-3. 每次会话开始会有一条 `[gox-code-rules]` 提示(SessionStart),推动模型主动使用规范技能;它只是提示,模型仍可能忽略——拿不准就回到第 1 条。
+3. 每次会话开始会有一条 `[gox-code-rules]` 提示(SessionStart),推动模型主动使用规范技能;从 0.2.0 起,同一条提示也会注入每个子代理(SubagentStart)——主 agent 派出去写码的 subagent 同样会收到规范提醒。它只是提示,模型仍可能忽略——拿不准就回到第 1 条。
 
 ---
 

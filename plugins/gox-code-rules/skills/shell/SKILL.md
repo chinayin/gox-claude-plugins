@@ -13,6 +13,10 @@ Conventions for writing shell scripts in this repo, distilled from mature high-s
 ## Core rules
 
 - Start every script with `#!/usr/bin/env bash` and `set -euo pipefail`.
+- Exception — a **Claude Code hook script** must fail open: `set -u` only (no `-e`/`pipefail`),
+  and exit 0 on every path; a hook's non-zero exit disrupts the session.
+- Exception — a **test harness** (`test.sh`) uses `set -uo pipefail` without `-e`: a failing
+  assertion is a counted result, not a fatal error.
 - Always quote expansions (`"$var"`, `"${arr[@]}"`); keep `[ ]` / `[[ ]]` usage consistent.
 - In a Chinese message, **brace** the expansion (`"${var}"`). A bare `$var` immediately followed by
   a non-ASCII character (`（`, `：`, `，`, a Han character…) swallows those bytes into the variable
@@ -87,6 +91,9 @@ Give exit codes documented, stable meaning and list them in the help text. A com
 - `2` precondition not met (a required tool or input is absent)
 
 Let the underlying tool's own non-zero code surface when it is the thing that failed.
+
+Note: this table deliberately differs from the common getopts/bash convention (which uses 2 for
+usage errors); within team repos this table is authoritative.
 
 ## Test harness (`test.sh`)
 

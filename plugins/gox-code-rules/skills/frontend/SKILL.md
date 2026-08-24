@@ -1,6 +1,6 @@
 ---
 name: frontend
-description: Team frontend architecture and coding standards. Use this whenever designing or writing frontend code in this repo — React/Vue components, TypeScript/JavaScript, styling (CSS/SCSS), state management, data fetching, or build/tooling config (package.json, tsconfig, vite/eslint). Consult it any time you touch frontend code — including small changes like one component prop or a style tweak — even if the user never says "standards".
+description: Team frontend architecture and coding standards. Use this whenever designing or writing frontend code in this repo — React/Vue components, TypeScript/JavaScript, styling (CSS/SCSS), state management, data fetching, or build/tooling config (package.json, tsconfig, vite/eslint). Consult it any time you touch frontend code — including small changes like one component prop or a style tweak — even if the user never says "standards". Currently a skeleton — core rules are TODO; confirm conventions with the team instead of guessing.
 paths: "**/*.tsx, **/*.jsx, **/*.vue, **/*.ts, **/*.js, **/*.css, **/*.scss, package.json, tsconfig.json"
 ---
 

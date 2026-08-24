@@ -16,11 +16,10 @@ setup() {
   echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SubagentStart"'
 }
 
-@test "additionalContext mentions the go, frontend, shell and engineering skills (both events)" {
+@test "additionalContext mentions the go, shell and engineering skills (both events)" {
   for ev in SessionStart SubagentStart; do
     run bash "$HOOK" "$ev"
     echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "gox-code-rules:go"
-    echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "gox-code-rules:frontend"
     echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "gox-code-rules:shell"
     echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "gox-code-rules:engineering"
   done
@@ -29,6 +28,35 @@ setup() {
 @test "additionalContext tells the model to state the skill in subagent briefs" {
   run bash "$HOOK"
   echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -qi "subagent"
+}
+
+@test "additionalContext carries the no-Skill-tool fallback line" {
+  run bash "$HOOK"
+  echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "Skill tool is unavailable"
+}
+
+@test "SubagentStart skips injection for cheap-reader (exit 0, no output)" {
+  run bash "$HOOK" SubagentStart <<<'{"agent_type":"cheap-reader"}'
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "SubagentStart still injects for other agents, bad JSON and empty stdin (fail-open)" {
+  run bash "$HOOK" SubagentStart <<<'{"agent_type":"Explore"}'
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SubagentStart"'
+  run bash "$HOOK" SubagentStart <<<'not-json'
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SubagentStart"'
+  run bash "$HOOK" SubagentStart </dev/null
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SubagentStart"'
+}
+
+@test "SessionStart ignores stdin (agent_type must not suppress it)" {
+  run bash "$HOOK" SessionStart <<<'{"agent_type":"cheap-reader"}'
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
 }
 
 @test "unknown event name fails open (exit 0, no output)" {

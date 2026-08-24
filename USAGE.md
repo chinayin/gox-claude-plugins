@@ -35,14 +35,14 @@
 
 | 技能 | 调用名 | 自动触发条件 | 内容 |
 |---|---|---|---|
-| 通用工程准则 | `/gox-code-rules:engineering` | 描述匹配即可(无文件限定) | Karpathy 行为准则:先想后写、简单优先、外科手术式改动、目标驱动 |
-| Go 规范 | `/gox-code-rules:go` | **正在动 Go 文件**(`**/*.go, go.mod, go.work, go.sum`)**且**任务相关 | Go 架构/编码 + CLI(cobra)/配置(gox/config)/迁移(goose)/脚手架,正文在 `references/` 按需读 |
-| 前端规范 | `/gox-code-rules:frontend` | 正在动前端文件(`*.tsx/*.jsx/*.vue/*.ts/*.js/*.css/*.scss` 等)**且**任务相关 | React/Vue/TS/JS/样式/状态管理(**骨架,正文 TODO 待填**) |
-| Shell 规范 | `/gox-code-rules:shell` | **正在动 Shell 文件**(`**/*.sh, **/*.bash`)**且**任务相关 | bash/CLI 脚本约定:stdout·stderr 分流、状态前缀、标准 flag、退出码、`test.sh` 自测(单文件 SKILL.md,无 references) |
+| 通用工程准则 | `/gox-code-rules:engineering` | nudge + 描述匹配(无文件限定) | Karpathy 行为准则:先想后写、简单优先、外科手术式改动、目标驱动 |
+| Go 规范 | `/gox-code-rules:go` | 任务涉及 Go(nudge + description 驱动模型自调;`paths` 仅为声明,见下) | Go 架构/编码 + CLI(cobra)/配置(gox/config)/迁移(goose)/脚手架,正文在 `references/` 按需读 |
+| 前端规范 | `/gox-code-rules:frontend` | 任务涉及前端(机制同上) | React/Vue/TS/JS/样式/状态管理(**骨架,正文 TODO 待填**) |
+| Shell 规范 | `/gox-code-rules:shell` | 任务涉及 Shell 脚本(机制同上) | bash/CLI 脚本约定:stdout·stderr 分流、状态前缀、标准 flag、退出码、`test.sh` 自测(单文件 SKILL.md,无 references) |
 
-**触发机制(重要)**:技能 `paths` 是**闸门**——给 `go` 技能加了 `paths`,意味着它**只在你正在编辑/处理 Go 文件时**才会被自动考虑;光在聊天里提"Go"但还没动 `.go` 文件,可能不会自动加载(见 §4)。`engineering` 没有 `paths`,描述匹配就能触发。
+**触发机制(重要)**:实测(见 `docs/mvp-findings.md`,CC 2.1.183)技能加载由模型**显式调用 Skill 工具**驱动,推动力是两层——每会话/子代理注入的 `[gox-code-rules]` 提示(nudge)+ 技能 `description`。设计期(还没动任何文件)同样能触发。frontmatter 的 `paths` 是声明性字段,实测**未观察到**"按文件自动注入"生效,不要把它当成触发保证。
 
-> 触发是**模型判断 + 闸门**两层,本质带概率(实测真实编码场景约 2/3 命中)。要保证在场,直接手动调用(见 §4)。
+> 触发本质带概率(实测真实编码场景约 2/3 命中)。要保证在场,直接手动调用(见 §4)。
 
 ---
 
@@ -52,6 +52,8 @@
 
 | 你想做 | 这样问 | 会用到 |
 |---|---|---|
+| 写 HTTP 接口 | `给 /v1/users 加个列表端点` / `这个 handler 怎么取路径参数` | go → `references/http.md` |
+| 迁到 gin | `把这个 net/http 的服务迁到 gin` | go → `references/http.md`(末节) |
 | 加命令行参数 | `用 cobra 给 cmd/server 加个 --port flag` | go → `references/cli.md` |
 | 读配置 | `这个服务从配置里读 PORT,用 gox/config` | go → `references/config.md` |
 | 数据库迁移 | `用 goose 给 users 表加一版迁移` | go → `references/db-migrations.md` |
@@ -65,8 +67,8 @@
 ## 4. 没触发怎么办
 
 1. **直接手动调用**——最可靠:`/gox-code-rules:go` 或 `/gox-code-rules:engineering`,绕过一切判断强制加载。
-2. **设计期盲区**:还没动 `.go` 文件、只是在讨论方案时,`go` 技能可能不自动弹。对策:① 句子里点明语言/框架;② 或先手动 `/gox-code-rules:go` 再开聊。
-3. 每次会话开始会有一条 `[gox-code-rules]` 提示(SessionStart),推动模型主动使用规范技能;从 0.2.0 起,同一条提示也会注入每个子代理(SubagentStart)——主 agent 派出去写码的 subagent 同样会收到规范提醒。它只是提示,模型仍可能忽略——拿不准就回到第 1 条。
+2. **设计期也能触发**:实测无 `.go` 文件、纯聊设计时,nudge 也能推动模型调起技能——但同样带概率。漏了就:① 句子里点明语言/框架;② 或先手动 `/gox-code-rules:go` 再开聊。
+3. 每次会话开始会有一条 `[gox-code-rules]` 提示(SessionStart),推动模型主动使用规范技能;从 0.2.0 起,同一条提示也会注入每个子代理(SubagentStart;0.4.0 起对 token-thrift 的纯只读 `cheap-reader` 跳过注入)。它只是提示,模型仍可能忽略——拿不准就回到第 1 条。
 
 ---
 

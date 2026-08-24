@@ -9,7 +9,7 @@ Team plugins for Claude Code, distributed through a single marketplace (`chinayi
 | Plugin | Purpose |
 |---|---|
 | `gox-code-rules` | Team coding standards as Agent Skills (Go / frontend / shell / engineering). A skill activates while you edit matching files and reads only the reference file the current task needs. |
-| `token-thrift` | Cheap-model subagents for token-heavy work: read on Haiku, write on Sonnet, orchestrate on Opus. Raw material stays out of the main context. |
+| `token-thrift` | Cheap-model subagents for token-heavy work: reads on Haiku, correctness-sensitive writes on Sonnet, the main agent only orchestrates. Raw material stays out of the main context. |
 
 Centralising standards here avoids the usual cost of copying them into every repo's `CLAUDE.md`: drift across repos, context bloat, and unclear ownership. The skills are in-session guidance and may not always trigger; final enforcement is `golangci-lint` / CI / PR review.
 
@@ -30,16 +30,16 @@ Single machine:
 
 | Skill | Invoke | Activates when | Content |
 |---|---|---|---|
-| Engineering | `/gox-code-rules:engineering` | description match (no file filter) | Karpathy guidelines: think first, keep it simple, surgical changes, goal-driven |
-| Go | `/gox-code-rules:go` | editing Go files (`**/*.go, go.mod...`) | Go architecture + cobra / gox-config / goose / scaffolding; detail in `references/`, read on demand |
-| Frontend | `/gox-code-rules:frontend` | editing frontend files | React / Vue / TS / JS / styling (skeleton; body TODO) |
-| Shell | `/gox-code-rules:shell` | editing shell files (`**/*.sh, **/*.bash`) | bash/CLI scripts: stdout/stderr split, status prefixes, standard flags, exit codes, `test.sh` |
+| Engineering | `/gox-code-rules:engineering` | session nudge + description (no file filter) | Karpathy guidelines: think first, keep it simple, surgical changes, goal-driven |
+| Go | `/gox-code-rules:go` | Go tasks — nudge + description, model-invoked (`paths` declared, not load-bearing) | Go architecture + gin HTTP / cobra / gox-config / goose / scaffolding; detail in `references/`, read on demand |
+| Frontend | `/gox-code-rules:frontend` | frontend tasks (same mechanism) | React / Vue / TS / JS / styling (skeleton; body TODO) |
+| Shell | `/gox-code-rules:shell` | shell tasks (same mechanism) | bash/CLI scripts: stdout/stderr split, status prefixes, standard flags, exit codes, `test.sh` |
 
 How to phrase requests so a skill triggers, and what to do when it doesn't: see [USAGE.md](USAGE.md).
 
 ## token-thrift
 
-Offloads token-heavy work to cheaper-model subagents. The main agent (Opus) only orchestrates; bulk material never enters its context, so it is not re-billed on later turns.
+Offloads token-heavy work to cheaper-model subagents. The main agent only orchestrates; bulk material never enters its context, so it is not re-billed on later turns.
 
 | Component | Invoke | Model | Role |
 |---|---|---|---|

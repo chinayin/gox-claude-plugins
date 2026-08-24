@@ -172,7 +172,7 @@ Default path conventions:
 - Single-app project: `config/config.yaml`
 - Multi-app project: `config/<app>.yaml` (e.g., `config/server.yaml`, `config/agent.yaml`)
 
-For implementation details using cobra flags, see the `cli` steering file.
+For implementation details using cobra flags, see `references/cli.md`.
 
 ## Docker / K8s Deployment
 

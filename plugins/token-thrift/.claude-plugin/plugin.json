@@ -1,6 +1,6 @@
 {
   "name": "token-thrift",
-  "version": "0.1.0",
-  "description": "Cheap-model subagents for token-heavy work: read=Haiku, write=Sonnet, orchestrate=Opus. Delegates bulky reads/writes (Lark/Feishu full-text, wide searches, log/long-doc analysis) so raw material never enters the main context.",
+  "version": "0.1.1",
+  "description": "Cheap-model subagents for token-heavy work: reads on Haiku, correctness-sensitive writes on Sonnet, the main agent only orchestrates. Delegates bulky reads/writes (Lark/Feishu full-text, wide searches, log/long-doc analysis) so raw material never enters the main context.",
   "author": { "name": "chinayin" }
 }

@@ -271,7 +271,7 @@ type Storage interface {
 - Each test independent, no shared state
 - Use testify (assert + require)
 - AAA pattern: Arrange, Act, Assert
-- Use gomock for mocking, `defer ctrl.Finish()` to verify expectations
+- Use gomock for mocking — the maintained `go.uber.org/mock` (the original golang/mock is archived); `defer ctrl.Finish()` to verify expectations
 
 ### Coverage Requirements
 
@@ -302,13 +302,12 @@ type Storage interface {
 - RESTful style, resources use plural nouns: /users, /orders
 - Version prefix: /v1, /v2
 - JSON field names: snake_case
-- Unified response: `{code, message, data, metadata}`
-- Error response: `{code, message, errors, request_id}`
+- Unified response / error body: single source in `references/http.md` → "Response"
 - Timestamps: ISO 8601 UTC
 
 For handler-level conventions (gin framework choice, engine setup, routing, middleware set,
 ctx vs `c.Set`, slog wiring, request-id and trace propagation, parameter whitelisting, handler
-tests), see the `http` steering file.
+tests), see `references/http.md`.
 
 ## Microservice Governance (MUST)
 
@@ -349,7 +348,7 @@ internal/
   bootstrap/          - app init and DI
 ```
 
-For CLI-specific conventions (framework, subcommands, flags, version injection, local config repository), see the `cli` steering file.
+For CLI-specific conventions (framework, subcommands, flags, version injection, local config repository), see `references/cli.md`.
 
 ## Common Pitfalls
 
@@ -399,7 +398,7 @@ log, config, discovery, trace, metrics, middleware, transport, utils
 ## Scaffold Files (MUST)
 
 Every Go project root must have: `.editorconfig`, `.gitignore`, `Makefile`.
-Refer to the `scaffold` steering file for standard templates.
+Refer to `references/scaffold.md` for standard templates.
 
 ## Documentation (MUST)
 

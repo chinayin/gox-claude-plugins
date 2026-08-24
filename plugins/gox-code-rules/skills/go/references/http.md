@@ -1,10 +1,11 @@
 # HTTP Service Standards (gin)
 
 Use [gin-gonic/gin](https://github.com/gin-gonic/gin) for HTTP services.
-The wire contracts (RESTful, `/v1`, snake_case, unified response body, health probes) live in
+The wire contracts (RESTful, `/v1`, snake_case, health probes) live in
 `rules.md` → "API Design" / "Microservice Governance" and are **framework-independent**;
-this file is the **handler-level** standard: engine setup, handler shape, where request-scoped
-values live, logging, id and trace propagation, middleware set, and testing.
+this file is the **handler-level** standard — engine setup, handler shape, where request-scoped
+values live, logging, id and trace propagation, middleware set, testing — and the **single
+source for the unified response body** (see "Response").
 
 ## Framework
 
@@ -346,11 +347,15 @@ func (h ContextHandler) Handle(ctx context.Context, r slog.Record) error {
 
 ## Response (MUST)
 
-- Exactly **one** writer pair per service, matching the `rules.md` unified body:
+- This section is the **single source** for the unified body shape (`rules.md` → "API Design"
+  links here). Success: `{code, message, data, metadata}`; error: `{code, message, errors,
+  request_id}` — `metadata` (pagination cursor etc.) and `errors` (field-level details) are
+  optional and omitted when empty.
+- Exactly **one** writer pair per service, matching that body:
 
 ```go
-func WriteOK(c *gin.Context, data any)                              // {code:0, message:"ok", data}
-func WriteErr(c *gin.Context, httpStatus, code int, msg string)      // {code, message, request_id}
+func WriteOK(c *gin.Context, data any)                          // {code:0, message:"ok", data, metadata}
+func WriteErr(c *gin.Context, httpStatus, code int, msg string) // {code, message, errors, request_id}
 ```
 
 - **Bare `c.JSON` / `c.AbortWithStatusJSON` with an ad-hoc body is forbidden.** One

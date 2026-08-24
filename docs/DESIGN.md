@@ -102,6 +102,9 @@ gox-claude-plugins/
 - **`paths` 自动激活(按文件)**:技能 frontmatter 写 `paths: "**/*.go, go.mod, go.work"`,
   则**只在处理 Go 文件时自动激活**。这是 v1 想用 PreToolUse hook 手搓的东西的官方原生替代——
   "写 Go 才加载 Go 规范""编辑 `cmd/` 才看 cli"由 `paths` + SKILL.md 索引共同实现。
+  > **实测注记(2026-06-20,CC 2.1.183)**:端到端验证**未观察到** `paths` 自动注入生效;
+  > 实际触发由 nudge + `description` 驱动模型显式调 Skill 工具(见 `docs/mvp-findings.md`)。
+  > `paths` 保留为声明,不承担触发。
 - **`description` 模型自调(按意图)**:模型在**设计/规划阶段**(还没编辑文件)就能因 description 匹配
   自己把技能调出来——这覆盖了 v1 头疼的"设计期无触发"问题。
 - **`disable-model-invocation: true`(手动)**:= 旧"命令"。只有用户 `/插件名:技能名` 能调,

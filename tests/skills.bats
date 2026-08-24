@@ -29,10 +29,13 @@ ROOT="$BATS_TEST_DIRNAME/.."
   done
 }
 
-@test "no dangling links — every references/X.md mentioned in a SKILL.md exists" {
-  for s in "$ROOT"/plugins/*/skills/*/SKILL.md; do
+@test "no dangling links — every references/X.md mentioned in a skill doc exists" {
+  # 覆盖 SKILL.md 与 references/ 内文件的互引;引用统一写作 references/X.md,
+  # 相对技能根目录(references 内文件取其上一级为根)。
+  for s in "$ROOT"/plugins/*/skills/*/SKILL.md "$ROOT"/plugins/*/skills/*/references/*.md; do
     [ -e "$s" ] || continue
     d="$(dirname "$s")/"
+    case "$s" in */references/*) d="$(dirname "$(dirname "$s")")/";; esac
     for ref in $(grep -oE 'references/[A-Za-z0-9._-]+\.md' "$s" 2>/dev/null | sort -u); do
       [ -f "${d}${ref}" ] || { echo "dangling link in $s: $ref"; false; }
     done

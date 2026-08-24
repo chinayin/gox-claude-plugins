@@ -52,6 +52,8 @@
 
 | 你想做 | 这样问 | 会用到 |
 |---|---|---|
+| 写 HTTP 接口 | `给 /v1/users 加个列表端点` / `这个 handler 怎么取路径参数` | go → `references/http.md` |
+| 迁到 gin | `把这个 net/http 的服务迁到 gin` | go → `references/http.md`(末节) |
 | 加命令行参数 | `用 cobra 给 cmd/server 加个 --port flag` | go → `references/cli.md` |
 | 读配置 | `这个服务从配置里读 PORT,用 gox/config` | go → `references/config.md` |
 | 数据库迁移 | `用 goose 给 users 表加一版迁移` | go → `references/db-migrations.md` |

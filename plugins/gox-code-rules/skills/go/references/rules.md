@@ -306,6 +306,10 @@ type Storage interface {
 - Error response: `{code, message, errors, request_id}`
 - Timestamps: ISO 8601 UTC
 
+For handler-level conventions (gin framework choice, engine setup, routing, middleware set,
+ctx vs `c.Set`, slog wiring, request-id and trace propagation, parameter whitelisting, handler
+tests), see the `http` steering file.
+
 ## Microservice Governance (MUST)
 
 - Naming: business microservice project name ends with `-svc` (e.g. `order-svc`, `user-svc`)

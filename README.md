@@ -31,7 +31,7 @@ Single machine:
 | Skill | Invoke | Activates when | Content |
 |---|---|---|---|
 | Engineering | `/gox-code-rules:engineering` | description match (no file filter) | Karpathy guidelines: think first, keep it simple, surgical changes, goal-driven |
-| Go | `/gox-code-rules:go` | editing Go files (`**/*.go, go.mod...`) | Go architecture + cobra / gox-config / goose / scaffolding; detail in `references/`, read on demand |
+| Go | `/gox-code-rules:go` | editing Go files (`**/*.go, go.mod...`) | Go architecture + gin HTTP / cobra / gox-config / goose / scaffolding; detail in `references/`, read on demand |
 | Frontend | `/gox-code-rules:frontend` | editing frontend files | React / Vue / TS / JS / styling (skeleton; body TODO) |
 | Shell | `/gox-code-rules:shell` | editing shell files (`**/*.sh, **/*.bash`) | bash/CLI scripts: stdout/stderr split, status prefixes, standard flags, exit codes, `test.sh` |
 

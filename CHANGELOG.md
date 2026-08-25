@@ -16,6 +16,7 @@
 - `engineering` 技能补上游出处（andrej-karpathy-skills / karpathy-guidelines，MIT）。
 - `rules.md` gomock 指明用维护中的 `go.uber.org/mock`（原 golang/mock 已归档）。
 - `session-nudge.sh`：SubagentStart 时读 stdin `agent_type`，对 token-thrift 的纯只读 `cheap-reader` 跳过注入（解析失败/无输入照常注入，保持 fail-open）；nudge 末尾加 "If the Skill tool is unavailable, follow your brief instead."；bats 同步补过滤与 fail-open 用例。
+- 首次实测 `engineering` 技能内容效果并记入 `docs/mvp-findings.md`：干净基座对照下，无关格式改动 4/5→0/5、自加未要求语义 3/5→0/5、完全外科手术式改动 0/5→5/5，效果集中在"简单优先/外科手术式改动"两条；未观测到回复变啰嗦。边界：N=5、注入方式强于真实加载，可能高估。
 
 ### 0.3.0 — 2026-08-21
 

@@ -4,6 +4,20 @@
 
 ## gox-code-rules
 
+### 0.5.0 — 2026-08-26
+
+- 新增 `go/references/time-and-timezone.md`：时间与时区规范（Go + GORM，不绑 MySQL 版本；
+  核心不变量与语义分类引擎通用，SQLite 差异单独注明）——UTC 存储不变量、
+  `DATETIME`/epoch/`TIMESTAMP` 选型裁定、三类时间语义、Go 边界规则（`ParseInLocation`、
+  禁 `time.Local`）、GORM auto-timestamp 三个盲区与两层防御、DSN 用 `mysql.Config` +
+  `FormatDSN()` 程序化生成（转义串只作粘贴用途，防手抄错）、API 契约、新表 checklist。
+  行文按"裁定 + 最小理由"收紧控 token；正文无 emoji（对齐 shell 规范同款要求）。
+  源自实际项目的时区统一治理经验，已去项目化（事故引用匿名化、项目名改通用表述）。
+- `go/SKILL.md` 索引表加对应一行（与 db-migrations 平级，按需加载）。
+- `db-migrations.md` 补时间列指针（规则区 + checklist）：类型与时区规则唯一源指向
+  time-and-timezone.md，禁 `DEFAULT/ON UPDATE CURRENT_TIMESTAMP`；存量表加时间列用
+  NULL/回填满足"新列必须有默认值"规则，堵住"只读迁移规范就写出 CURRENT_TIMESTAMP"的口子。
+
 ### 0.4.0 — 2026-08-25
 
 全面 review 后的修正（文档对齐实证 + 例外条款 + hook 微调），无规则语义变更：

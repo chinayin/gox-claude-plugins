@@ -31,7 +31,7 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 | 技能 | 调用名 | 何时激活 | 内容 |
 |---|---|---|---|
 | 工程通则 | `/gox-code-rules:engineering` | 描述匹配（无文件限定） | Karpathy 准则：先想后写、简单优先、外科手术式改动、目标驱动 |
-| Go | `/gox-code-rules:go` | 动 Go 文件（`**/*.go, go.mod...`） | Go 架构 + gin HTTP / cobra / gox-config / goose / 脚手架；细则在 `references/` 按需读 |
+| Go | `/gox-code-rules:go` | 动 Go 文件（`**/*.go, go.mod...`） | Go 架构 + gin HTTP / cobra / gox-config / goose / 时间与时区 / 脚手架；细则在 `references/` 按需读 |
 | 前端 | `/gox-code-rules:frontend` | 动前端文件 | React / Vue / TS / JS / 样式（骨架，正文 TODO） |
 | Shell | `/gox-code-rules:shell` | 动 Shell 文件（`**/*.sh, **/*.bash`） | bash/CLI 脚本：stdout/stderr 分流、状态前缀、标准 flag、退出码、`test.sh` |
 

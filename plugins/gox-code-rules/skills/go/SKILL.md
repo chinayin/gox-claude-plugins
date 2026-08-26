@@ -17,6 +17,7 @@ Follow team conventions when writing or designing Go code in this repo. **Reply 
 | Designing/writing CLI commands under `cmd/**` (cobra + gox/cli) | `references/cli.md` |
 | Configuration loading (`config/**`, `main.go`/`config.go`, `bootstrap/`, gox/config) | `references/config.md` |
 | Database migrations / schema (`migrations/`, `dbmigrate/`, `store.go`, `*migrate*`, `*migration*`, `*schema*`, goose) | `references/db-migrations.md` |
+| Time **persisted or crossing a system boundary**: time/date columns (`DATETIME` vs epoch), GORM `autoCreateTime`/`autoUpdateTime`, DSN `loc`/`time_zone`, parsing external timestamps, time fields in API contracts, daily cutoff / timezone logic. In-process time (durations, timers, `time.Since`, sleeps) does NOT need this | `references/time-and-timezone.md` |
 | Project scaffolding (`Makefile`, `.gitignore`, `.editorconfig`, `.golangci-lint-version`, `.github/workflows/*.yml`) | `references/scaffold.md` |
 
 ## Core rules (highest priority; details in rules.md)

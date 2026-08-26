@@ -31,7 +31,7 @@ Single machine:
 | Skill | Invoke | Activates when | Content |
 |---|---|---|---|
 | Engineering | `/gox-code-rules:engineering` | session nudge + description (no file filter) | Karpathy guidelines: think first, keep it simple, surgical changes, goal-driven |
-| Go | `/gox-code-rules:go` | Go tasks — nudge + description, model-invoked (`paths` declared, not load-bearing) | Go architecture + gin HTTP / cobra / gox-config / goose / scaffolding; detail in `references/`, read on demand |
+| Go | `/gox-code-rules:go` | Go tasks — nudge + description, model-invoked (`paths` declared, not load-bearing) | Go architecture + gin HTTP / cobra / gox-config / goose / time & timezone / scaffolding; detail in `references/`, read on demand |
 | Frontend | `/gox-code-rules:frontend` | frontend tasks (same mechanism) | React / Vue / TS / JS / styling (skeleton; body TODO) |
 | Shell | `/gox-code-rules:shell` | shell tasks (same mechanism) | bash/CLI scripts: stdout/stderr split, status prefixes, standard flags, exit codes, `test.sh` |
 

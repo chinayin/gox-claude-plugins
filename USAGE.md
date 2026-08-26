@@ -57,6 +57,7 @@
 | 加命令行参数 | `用 cobra 给 cmd/server 加个 --port flag` | go → `references/cli.md` |
 | 读配置 | `这个服务从配置里读 PORT,用 gox/config` | go → `references/config.md` |
 | 数据库迁移 | `用 goose 给 users 表加一版迁移` | go → `references/db-migrations.md` |
+| 时间列/时区 | `新表的时间列用 DATETIME 还是 epoch` / `这个 upsert 的 updated_at 没更新` | go → `references/time-and-timezone.md` |
 | 新建项目骨架 | `给这个 Go 项目补齐 Makefile / golangci / CI` | go → `references/scaffold.md` |
 | 写业务代码 | `给这个 handler 加上超时和错误包装` | go → `references/rules.md` |
 | 写前端组件 | `给这个 React 组件加个 loading 状态` | frontend |

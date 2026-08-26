@@ -9,10 +9,15 @@ Never use GORM AutoMigrate, raw DDL, or other migration tools.
 1. Multi-table changes must be split into separate migration files, one concern per file
 2. CREATE uses `IF NOT EXISTS`, DROP uses `IF EXISTS`
 3. New columns must have a DEFAULT value or allow NULL
-4. Never drop columns, change types, or rename directly -- use expand/contract pattern
-5. Every file must contain `-- +goose Up` and `-- +goose Down`
-6. Down must be the exact inverse of Up
-7. After generation, verify against the checklist at the end of this document
+4. Time/datetime columns follow `references/time-and-timezone.md` (single source for type
+   choice and timezone rules): never `DEFAULT CURRENT_TIMESTAMP` / `ON UPDATE
+   CURRENT_TIMESTAMP` -- the application writes all time values. When adding a time column
+   to an existing table, satisfy rule 3 by allowing NULL (or backfill via expand/contract),
+   never by `CURRENT_TIMESTAMP`
+5. Never drop columns, change types, or rename directly -- use expand/contract pattern
+6. Every file must contain `-- +goose Up` and `-- +goose Down`
+7. Down must be the exact inverse of Up
+8. After generation, verify against the checklist at the end of this document
 
 ## File Naming and Structure
 
@@ -219,6 +224,8 @@ Verify after generating migration files:
 - [ ] Contains `-- +goose Up` and `-- +goose Down`
 - [ ] CREATE/DROP uses `IF NOT EXISTS` / `IF EXISTS`
 - [ ] New columns have DEFAULT or allow NULL
+- [ ] Time columns carry no `DEFAULT CURRENT_TIMESTAMP` / `ON UPDATE CURRENT_TIMESTAMP`
+      (type & timezone rules: `references/time-and-timezone.md`)
 - [ ] No column drops, type changes, or renames (or expand/contract applied)
 - [ ] Single responsibility, one concern per file
 - [ ] Down is the exact inverse of Up

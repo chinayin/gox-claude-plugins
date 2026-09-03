@@ -101,3 +101,58 @@ B 这类"模型自认会做"的简单 env 读取漏调技能。把 nudge/descrip
 → 最强结论:**软层(技能/nudge)即使激活、即使读到规则,也不保证遵守;`os.Getenv` 这种只能靠 golangci-lint/CI 硬层拦。** 已据此固化 nudge/description 强化(commit `397782a`),它提升的是"咨询率",合规仍归硬层。
 
 边界:每 case N=1;model=sonnet;headless 一次性会话;CC 2.1.183。
+
+---
+
+## `engineering` 技能效果验证(2026-08-25)——首次实测,内容确实有效
+
+前几轮测的都是 `go` 技能的**触发率**;`engineering` 从未被验证过。这轮测的是另一个问题:**技能内容本身能不能改变行为**(与触发机制无关)。
+
+### 方法(与前几轮不同,是内容对照而非触发率)
+
+两臂共用同一"干净基座"——用 `--settings` 覆盖关掉全部插件(实测 nudge 命中 2→0,确认对照组不受污染),**唯一差别是实验组用 `--append-system-prompt` 注入 engineering 正文**:
+
+```bash
+CLEAN='{"enabledPlugins":{"gox-code-rules@chinayin":false,"superpowers@claude-plugins-official":false,...}}'
+# 对照组
+claude -p "${TASK}" --model sonnet --permission-mode acceptEdits --settings "${CLEAN}"
+# 实验组
+claude -p "${TASK}" --model sonnet --permission-mode acceptEdits --settings "${CLEAN}" \
+  --append-system-prompt "$(cat engineering.txt)"
+```
+
+- fixture:41 行 Go 文件,埋 4 个诱饵——注释掉的死函数、未使用且风格不一致的 `helper`、`append(out,u)` 缺空格、`fmt.Errorf` 无包名前缀。
+- 中性任务:`给 ListUsers 加一个 limit 参数,返回最多 limit 条记录。`(正确的最小改动只该动 `ListUsers` 一处)
+- 每臂 5 次,各自独立 fixture 副本,并行跑。
+
+### 结果:分布完全分离
+
+| | 无关格式改动 | 自加未要求的语义 | 完全外科手术式 |
+|---|---|---|---|
+| 对照组 | 4/5 | 3/5 | **0/5** |
+| engineering 组 | 0/5 | 0/5 | **5/5** |
+
+两类偏离的实例:
+
+- **无关改动**(ctrl-1/3/4/5):顺手把 `append(out,u)` 改成 `append(out, u)`——与需求无关,正是原则 3(外科手术式改动)要防的。
+- **自加语义**(ctrl-2/3/5):自作主张实现"`limit<=0` 表示不限制",需求没要求——正是原则 2(简单优先)要防的。
+
+另一个信号:**实验组 5 次 diff 完全一致**(6+/3−),对照组在 7+/4− 与 6+/3− 之间摆动。writing-skills 的判据"指导落地时各次会收敛到同一形状",这里收敛了。
+
+诱饵中的死代码、`helper`、`fmt.Errorf` 两臂都没动,故本轮实际只覆盖 4 个维度中的 2 个。
+
+### 代价:本轮未测出
+
+平均回复长度 对照 18 词 / 实验 22 词,都极短,没有"变啰嗦"的迹象。且**两臂都主动想跑 `go build` 验证**(都因权限被挡)——说明原则 4(定义验证标准)在基座指令里本就存在,属**重申**而非新增。
+
+### 结论
+
+- **内容有效,效果集中在原则 2 与原则 3。** 尤其原则 3 有独立贡献:基座自带的"贴合周围代码风格"并不能阻止"顺手修正格式",engineering 能。
+- 原则 4 确认是对基座的重申;原则 1 本轮未观察到(任务无歧义,无需提问)。
+- 技能本身**不增加流程负担**(无步骤、无门禁,只是四条姿态);流程变重的风险来自与 superpowers 等带 procedure 的技能叠加,不来自本技能。
+
+### 边界
+
+1. N=5、单任务、单模型(sonnet),方向性结论,非精确效应量。
+2. **注入方式强于真实加载**:本轮用 system prompt 注入,真实技能是激活后进上下文、权重更低,故 0/5 vs 5/5 **很可能高估**真实效果。
+3. 任务很小;大改动上的效果未知——而大改动恰是无关改动最易泛滥之处。

@@ -69,7 +69,7 @@ gox-claude-plugins/
         go/
           SKILL.md                       # Go 入口:description + paths + 索引
           references/
-            rules.md  cli.md  config.md  db-migrations.md  scaffold.md
+            rules.md  code-style.md  service-layout.md  http.md  cli.md  config.md  db-migrations.md  time-and-timezone.md  scaffold.md
         # 未来:node/  python/
     gox-prd/                             # 未来:产品需求技能
       .claude-plugin/plugin.json

@@ -13,6 +13,8 @@ Follow team conventions when writing or designing Go code in this repo. **Reply 
 | What you're doing | Read this |
 |---|---|
 | Writing **any** Go code (baseline: versions, logging, errors, concurrency, naming…) | `references/rules.md` ← read first by default |
+| Shaping code beyond the baseline: over a complexity limit, laying out a new package, designing options/structs/interfaces, generics | `references/code-style.md` |
+| Starting or restructuring a project (CLI vs DDD layout), Protobuf schemas, gRPC clients, docs file naming | `references/service-layout.md` |
 | Writing/designing **HTTP** services: routing, handlers, middleware, request/response, logging, request-id/trace, handler tests (gin) | `references/http.md` |
 | Designing/writing CLI commands under `cmd/**` (cobra + gox/cli) | `references/cli.md` |
 | Configuration loading (`config/**`, `main.go`/`config.go`, `bootstrap/`, gox/config) | `references/config.md` |

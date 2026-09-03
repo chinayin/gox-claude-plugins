@@ -4,6 +4,17 @@
 
 ## gox-code-rules
 
+### 0.6.0 — 2026-09-04
+
+nudge 收窄触发范围,降低会话与子代理里的重复技能加载(规则正文无变更):
+
+- 背景:回放 95 个会话(主线约 3.1 万次、子代理约 3 万次 API 调用)发现两类浪费——(1) 一句确认可触发 `engineering + go + frontend + TDD` 四连,而实际只改前端文件;(2) 543 个子代理里 37% 在 brief 已含规范要求的情况下,收到 SubagentStart 提示后又重新调一遍 gox 技能并读 `rules.md`,每个子代理多约 2 次往返。
+- SessionStart 文案:改为"按所改文件类型调技能,通常只调一个";`engineering` 仅限多文件改动/重构/设计,单文件编辑不调;明确"不为没碰的文件调技能、同一会话不重复调";派子代理时要求把适用规则(或技能名)写进 brief。
+- SubagentStart 文案:独立的短版——以 brief 为准,brief 未提及且要写代码时才调 `go`/`shell`;不调 `engineering`。长度约为主会话版的三分之一。
+- `frontend` 技能保留且不改(正文即将填充),nudge 仍暂不点名。
+- bats:拆分两事件的文案断言;新增"子代理版长度不足主会话版一半"与"兜底行两事件皆有"用例。
+- `go/references/rules.md` 拆成"核心 + 按需"(12KB → 约 6.5KB,只搬不改语义):MUST 级裁定留在 `rules.md`;复杂度三个 Pattern 示例、常量放置与包文件示例、Functional Options、Struct/Interface/Generics、陷阱示例移入新 `references/code-style.md`;CLI/DDD 目录树、Protobuf、gRPC Client、文档文件命名清单移入新 `references/service-layout.md`。`SKILL.md` 索引加两行;`http.md` 引用的 "API Design"/"Microservice Governance" 仍在 `rules.md`,无需改指。每个子代理默认加载量减半。
+
 ### 0.5.0 — 2026-08-26
 
 - 新增 `go/references/time-and-timezone.md`：时间与时区规范（Go + GORM，不绑 MySQL 版本；

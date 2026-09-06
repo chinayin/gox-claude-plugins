@@ -8,7 +8,8 @@ paths: "**/*.sh, **/*.bash"
 
 Conventions for writing shell scripts in this repo, distilled from mature high-star CLIs
 (cargo / git / gh / docker / kubectl) and the [Command Line Interface Guidelines](https://clig.dev/).
-**Reply and write code comments in Chinese.**
+**Reply and write code comments in Chinese; everything a script prints is English (see
+"Status output").**
 
 ## Core rules
 
@@ -18,13 +19,14 @@ Conventions for writing shell scripts in this repo, distilled from mature high-s
 - Exception — a **test harness** (`test.sh`) uses `set -uo pipefail` without `-e`: a failing
   assertion is a counted result, not a fatal error.
 - Always quote expansions (`"$var"`, `"${arr[@]}"`); keep `[ ]` / `[[ ]]` usage consistent.
-- In a Chinese message, **brace** the expansion (`"${var}"`). A bare `$var` immediately followed by
-  a non-ASCII character (`（`, `：`, `，`, a Han character…) swallows those bytes into the variable
-  name: with `set -u` the script dies (`V?: unbound variable`), without it the value silently
-  vanishes along with that character. This standard mandates Chinese messages, and those messages
-  live on error paths a normal run never reaches — so it passes every smoke test and fails in
-  production. Reproduces on bash 3.2.57 and 5.3.9 under a UTF-8 locale; `LC_ALL=C` masks it, so CI
-  can stay green while the dev box dies. Special params (`$*`, `$1`, `$#`) are immune.
+- Never let a bare `$var` be followed directly by a non-ASCII character — **brace** it
+  (`"${var}"`). Bash reads those bytes as part of the variable name: with `set -u` the script dies
+  (`V?: unbound variable`), without it the value and the character silently vanish. Applies to any
+  non-ASCII in the source (a Chinese comment or an interpolated Chinese literal included), and such
+  strings usually sit on paths a normal run never reaches — so it passes every smoke test and fails
+  in production. Reproduces on bash 3.2.57 and 5.3.9 under a UTF-8 locale; `LC_ALL=C` masks it, so
+  CI can stay green while the dev box dies. Special params (`$*`, `$1`, `$#`) are immune; `test.sh`
+  gates it (see below).
 - Handle secrets/credentials with least privilege — e.g. a generated private key gets `chmod 600`.
 - Give destructive actions a guard: refuse by default, require an explicit `--force` (or similar).
 - Document exit codes and keep their meaning stable (see below).
@@ -37,29 +39,32 @@ Conventions for writing shell scripts in this repo, distilled from mature high-s
 - **stderr = messages** — errors, warnings, progress, diagnostics. This is out-of-band info, not the
   result. When in doubt, send it to stderr.
 
-## Status output: plain text, no emoji, no color
+## Status output: English plain text, no emoji, no color
 
 Scripts here are driven by agents / CI, where color carries no meaning and emoji reads as a toy. Use
-plain-text prefixes; there is then nothing to gate on `NO_COLOR` / TTY detection.
+plain-text prefixes; there is then nothing to gate on `NO_COLOR` / TTY detection. Write the messages
+themselves in English too — they get grepped, diffed and pasted into issues by tools that neither
+render nor match a localized string, and an ASCII-only message sidesteps the brace trap above.
 
-- Errors: `错误: <message>` to stderr, then a non-zero exit.
-- Warnings: `警告: <message>` to stderr.
+- Errors: `Error: <message>` to stderr, then a non-zero exit.
+- Warnings: `Warning: <message>` to stderr.
 - Test results: `[PASS]` / `[FAIL]` (aligns with Go test `--- PASS/FAIL` and TAP `ok/not ok`).
 
 Do **not** print log-level labels (`ERR`, `WARN`, `INFO`, `DEBUG`) in normal operation — only under
 `-v/--verbose` (clig.dev).
 
 ```bash
-die()  { echo "错误: $*" >&2; exit 1; }
-warn() { echo "警告: $*" >&2; }
+die()  { echo "Error: $*" >&2; exit 1; }
+warn() { echo "Warning: $*" >&2; }
 vlog() { [ "$VERBOSE" -eq 1 ] && echo "verbose: $*" >&2 || true; }   # diagnostics to stderr only
 ```
 
-`$*` above is safe (a space follows it); the **call sites** are where the brace rule bites:
+Brace every expansion in a message anyway — it costs nothing and keeps the string safe if someone
+later drops a non-ASCII character next to it:
 
 ```bash
-die "kubeconfig 不存在：${KCFG}（用 KUBECONFIG 指定）"    # 裸写 $KCFG（ 会被当成一个变量名
-echo "共 ${count} 条 / 耗时 ${elapsed} 秒"
+die "kubeconfig not found: ${KCFG} (set KUBECONFIG)"
+echo "processed ${count} items in ${elapsed}s"
 ```
 
 ## Standard flags
@@ -79,7 +84,7 @@ add a short form only for high-frequency flags; reject unknown options with a us
 ```bash
     -v|--verbose) VERBOSE=1; shift ;;
     --) shift; while [ $# -gt 0 ]; do set_name "$1"; shift; done ;;
-    -*) usage >&2; die "未知选项: $1" ;;
+    -*) usage >&2; die "unknown option: $1" ;;
 ```
 
 ## Exit codes
@@ -109,7 +114,7 @@ bad() { echo "  [FAIL] $1"; FAIL=$((FAIL+1)); }
 
 # ... assertions writing only into $TMP ...
 
-echo "结果: PASS=$PASS FAIL=$FAIL"
+echo "result: PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ]
 ```
 
@@ -120,9 +125,9 @@ visible message when a path's dependency is unavailable rather than silently pas
 Gate the brace rule there too — one line, works with both BSD and GNU grep:
 
 ```bash
-# 揪出 `$VAR` 后面紧跟非 ASCII 的写法；C locale 下 [^ -~] 就是"非可打印 ASCII"
+# Catch `$VAR` immediately followed by a non-ASCII byte; under LC_ALL=C, [^ -~] is exactly that
 if LC_ALL=C grep -nE '\$[A-Za-z_][A-Za-z0-9_]*[^ -~]' *.sh; then
-  echo "错误: 上面这些 \$VAR 紧跟了非 ASCII 字符，改用 \${VAR}" >&2
+  echo "Error: bare \$VAR followed by a non-ASCII byte above; use \${VAR}" >&2
   exit 1
 fi
 ```

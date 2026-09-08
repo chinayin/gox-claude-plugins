@@ -240,7 +240,8 @@ PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true
   行内 `betterleaks:allow`)在第一次需要时由模型作为普通改动加进 repo,走 review。插件不生成它们。
 - **不 pin 版本、不装工具**:只扫待推送区间,新规则不会让老提交报红;缺工具时拦下并让模型提醒
   用户安装,插件不自动安装(装软件是机器主人的事)。
-- **fail-closed**:扫描器缺失或异常都 deny 而不是静默放行;逃生口 `GOX_GUARD_SKIP=1`。
+- **fail-closed**:扫描器缺失、jq 缺失、扫描器异常都 deny 而不是静默放行(缺 jq 时用固定 JSON
+  与原始 stdin 正则退化处理);逃生口 `GOX_GUARD_SKIP=1`。
   这与 gox-code-rules 的 nudge hook(fail-open)相反,原因是闸门静默放行等于没有。
 - **处置协议住在 deny reason 里**,不另开技能:真密钥删除并轮换、单行误报行内 allow、
   已提交或成规律的误报加 ignore/allowlist、绝不把真值加白。单一源。

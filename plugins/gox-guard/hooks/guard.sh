@@ -23,12 +23,30 @@ case "$EVENT" in
   *) exit 0 ;;
 esac
 
-# 缺 jq 无法解析 hook 输入，只能放行（SessionStart 也不再输出，避免半残提示）
-command -v jq >/dev/null 2>&1 || exit 0
-
 # 反引号是给模型看的 markdown，不是命令替换
 # shellcheck disable=SC2016
 INSTALL_HINT='Install it with `brew install betterleaks` (or `go install github.com/betterleaks/betterleaks@latest`). Do not install it yourself; ask the user to.'
+
+# git [全局选项...] push：git 与 push 之间只允许以 - 开头的选项及其可选取值（-C dir、-c k=v、
+# --no-pager），所以 `git stash push`、`git log | grep push`、`git config remote.origin.push`
+# 都不算。段由 ; & | 分隔，链式命令里任一段命中即可。
+PUSH_RE='(^|[^[:alnum:]_./-])git([[:space:]]+-[^[:space:];&|]*([[:space:]]+[^-[:space:];&|][^[:space:];&|]*)?)*[[:space:]]+push([[:space:]]|$|[;&|)])'
+
+# 缺 jq：和缺扫描器同等对待——闸门不能因为少个依赖就静默放行。没有 jq 就不能解析 hook 输入，
+# 也不能拼 JSON，所以这里用固定字符串输出，push 判定退化为对原始 stdin 跑同一条正则。
+# shellcheck disable=SC2016  # 反引号是给模型看的 markdown
+if ! command -v jq >/dev/null 2>&1; then
+  if [ "$EVENT" = "SessionStart" ]; then
+    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"[gox-guard] This session gates `git push` (secret scan before pushing), but jq is NOT installed, so the gate cannot read hook input. Pushes from this session will be blocked until it is. Install it with `brew install jq`. Do not install it yourself; ask the user to."}}'
+    exit 0
+  fi
+  [ "${GOX_GUARD_SKIP:-}" = "1" ] && exit 0
+  [ -t 0 ] && exit 0
+  if grep -Eq "$PUSH_RE" 2>/dev/null; then
+    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"[gox-guard] Push blocked: jq is not installed, so the secret gate cannot read the hook input and cannot check the pending commits. Install it with `brew install jq` (do not install it yourself; ask the user to), then retry. Emergency bypass: run the push with GOX_GUARD_SKIP=1 and tell the user you did."}}'
+  fi
+  exit 0
+fi
 
 # 找扫描器：允许 GOX_GUARD_BIN 显式指定（测试 / 非标准路径），否则查 PATH
 find_scanner() {
@@ -65,10 +83,7 @@ INPUT="$(cat 2>/dev/null || true)"
 CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
 [ -n "$CMD" ] || exit 0
 
-# 只认 `git [全局选项...] push`：git 与 push 之间只允许以 - 开头的选项及其可选取值
-# （-C dir、-c k=v、--no-pager），所以 `git stash push`、`git log | grep push`、
-# `git config remote.origin.push` 都不算。段由 ; & | 分隔，链式命令里任一段命中即可。
-printf '%s' "$CMD" | grep -Eq '(^|[^[:alnum:]_./-])git([[:space:]]+-[^[:space:];&|]*([[:space:]]+[^-[:space:];&|][^[:space:];&|]*)?)*[[:space:]]+push([[:space:]]|$|[;&|)])' || exit 0
+printf '%s' "$CMD" | grep -Eq "$PUSH_RE" || exit 0
 
 CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
 [ -n "$CWD" ] && [ -d "$CWD" ] || CWD="$PWD"

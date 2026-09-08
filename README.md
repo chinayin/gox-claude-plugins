@@ -65,7 +65,7 @@ A deterministic gate at the one moment a leaked credential becomes irreversible:
 |---|---|
 | Session start | Checks that `betterleaks` is on `PATH`. Present: silent. Missing: one line telling the model to ask you to install it. |
 | Claude runs a Bash command containing `git … push` | Scans the commits on `HEAD` that are not on any remote (`--all` / `--mirror` widen this to every local branch). Nothing pending: allowed without scanning. Clean: allowed silently. Findings: the push is **denied** and the model receives a redacted summary (rule, file:line, commit, fingerprint) plus a triage protocol. |
-| Scanner missing or failing | The push is denied with the reason, not silently allowed. A gate that fails open is no gate. |
+| Scanner (or `jq`) missing, or scanner failing | The push is denied with the reason, not silently allowed. A gate that fails open is no gate. |
 
 Triage protocol handed to the model on a finding:
 

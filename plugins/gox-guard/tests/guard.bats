@@ -216,15 +216,43 @@ EOF
 
 # ---------- fail-open 形状 ----------
 
-@test "never exits non-zero: unknown event, bad JSON, empty stdin, missing jq" {
+@test "never exits non-zero: unknown event, bad JSON, empty stdin" {
   run bash "$HOOK" BogusEvent
   [ "$status" -eq 0 ]; [ -z "$output" ]
   run bash "$HOOK" PreToolUse <<<'not-json'
   [ "$status" -eq 0 ]; [ -z "$output" ]
   run bash "$HOOK" PreToolUse </dev/null
   [ "$status" -eq 0 ]; [ -z "$output" ]
-  run env PATH="/bin" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
+}
+
+# ---------- 缺 jq：与缺扫描器同等对待 ----------
+# /usr/bin:/bin 有 bash/grep/git 但没有 jq（jq 在 /opt/homebrew/bin）
+
+@test "jq missing + push: deny with a fixed JSON naming jq (no silent allow)" {
+  command -v /usr/bin/jq >/dev/null 2>&1 && skip "jq lives in /usr/bin on this machine"
+  run env PATH="/usr/bin:/bin" bash "$HOOK" PreToolUse <<<'{"tool_name":"Bash","tool_input":{"command":"git push origin main"}}'
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
+  echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason' | grep -q "brew install jq"
+  echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason' | grep -q "GOX_GUARD_SKIP=1"
+}
+
+@test "jq missing + non-push or GOX_GUARD_SKIP: exit 0, no output" {
+  command -v /usr/bin/jq >/dev/null 2>&1 && skip "jq lives in /usr/bin on this machine"
+  run env PATH="/usr/bin:/bin" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git status"}}'
   [ "$status" -eq 0 ]; [ -z "$output" ]
+  run env PATH="/usr/bin:/bin" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git stash push -m wip"}}'
+  [ "$status" -eq 0 ]; [ -z "$output" ]
+  run env GOX_GUARD_SKIP=1 PATH="/usr/bin:/bin" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
+  [ "$status" -eq 0 ]; [ -z "$output" ]
+}
+
+@test "jq missing at SessionStart: fixed additionalContext names jq and the install command" {
+  command -v /usr/bin/jq >/dev/null 2>&1 && skip "jq lives in /usr/bin on this machine"
+  run env PATH="/usr/bin:/bin" bash "$HOOK" SessionStart </dev/null
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
+  echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "brew install jq"
 }
 
 @test "script never enables validation and always redacts (static check)" {

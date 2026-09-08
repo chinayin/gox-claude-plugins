@@ -24,8 +24,10 @@
 - 逃生口：`GOX_GUARD_SKIP=1`。
 - 零写入：不要求也不生成任何配置文件；betterleaks 自行在仓库根解析 `.betterleaks.toml`/
   `.gitleaks.toml`/`.betterleaksignore`。
-- 退出码永远 0（hook 规范）；阻断靠 JSON 而非退出码。缺 jq 放行（无法解析 hook 输入）。
-- bats：19 个用例，stub 扫描器覆盖干净/有发现/缺失/出错，临时 git 仓库覆盖区间与触发词。
+- 退出码永远 0（hook 规范）；阻断靠 JSON 而非退出码。缺 jq 与缺扫描器同等对待：用固定
+  JSON 输出，push 判定退化为对原始 stdin 跑同一条正则，命中即 deny 并提示 `brew install jq`。
+- bats：22 个用例，stub 扫描器覆盖干净/有发现/缺失/出错，临时 git 仓库覆盖区间与触发词，
+  缺 jq 三种路径单测。
   真二进制端到端在开发机验证：假 GitHub PAT 被拦、写入 fingerprint 后放行、单次 0.24s。
 - 分发：加入 marketplace 与 `templates/project-settings.json`；`tests/template.bats` 改为
   遍历 marketplace，新插件自动纳入。

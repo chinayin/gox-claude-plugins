@@ -1,6 +1,6 @@
 {
   "name": "gox-guard",
   "version": "0.1.0",
-  "description": "Agent-side secret gate: before Claude runs `git push`, scans the commits not yet on any remote with betterleaks and blocks the push if a credential is found. Writes nothing into your repo; commits stay untouched; only the push is gated.",
+  "description": "Agent-side deterministic gates for irreversible actions Claude is about to take. Each gate is one hook script that blocks a tool call only when a hard rule fires; nothing is written into your repo. Gates today: secrets (before `git push`, scan the commits not yet on any remote with betterleaks and block the push if a credential is found).",
   "author": { "name": "chinayin" }
 }

@@ -59,7 +59,11 @@ Agent and skill bodies are written in English (better for the model); this READM
 
 ## gox-guard
 
-A deterministic gate at the one moment a leaked credential becomes irreversible: the push. Everything before it (editing, staging, committing) stays untouched, so day-to-day coding is not slowed down.
+Deterministic gates for irreversible actions Claude is about to take. Each gate is one hook script under `plugins/gox-guard/hooks/`, registered side by side on the same events, prefixed `[gox-guard/<gate>]` in its messages, and skipped as a whole by `GOX_GUARD_SKIP=1`. What qualifies as a gate: a hard rule that can be decided deterministically, applied only to an outward, hard-to-undo action, writing nothing into the repo. Advisory checks belong in `gox-code-rules`; things only CI can decide stay in CI.
+
+### Gate: secrets
+
+Sits at the one moment a leaked credential becomes irreversible: the push. Everything before it (editing, staging, committing) stays untouched, so day-to-day coding is not slowed down.
 
 | Event | What happens |
 |---|---|

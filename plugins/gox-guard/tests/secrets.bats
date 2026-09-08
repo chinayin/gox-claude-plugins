@@ -5,7 +5,7 @@
 # 行为（flag、报告字段）另由 tests/real-betterleaks.bats 在本机装了 betterleaks 时覆盖。
 # 所有 git 操作只发生在 $BATS_TEST_TMPDIR 下的临时仓库里，不碰真实项目。
 
-HOOK="$BATS_TEST_DIRNAME/../hooks/guard.sh"
+HOOK="$BATS_TEST_DIRNAME/../hooks/secrets.sh"
 
 setup() {
   STUB_DIR="$BATS_TEST_TMPDIR/stub"

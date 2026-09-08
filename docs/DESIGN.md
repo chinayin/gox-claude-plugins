@@ -75,7 +75,8 @@ gox-claude-plugins/
       .claude-plugin/plugin.json
       hooks/
         hooks.json                       # SessionStart 安装检查 + PreToolUse(Bash) 拦 git push
-        guard.sh                         # betterleaks 扫待推送区间;deny 短文案(发现列表 + 两句规则)
+        secrets.sh                       # 闸门一:betterleaks 扫待推送区间;deny 短文案(发现列表 + 两句规则)
+                                         # 以后的闸门各自一个脚本(force-push.sh ...),在 hooks.json 同一事件下并列注册
       tests/*.bats
     gox-prd/                             # 未来:产品需求技能
       .claude-plugin/plugin.json
@@ -233,6 +234,12 @@ PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true
 只拦不可逆动作、对用户 repo 零写入。
 
 ### 8.1 gox-guard 的定位与取舍
+
+**命名与扩展**:`gox-guard` 是"agent 侧不可逆动作的确定性闸门"这一类的总名(对齐 `gox-code-rules` = 规范、
+`token-thrift` = token 经济,都按领域不按功能点起名)。每道闸一个脚本 `hooks/<闸名>.sh`,在 hooks.json
+同一事件下并列注册、互不感知,文案前缀 `[gox-guard/<闸名>]`,`GOX_GUARD_SKIP=1` 为总开关(单闸开关等第二道闸
+出现再加)。新闸门必须同时满足:确定性判断、只拦对外且难撤回的动作、对用户 repo 零写入、fail-closed。
+建议性检查归 gox-code-rules;只有 CI 能判断的留在 CI。首个闸门 `secrets`:
 
 - **拦 push 不拦 commit**:commit 本地廉价可重做;`git add && git commit` 一条命令时 pre-commit
   扫到的是 add 前的索引,有漏洞;push 才是泄漏不可逆的临界点,且此刻待推送区间(`HEAD --not --remotes`)完全确定。

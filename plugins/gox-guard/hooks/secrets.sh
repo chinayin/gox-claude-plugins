@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# gox-guard：agent 侧的密钥闸门。只在 Claude 要执行 `git push` 时介入，
+# gox-guard 的第一道闸：secrets。只在 Claude 要执行 `git push` 时介入，
 # 用 betterleaks 扫"本地有、任何远端都没有"的那段提交；有发现就拒绝这次 push。
 # 不碰 commit、不写用户 repo、不自动安装任何东西。
+#
+# gox-guard 是"agent 侧不可逆动作的确定性闸门"这一类插件的总名；每道闸一个脚本
+# （本文件、以后的 force-push.sh ...），在 hooks.json 的同一事件下并列注册，互不感知，
+# 文案前缀 [gox-guard/<闸名>] 标明是哪道闸拦的。GOX_GUARD_SKIP=1 是所有闸的总开关。
 #
 # 事件名由 hooks.json 以 $1 传入：
 #   SessionStart —— 只检查依赖（jq、betterleaks）是否可用，缺失时提示一句；齐全时零输出。
@@ -46,15 +50,15 @@ PUSH_RE='(^|[^[:alnum:]_./-])git([[:space:]]+-[^[:space:];&|]*([[:space:]]+[^-[:
 # ---------- 输出 ----------
 # 没有 jq 时也要能输出 JSON：文案里不含双引号与反斜杠，直接拼字符串即安全。
 emit_context() {  # $1 = 事件名  $2 = 文案
-  printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"[gox-guard] %s"}}\n' "$1" "$2"
+  printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"[gox-guard/secrets] %s"}}\n' "$1" "$2"
   exit 0
 }
 emit_deny_plain() {  # 无 jq 版：仅用于固定文案
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"[gox-guard] Push blocked: %s"}}\n' "$1"
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"[gox-guard/secrets] Push blocked: %s"}}\n' "$1"
   exit 0
 }
 emit_deny() {  # 有 jq 版：文案含动态内容（文件名、错误输出），交给 jq 转义
-  jq -n --arg reason "[gox-guard] Push blocked: $1" \
+  jq -n --arg reason "[gox-guard/secrets] Push blocked: $1" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$reason}}' \
     || exit 0
   exit 0

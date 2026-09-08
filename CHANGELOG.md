@@ -6,7 +6,9 @@
 
 ### 0.1.0 — 2026-09-08
 
-新插件：agent 侧的密钥闸门，仓内第一个会执行外部程序、会阻断工具调用的 hook。
+新插件：agent 侧不可逆动作的确定性闸门，仓内第一个会执行外部程序、会阻断工具调用的 hook。
+插件名是一类的总名，每道闸一个脚本（`hooks/<闸名>.sh`）并列注册，文案前缀 `[gox-guard/<闸名>]`；
+首个闸门是 `secrets`。
 
 - 触发：PreToolUse 匹配 Bash，命令里同一段含 `git … push` 才动作（`git log | grep push` 不算）。
   只拦 push 不拦 commit：commit 本地廉价可重做，且 `git add && git commit` 一条命令时 pre-commit

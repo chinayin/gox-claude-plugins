@@ -10,22 +10,32 @@ HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
   [ "$status" -eq 0 ]
 }
 
-@test "SessionStart runs guard.sh with the SessionStart event arg" {
+@test "SessionStart runs secrets.sh with the SessionStart event arg" {
   run jq -er '.hooks.SessionStart[0].hooks[0].command' "$HOOKS"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"guard.sh\" SessionStart" ]]
+  [[ "$output" == *"secrets.sh\" SessionStart" ]]
 }
 
-@test "PreToolUse is scoped to the Bash tool, runs guard.sh with the PreToolUse arg, and has a timeout" {
+@test "PreToolUse is scoped to the Bash tool, runs secrets.sh with the PreToolUse arg, and has a timeout" {
   run jq -er '.hooks.PreToolUse[0].matcher' "$HOOKS"
   [ "$output" = "Bash" ]
   run jq -er '.hooks.PreToolUse[0].hooks[0].command' "$HOOKS"
-  [[ "$output" == *"guard.sh\" PreToolUse" ]]
+  [[ "$output" == *"secrets.sh\" PreToolUse" ]]
   run jq -e '.hooks.PreToolUse[0].hooks[0].timeout >= 30' "$HOOKS"
   [ "$status" -eq 0 ]
 }
 
-@test "no other events are registered (the gate is push-only by design)" {
+@test "no other events are registered (gates only act on tool calls; SessionStart is the dependency check)" {
   run jq -er '.hooks | keys | sort | join(",")' "$HOOKS"
   [ "$output" = "PreToolUse,SessionStart" ]
+}
+
+@test "every hook script under hooks/ is registered in hooks.json and every registered script exists" {
+  dir="$BATS_TEST_DIRNAME/../hooks"
+  for s in "$dir"/*.sh; do
+    grep -q "hooks/$(basename "$s")" "$HOOKS" || { echo "script not registered: $(basename "$s")"; false; }
+  done
+  for s in $(jq -r '.. | .command? // empty' "$HOOKS" | grep -oE 'hooks/[A-Za-z0-9_-]+\.sh' | sort -u); do
+    [ -f "$dir/../$s" ] || { echo "registered script missing: $s"; false; }
+  done
 }

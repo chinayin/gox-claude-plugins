@@ -18,19 +18,18 @@
   用户 `brew install betterleaks`。SessionStart 也检查一次，缺失时提前提示。
 - 结果：干净静默放行；有发现返回 `permissionDecision: deny`，reason 刻意压短（单条约 500 字符，
   它会进主 agent 上下文）：一行一条的发现列表（RuleID、File:StartLine、@commit、fp=Fingerprint，
-  最多 10 条，超出只报数量）、两句裁定规则（真密钥删除并轮换 / 误报 `betterleaks:allow` 或
-  `.betterleaksignore` / 绝不加白真值）、完整协议 `TRIAGE.md` 的路径。协议全文（`reset --soft`
-  配方、`.betterleaks.toml` allowlist 示例、逃生口政策、覆盖边界）只在 `TRIAGE.md`，模型需要
-  时再读。文案全部集中在脚本顶部常量。扫描器缺失或异常退出同样 deny 而非静默放行。
+  最多 10 条，超出只报数量）+ 两句裁定规则（真密钥删除并轮换 / 误报 `betterleaks:allow`、
+  `.betterleaksignore`、`.betterleaks.toml` allowlist 三个出口 / 绝不加白真值）。不附手册，
+  有发现时也不提逃生口。文案全部集中在脚本顶部常量。扫描器缺失或异常退出同样 deny 而非静默放行。
 - 硬约束：`--redact` 常开；永不传 `--validation`（bats 静态断言）。
 - 逃生口：`GOX_GUARD_SKIP=1`。
 - 零写入：不要求也不生成任何配置文件；betterleaks 自行在仓库根解析 `.betterleaks.toml`/
   `.gitleaks.toml`/`.betterleaksignore`。
 - 退出码永远 0（hook 规范）；阻断靠 JSON 而非退出码。缺 jq 与缺扫描器同等对待：用固定
   JSON 输出，push 判定退化为对原始 stdin 跑同一条正则，命中即 deny 并提示 `brew install jq`。
-- bats：24 个用例，stub 扫描器覆盖干净/有发现/缺失/出错，临时 git 仓库覆盖区间与触发词，
+- bats：23 个用例，stub 扫描器覆盖干净/有发现/缺失/出错，临时 git 仓库覆盖区间与触发词，
   缺 jq 三种路径（用独缺 jq 的软链 PATH 模拟，macOS 15+ 的 /usr/bin 自带 jq）、发现列表上限、
-  TRIAGE.md 内容与路径、文案长度上限。
+  文案长度上限。
   真二进制端到端在开发机验证：假 GitHub PAT 被拦、写入 fingerprint 后放行、单次 0.24s。
 - 分发：加入 marketplace 与 `templates/project-settings.json`；`tests/template.bats` 改为
   遍历 marketplace，新插件自动纳入。

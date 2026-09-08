@@ -15,8 +15,8 @@
 #   1. 缺依赖时拦而不是放：安全闸门静默放行等于没有；用户装一次就好。
 #   2. 扫描器自身出错也拦：把错误原样交给模型，由人决定是否绕过。
 #   3. 唯一逃生口 GOX_GUARD_SKIP=1，供没有 brew / Go 的机器应急。
-#   4. 给模型的文案尽量短：只有拦下时才有输出；发现列表一行一条并设上限；完整处置协议
-#      放在插件目录的 TRIAGE.md，deny 里只给路径，模型需要时再读，不每次都灌进上下文。
+#   4. 给模型的文案尽量短：只有拦下时才有输出；发现列表一行一条并设上限；处置规则两句说完，
+#      不附手册（模型本来就会 git，多余的说明只会堆上下文）。
 set -u
 
 EVENT="${1:-}"
@@ -25,8 +25,6 @@ case "$EVENT" in
   *) exit 0 ;;
 esac
 
-PLUGIN_ROOT="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd -P)"
-TRIAGE="${PLUGIN_ROOT}/TRIAGE.md"
 MAX_FINDINGS=10
 
 # ---------- 文案（全部集中在这里；反引号是给模型看的 markdown，不是命令替换） ----------
@@ -36,8 +34,8 @@ MAX_FINDINGS=10
   MSG_NO_JQ='jq is not installed, so gox-guard cannot read hook input. Ask the user to run `brew install jq` (do not install it yourself).'
   MSG_NO_SCANNER='betterleaks is not installed. Ask the user to run `brew install betterleaks` (do not install it yourself).'
   MSG_BYPASS='Bypass only if the user explicitly asks: GOX_GUARD_SKIP=1.'
-  # 有发现时的两行结论；细节与配方在 TRIAGE.md
-  MSG_TRIAGE='Real secret: remove it from the commit(s), then tell the user to rotate it. False positive: `# betterleaks:allow` on that line, or append its fp to `.betterleaksignore`. Never allowlist a real secret.'
+  # 有发现时的两句裁定规则：真密钥 / 误报（单行、已提交、成规律三种出口）/ 绝不加白真值
+  MSG_TRIAGE='Real secret: remove it from the commit(s), then tell the user to rotate it. False positive: `# betterleaks:allow` on that line, append its fp to `.betterleaksignore`, or for a recurring pattern add an allowlist to `.betterleaks.toml`. Never allowlist a real secret.'
 }
 
 # `git [全局选项...] push`：git 与 push 之间只允许以 - 开头的选项及其可选取值（-C dir、-c k=v、
@@ -143,5 +141,4 @@ MORE=""
 
 emit_deny "$COUNT potential secret(s) in $AHEAD pending commit(s).
 $LIST$MORE
-$MSG_TRIAGE
-Full protocol: $TRIAGE"
+$MSG_TRIAGE"

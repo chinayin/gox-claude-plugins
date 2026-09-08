@@ -155,10 +155,9 @@ EOF
   grep -q "rotate" <<<"$reason"
   grep -q "betterleaks:allow" <<<"$reason"
   grep -q ".betterleaksignore" <<<"$reason"
+  grep -q ".betterleaks.toml" <<<"$reason"
   grep -q "Never allowlist a real secret" <<<"$reason"
-  # 完整协议只给路径，文件必须存在；逃生口不在有发现的文案里（在 TRIAGE.md 里）
-  triage="$(sed -n 's/^Full protocol: //p' <<<"$reason")"
-  [ -f "$triage" ] || { echo "TRIAGE.md path missing or wrong: '$triage'"; false; }
+  # 有发现时不提逃生口，避免诱导模型绕过
   ! grep -q "GOX_GUARD_SKIP" <<<"$reason"
   # 密钥原文不得出现（stub 报告里 Secret 已 REDACTED，这里断言脚本没有另行打印该字段）
   ! grep -q '"Secret"' <<<"$reason"
@@ -174,19 +173,7 @@ EOF
   reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
   [ "$(grep -c '^generic-api-key ' <<<"$reason")" -eq 10 ]
   grep -q "and 4 more" <<<"$reason"
-  grep -q "^14 potential secret" <<<"$reason" || grep -q "Push blocked: 14 potential secret" <<<"$reason"
-}
-
-@test "TRIAGE.md carries the full protocol the deny message points to" {
-  t="$BATS_TEST_DIRNAME/../TRIAGE.md"
-  [ -f "$t" ]
-  grep -q "reset --soft" "$t"
-  grep -q "rotate" "$t"
-  grep -q "betterleaks:allow" "$t"
-  grep -q ".betterleaksignore" "$t"
-  grep -q ".betterleaks.toml" "$t"
-  grep -q "GOX_GUARD_SKIP=1" "$t"
-  grep -qi "never allowlist a real secret" "$t"
+  grep -q "Push blocked: 14 potential secret" <<<"$reason"
 }
 
 @test "scanner failure (unexpected exit code) denies with the error, not a silent allow" {

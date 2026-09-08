@@ -64,10 +64,10 @@ A deterministic gate at the one moment a leaked credential becomes irreversible:
 | Event | What happens |
 |---|---|
 | Session start | Checks that `betterleaks` is on `PATH`. Present: silent. Missing: one line telling the model to ask you to install it. |
-| Claude runs a Bash command containing `git … push` | Scans the commits on `HEAD` that are not on any remote (`--all` / `--mirror` widen this to every local branch). Nothing pending: allowed without scanning. Clean: allowed silently. Findings: the push is **denied** and the model receives a redacted summary (rule, file:line, commit, fingerprint) plus a triage protocol. |
+| Claude runs a Bash command containing `git … push` | Scans the commits on `HEAD` that are not on any remote (`--all` / `--mirror` widen this to every local branch). Nothing pending: allowed without scanning. Clean: allowed silently. Findings: the push is **denied**; the model gets one line per finding (rule, file:line, commit, fingerprint; capped at 10), a two-sentence verdict rule, and the path of the full protocol. |
 | Scanner (or `jq`) missing, or scanner failing | The push is denied with the reason, not silently allowed. A gate that fails open is no gate. |
 
-Triage protocol handed to the model on a finding:
+The block message is deliberately short (about 500 characters for one finding) because it lands in the main agent's context. The full protocol lives in [`plugins/gox-guard/TRIAGE.md`](plugins/gox-guard/TRIAGE.md) and is read only when needed:
 
 1. Decide: real secret or false positive.
 2. Real secret: remove it from the offending commits (e.g. `git reset --soft`, fix, recommit) and tell you it already exists in local history and should be rotated. Never allowlist a real secret.

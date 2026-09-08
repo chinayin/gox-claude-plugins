@@ -75,7 +75,8 @@ gox-claude-plugins/
       .claude-plugin/plugin.json
       hooks/
         hooks.json                       # SessionStart 安装检查 + PreToolUse(Bash) 拦 git push
-        guard.sh                         # betterleaks 扫待推送区间;deny + 处置协议
+        guard.sh                         # betterleaks 扫待推送区间;deny 短文案 + 指向 TRIAGE.md
+      TRIAGE.md                          # 处置协议全文,模型被拦时才读
       tests/*.bats
     gox-prd/                             # 未来:产品需求技能
       .claude-plugin/plugin.json
@@ -243,8 +244,10 @@ PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true
 - **fail-closed**:扫描器缺失、jq 缺失、扫描器异常都 deny 而不是静默放行(缺 jq 时用固定 JSON
   与原始 stdin 正则退化处理);逃生口 `GOX_GUARD_SKIP=1`。
   这与 gox-code-rules 的 nudge hook(fail-open)相反,原因是闸门静默放行等于没有。
-- **处置协议住在 deny reason 里**,不另开技能:真密钥删除并轮换、单行误报行内 allow、
-  已提交或成规律的误报加 ignore/allowlist、绝不把真值加白。单一源。
+- **deny 文案短,协议全文在 `TRIAGE.md`**:拦截信息会进主 agent 上下文,所以只给一行一条的
+  发现列表(上限 10)+ 两句裁定规则 + 协议文件路径;`reset --soft` 配方、allowlist 示例、逃生口
+  政策等只在 `plugins/gox-guard/TRIAGE.md`,模型需要时再读。不另开技能(技能 metadata 常驻上下文,
+  而这份协议只在被拦时有用)。单一源。
 - **边界**:管不到人手敲的 push 与 CI,仓库 CI 仍是最后一道硬闸。
 - **扫描器选型**:gitleaks 已宣布 feature complete(仅安全补丁),原作者转向 betterleaks
   (MIT、CLI 与配置兼容、默认离线)。从零定标准没有存量,直接用 betterleaks,不做 gitleaks 兼容层。

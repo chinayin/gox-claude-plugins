@@ -149,18 +149,44 @@ EOF
   echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "PreToolUse"'
   echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
   reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
-  grep -q "aws-access-key" <<<"$reason"
-  grep -q "config.txt:3" <<<"$reason"
-  grep -q "01234567" <<<"$reason"
-  # 协议四步：判断 / 真密钥 / 单行误报 / 已提交或成规律的误报
-  grep -qi "real secret or a false positive" <<<"$reason"
+  # 发现列表一行一条：规则 文件:行 @提交 fp=指纹
+  grep -qE '^aws-access-key +config.txt:3 +@01234567 +fp=0123456789abcdef:config.txt:aws-access-key:3$' <<<"$reason"
+  # 两行结论：真密钥删除并轮换 / 误报 allow 或 ignore / 绝不加白真值
   grep -q "rotate" <<<"$reason"
   grep -q "betterleaks:allow" <<<"$reason"
   grep -q ".betterleaksignore" <<<"$reason"
   grep -q "Never allowlist a real secret" <<<"$reason"
-  grep -q "GOX_GUARD_SKIP=1" <<<"$reason"
+  # 完整协议只给路径，文件必须存在；逃生口不在有发现的文案里（在 TRIAGE.md 里）
+  triage="$(sed -n 's/^Full protocol: //p' <<<"$reason")"
+  [ -f "$triage" ] || { echo "TRIAGE.md path missing or wrong: '$triage'"; false; }
+  ! grep -q "GOX_GUARD_SKIP" <<<"$reason"
   # 密钥原文不得出现（stub 报告里 Secret 已 REDACTED，这里断言脚本没有另行打印该字段）
   ! grep -q '"Secret"' <<<"$reason"
+  # 文案要短：单条发现的 deny 控制在 600 字符内
+  [ "${#reason}" -lt 600 ] || { echo "reason too long: ${#reason}"; false; }
+}
+
+@test "findings list is capped at 10 with a count of the rest" {
+  many="$(jq -nc '[range(0;14) | {RuleID:"generic-api-key",File:"f\(.).txt",StartLine:1,Commit:"abcdef0123456789",Fingerprint:"abcdef01:f\(.).txt:generic-api-key:1"}]')"
+  stub_betterleaks 1 "$many"
+  add_ahead_commit
+  run_pre "git push"
+  reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
+  [ "$(grep -c '^generic-api-key ' <<<"$reason")" -eq 10 ]
+  grep -q "and 4 more" <<<"$reason"
+  grep -q "^14 potential secret" <<<"$reason" || grep -q "Push blocked: 14 potential secret" <<<"$reason"
+}
+
+@test "TRIAGE.md carries the full protocol the deny message points to" {
+  t="$BATS_TEST_DIRNAME/../TRIAGE.md"
+  [ -f "$t" ]
+  grep -q "reset --soft" "$t"
+  grep -q "rotate" "$t"
+  grep -q "betterleaks:allow" "$t"
+  grep -q ".betterleaksignore" "$t"
+  grep -q ".betterleaks.toml" "$t"
+  grep -q "GOX_GUARD_SKIP=1" "$t"
+  grep -qi "never allowlist a real secret" "$t"
 }
 
 @test "scanner failure (unexpected exit code) denies with the error, not a silent allow" {
@@ -193,6 +219,7 @@ EOF
   reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
   grep -q "brew install betterleaks" <<<"$reason"
   grep -qi "do not install it yourself" <<<"$reason"
+  grep -q "GOX_GUARD_SKIP=1" <<<"$reason"
 }
 
 @test "SessionStart with betterleaks missing: additionalContext names the gate and the install command" {
@@ -205,6 +232,7 @@ EOF
   grep -q "git push" <<<"$ctx"
   grep -q "brew install betterleaks" <<<"$ctx"
   grep -qi "do not install it yourself" <<<"$ctx"
+  [ "${#ctx}" -lt 300 ] || { echo "context too long: ${#ctx}"; false; }
 }
 
 @test "SessionStart with betterleaks present: silent (no tokens spent)" {
@@ -226,11 +254,22 @@ EOF
 }
 
 # ---------- 缺 jq：与缺扫描器同等对待 ----------
-# /usr/bin:/bin 有 bash/grep/git 但没有 jq（jq 在 /opt/homebrew/bin）
+# macOS 15+ 的 /usr/bin 自带 jq，不能靠裁 PATH 目录来模拟缺失；改为搭一个只有脚本所需
+# 工具软链、独缺 jq 的 PATH 目录。
+
+nojq_path() {
+  local d="$BATS_TEST_TMPDIR/nojq"
+  mkdir -p "$d"
+  local t
+  for t in bash sh git grep cat sed tail mktemp rm dirname env; do
+    ln -sf "$(command -v "$t")" "$d/$t"
+  done
+  printf '%s' "$d"
+}
 
 @test "jq missing + push: deny with a fixed JSON naming jq (no silent allow)" {
-  command -v /usr/bin/jq >/dev/null 2>&1 && skip "jq lives in /usr/bin on this machine"
-  run env PATH="/usr/bin:/bin" bash "$HOOK" PreToolUse <<<'{"tool_name":"Bash","tool_input":{"command":"git push origin main"}}'
+  P="$(nojq_path)"
+  run env PATH="$P" bash "$HOOK" PreToolUse <<<'{"tool_name":"Bash","tool_input":{"command":"git push origin main"}}'
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
   echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason' | grep -q "brew install jq"
@@ -238,18 +277,18 @@ EOF
 }
 
 @test "jq missing + non-push or GOX_GUARD_SKIP: exit 0, no output" {
-  command -v /usr/bin/jq >/dev/null 2>&1 && skip "jq lives in /usr/bin on this machine"
-  run env PATH="/usr/bin:/bin" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git status"}}'
+  P="$(nojq_path)"
+  run env PATH="$P" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git status"}}'
   [ "$status" -eq 0 ]; [ -z "$output" ]
-  run env PATH="/usr/bin:/bin" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git stash push -m wip"}}'
+  run env PATH="$P" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git stash push -m wip"}}'
   [ "$status" -eq 0 ]; [ -z "$output" ]
-  run env GOX_GUARD_SKIP=1 PATH="/usr/bin:/bin" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
+  run env GOX_GUARD_SKIP=1 PATH="$P" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
   [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
 @test "jq missing at SessionStart: fixed additionalContext names jq and the install command" {
-  command -v /usr/bin/jq >/dev/null 2>&1 && skip "jq lives in /usr/bin on this machine"
-  run env PATH="/usr/bin:/bin" bash "$HOOK" SessionStart </dev/null
+  P="$(nojq_path)"
+  run env PATH="$P" bash "$HOOK" SessionStart </dev/null
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
   echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "brew install jq"

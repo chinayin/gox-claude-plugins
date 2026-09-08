@@ -11,6 +11,11 @@
       "name": "token-thrift",
       "source": "./plugins/token-thrift",
       "description": "Cheap-model subagents for token-heavy work — reads on Haiku, correctness-sensitive writes on Sonnet, the main agent only orchestrates; raw material never enters the main context"
+    },
+    {
+      "name": "gox-guard",
+      "source": "./plugins/gox-guard",
+      "description": "Agent-side secret gate: scans the commits not yet on any remote with betterleaks before Claude runs `git push`, and blocks the push if a credential is found; writes nothing into your repo"
     }
   ]
 }

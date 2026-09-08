@@ -71,6 +71,12 @@ gox-claude-plugins/
           references/
             rules.md  code-style.md  service-layout.md  http.md  cli.md  config.md  db-migrations.md  time-and-timezone.md  scaffold.md
         # 未来:node/  python/
+    gox-guard/                           # agent 侧密钥闸门(见 §8.1)
+      .claude-plugin/plugin.json
+      hooks/
+        hooks.json                       # SessionStart 安装检查 + PreToolUse(Bash) 拦 git push
+        guard.sh                         # betterleaks 扫待推送区间;deny + 处置协议
+      tests/*.bats
     gox-prd/                             # 未来:产品需求技能
       .claude-plugin/plugin.json
       skills/prd/SKILL.md
@@ -213,20 +219,44 @@ PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true
 
 ---
 
-## 8. 强制力分层(软/硬)
+## 8. 强制力分层(软/agent 侧闸门/硬)
 
 | 层 | 机制 | 性质 |
 |---|---|---|
 | 软(会话内引导) | 技能(`paths` 自动 + `description` 自调 + 渐进披露) | 高概率在场,模型可忽略 |
-| 硬(真正卡死) | `golangci-lint` / 格式化 / CI / PR review | 确定性 |
+| **agent 侧确定性闸门**(2026-09 新增) | `gox-guard`:PreToolUse 拦 Claude 发起的 `git push`,betterleaks 扫待推送提交 | 确定性,但只覆盖 Claude 会话内的动作;不写用户 repo |
+| 硬(真正卡死) | `golangci-lint` / 格式化 / CI / PR review | 确定性,覆盖所有人 |
 
 文档明确:技能负责"让模型默认知道并倾向遵循规范";"必须"由 CI/lint 兜底。两者分工。
+中间层是为"agent 把东西送出本机前"这一类动作补的:它们既不是代码规范(技能管不了),
+又发生在 CI 之前(CI 管晚了)。目前只有密钥一项;加新的闸门要满足同样的三条:确定性、
+只拦不可逆动作、对用户 repo 零写入。
+
+### 8.1 gox-guard 的定位与取舍
+
+- **拦 push 不拦 commit**:commit 本地廉价可重做;`git add && git commit` 一条命令时 pre-commit
+  扫到的是 add 前的索引,有漏洞;push 才是泄漏不可逆的临界点,且此刻待推送区间(`HEAD --not --remotes`)完全确定。
+- **零配置、零写入**:没配置用内置规则;白名单(`.betterleaksignore` / `.betterleaks.toml` /
+  行内 `betterleaks:allow`)在第一次需要时由模型作为普通改动加进 repo,走 review。插件不生成它们。
+- **不 pin 版本、不装工具**:只扫待推送区间,新规则不会让老提交报红;缺工具时拦下并让模型提醒
+  用户安装,插件不自动安装(装软件是机器主人的事)。
+- **fail-closed**:扫描器缺失或异常都 deny 而不是静默放行;逃生口 `GOX_GUARD_SKIP=1`。
+  这与 gox-code-rules 的 nudge hook(fail-open)相反,原因是闸门静默放行等于没有。
+- **处置协议住在 deny reason 里**,不另开技能:真密钥删除并轮换、单行误报行内 allow、
+  已提交或成规律的误报加 ignore/allowlist、绝不把真值加白。单一源。
+- **边界**:管不到人手敲的 push 与 CI,仓库 CI 仍是最后一道硬闸。
+- **扫描器选型**:gitleaks 已宣布 feature complete(仅安全补丁),原作者转向 betterleaks
+  (MIT、CLI 与配置兼容、默认离线)。从零定标准没有存量,直接用 betterleaks,不做 gitleaks 兼容层。
 
 ---
 
 ## 9. 安全与治理
 
-- 本插件仅一个**薄 SessionStart 提示 hook**(回显固定文本、fail-open、不读用户文件、不执行外部命令),信任面远小于一般带 hook 的插件;但插件机制本身仍是高信任组件,治理照旧。
+- `gox-code-rules` 仅一个**薄 SessionStart 提示 hook**(回显固定文本、fail-open、不读用户文件、不执行外部命令),信任面远小于一般带 hook 的插件;但插件机制本身仍是高信任组件,治理照旧。
+- `gox-guard` 是仓内**唯一会执行外部程序并可阻断工具调用**的插件,信任级别不同,单列:
+  只在 Bash 命令含 `git … push` 时动作;只读 git 对象与 stdin 的 hook 输入;唯一执行的外部程序是
+  `PATH` 上的 `betterleaks`(或 `GOX_GUARD_BIN` 指定);输出常开 `--redact`,永不开 `--validation`
+  (bats 静态断言);不联网、不安装、不写用户 repo;退出码永远 0,阻断只通过 `permissionDecision: deny`。
 - **插件仓写权限治理**:`chinayin/gox-claude-plugins` 开分支保护 + 强制 PR review;限定可 push 人员。
 - 只走 GitHub 源;`strictKnownMarketplaces` 锁 `chinayin`,挡第三方 marketplace。
 - Managed force-enable 时用户无法关 → 配回滚流程(§10)。

@@ -1,0 +1,6 @@
+{
+  "name": "gox-guard",
+  "version": "0.1.0",
+  "description": "Agent-side secret gate: before Claude runs `git push`, scans the commits not yet on any remote with betterleaks and blocks the push if a credential is found. Writes nothing into your repo; commits stay untouched; only the push is gated.",
+  "author": { "name": "chinayin" }
+}

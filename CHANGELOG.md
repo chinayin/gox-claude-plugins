@@ -1,6 +1,34 @@
 # Changelog
 
-本仓两个插件各自独立演进版本，按插件分节，新版本在前。
+本仓各插件独立演进版本，按插件分节，新版本在前。
+
+## gox-guard
+
+### 0.1.0 — 2026-09-08
+
+新插件：agent 侧的密钥闸门，仓内第一个会执行外部程序、会阻断工具调用的 hook。
+
+- 触发：PreToolUse 匹配 Bash，命令里同一段含 `git … push` 才动作（`git log | grep push` 不算）。
+  只拦 push 不拦 commit：commit 本地廉价可重做，且 `git add && git commit` 一条命令时 pre-commit
+  扫到的是 add 前的索引；push 才是泄漏不可逆的临界点，区间也在此刻确定。
+- 区间：`HEAD --not --remotes`（`--all`/`--mirror` 扩为 `--branches --not --remotes`）。
+  没有待推送提交不调扫描器。
+- 扫描器：betterleaks（gitleaks 原作者的后继项目，MIT，gitleaks 已宣布 feature complete）。
+  不 pin 版本、不兼容 gitleaks 二进制、不自动安装：本机有就用，没有就拦下 push 并让模型提醒
+  用户 `brew install betterleaks`。SessionStart 也检查一次，缺失时提前提示。
+- 结果：干净静默放行；有发现返回 `permissionDecision: deny`，reason 带脱敏摘要
+  （RuleID、File:StartLine、commit、Fingerprint）与四步处置协议（真密钥删除并轮换、单行
+  `betterleaks:allow`、已提交/成规律的加 `.betterleaksignore` 或 `.betterleaks.toml`）。
+  扫描器缺失或异常退出同样 deny 而非静默放行。
+- 硬约束：`--redact` 常开；永不传 `--validation`（bats 静态断言）。
+- 逃生口：`GOX_GUARD_SKIP=1`。
+- 零写入：不要求也不生成任何配置文件；betterleaks 自行在仓库根解析 `.betterleaks.toml`/
+  `.gitleaks.toml`/`.betterleaksignore`。
+- 退出码永远 0（hook 规范）；阻断靠 JSON 而非退出码。缺 jq 放行（无法解析 hook 输入）。
+- bats：19 个用例，stub 扫描器覆盖干净/有发现/缺失/出错，临时 git 仓库覆盖区间与触发词。
+  真二进制端到端在开发机验证：假 GitHub PAT 被拦、写入 fingerprint 后放行、单次 0.24s。
+- 分发：加入 marketplace 与 `templates/project-settings.json`；`tests/template.bats` 改为
+  遍历 marketplace，新插件自动纳入。
 
 ## gox-code-rules
 

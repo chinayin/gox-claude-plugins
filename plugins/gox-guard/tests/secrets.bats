@@ -1,20 +1,18 @@
 #!/usr/bin/env bats
 #
-# gox-guard 的确定性行为：什么时候扫、扫什么区间、拦下时说什么、缺工具怎么办。
-# 用 PATH 上的 stub betterleaks 模拟三种结果（干净 / 有发现 / 未安装），真实二进制的
-# 行为（flag、报告字段）另由 tests/real-betterleaks.bats 在本机装了 betterleaks 时覆盖。
-# 所有 git 操作只发生在 $BATS_TEST_TMPDIR 下的临时仓库里，不碰真实项目。
+# gox-guard / secrets：什么时候扫、扫什么区间、拦下时说什么、缺依赖怎么办。
+# 扫描器用 PATH 上的 stub 模拟（干净 / 有发现 / 出错 / 未安装）；git 操作只发生在
+# $BATS_TEST_TMPDIR 下的临时仓库里。
 
 HOOK="$BATS_TEST_DIRNAME/../hooks/secrets.sh"
 
 setup() {
   STUB_DIR="$BATS_TEST_TMPDIR/stub"
   mkdir -p "$STUB_DIR"
-  # 记录 stub 被调用的次数与参数，供断言"没调"/"调了什么"
-  STUB_LOG="$BATS_TEST_TMPDIR/stub.log"
+  STUB_LOG="$BATS_TEST_TMPDIR/stub.log"    # stub 每次被调用追加一行参数
   : > "$STUB_LOG"
 
-  # 一个有远端、有一次已推送提交的临时仓库；测试按需再加"领先远端"的提交
+  # 有远端、已推送一次的临时仓库；需要待推送提交的用例再调 add_ahead_commit
   REMOTE="$BATS_TEST_TMPDIR/remote.git"
   REPO="$BATS_TEST_TMPDIR/repo"
   git init -q --bare "$REMOTE"
@@ -28,8 +26,7 @@ setup() {
   git -C "$REPO" push -q -u origin main
 }
 
-# stub_betterleaks <exit-code> [json-report]
-# 生成一个假 betterleaks：记录参数，按要求退出；给了报告就打到 stdout（模拟 -r -）
+# stub_betterleaks <exit-code> [json-report]：记录参数，按要求退出，报告打到 stdout（模拟 -r -）
 stub_betterleaks() {
   local code="$1" report="${2:-}"
   cat > "$STUB_DIR/betterleaks" <<EOF
@@ -41,14 +38,13 @@ EOF
   chmod +x "$STUB_DIR/betterleaks"
 }
 
-# 一次"领先远端"的提交，让待推送区间非空
 add_ahead_commit() {
   echo "x=1" > "$REPO/config.txt"
   git -C "$REPO" add config.txt
   git -C "$REPO" commit -qm ahead
 }
 
-# run_pre <command> — 以 PreToolUse 的 stdin 形状调用 hook
+# run_pre <command>：以 PreToolUse 的 stdin 形状调用 hook
 run_pre() {
   local cmd="$1"
   run env PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$HOOK" PreToolUse <<EOF
@@ -141,7 +137,7 @@ EOF
   [[ "$args" == *"--branches --not --remotes"* ]] || { echo "args=$args"; false; }
 }
 
-@test "findings (exit 1) deny the push with a redacted summary and the triage protocol" {
+@test "findings (exit 1) deny the push with one line per finding and the verdict rule" {
   stub_betterleaks 1 "$FINDING"
   add_ahead_commit
   run_pre "git push"
@@ -149,19 +145,19 @@ EOF
   echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "PreToolUse"'
   echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
   reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
-  # 发现列表一行一条：规则 文件:行 @提交 fp=指纹
+  # 一行一条：规则 文件:行 @提交 fp=指纹
   grep -qE '^aws-access-key +config.txt:3 +@01234567 +fp=0123456789abcdef:config.txt:aws-access-key:3$' <<<"$reason"
-  # 两行结论：真密钥删除并轮换 / 误报 allow 或 ignore / 绝不加白真值
+  # 裁定规则：真密钥删除并轮换 / 误报三个出口 / 绝不加白真值
   grep -q "rotate" <<<"$reason"
   grep -q "betterleaks:allow" <<<"$reason"
   grep -q ".betterleaksignore" <<<"$reason"
   grep -q ".betterleaks.toml" <<<"$reason"
   grep -q "Never allowlist a real secret" <<<"$reason"
-  # 有发现时不提逃生口，避免诱导模型绕过
+  # 有发现时不提逃生口
   ! grep -q "GOX_GUARD_SKIP" <<<"$reason"
-  # 密钥原文不得出现（stub 报告里 Secret 已 REDACTED，这里断言脚本没有另行打印该字段）
+  # 不回显 Secret 字段
   ! grep -q '"Secret"' <<<"$reason"
-  # 文案要短：单条发现的 deny 控制在 600 字符内
+  # 单条发现的文案不超过 600 字符
   [ "${#reason}" -lt 600 ] || { echo "reason too long: ${#reason}"; false; }
 }
 
@@ -192,14 +188,13 @@ EOF
   grep -q "GOX_GUARD_SKIP=1" <<<"$reason"
 }
 
-# ---------- 缺工具 ----------
+# ---------- 缺 betterleaks ----------
 
 @test "betterleaks missing: deny the push, tell the model to ask the user to install (never self-install)" {
   add_ahead_commit
   run env PATH="/usr/bin:/bin:/opt/homebrew/bin" bash "$HOOK" PreToolUse <<EOF
 {"tool_name":"Bash","cwd":"$REPO","tool_input":{"command":"git push"}}
 EOF
-  # 本机若真装了 betterleaks 则此用例不成立，跳过
   command -v betterleaks >/dev/null 2>&1 && skip "betterleaks is installed on this machine"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
@@ -229,7 +224,7 @@ EOF
   [ -z "$output" ]
 }
 
-# ---------- fail-open 形状 ----------
+# ---------- 退出码 ----------
 
 @test "never exits non-zero: unknown event, bad JSON, empty stdin" {
   run bash "$HOOK" BogusEvent
@@ -240,9 +235,8 @@ EOF
   [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
-# ---------- 缺 jq：与缺扫描器同等对待 ----------
-# macOS 15+ 的 /usr/bin 自带 jq，不能靠裁 PATH 目录来模拟缺失；改为搭一个只有脚本所需
-# 工具软链、独缺 jq 的 PATH 目录。
+# ---------- 缺 jq ----------
+# 系统目录里可能自带 jq（新版 macOS 的 /usr/bin），所以搭一个只软链脚本所需工具、独缺 jq 的 PATH。
 
 nojq_path() {
   local d="$BATS_TEST_TMPDIR/nojq"

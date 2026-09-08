@@ -6,35 +6,22 @@
 
 ### 0.1.0 — 2026-09-08
 
-新插件：agent 侧不可逆动作的确定性闸门，仓内第一个会执行外部程序、会阻断工具调用的 hook。
-插件名是一类的总名，每道闸一个脚本（`hooks/<闸名>.sh`）并列注册，文案前缀 `[gox-guard/<闸名>]`；
-首个闸门是 `secrets`。
+新插件：agent 侧不可逆动作的确定性闸门。每道闸一个脚本 `hooks/<闸名>.sh`，在 hooks.json 同一事件下
+并列注册，文案前缀 `[gox-guard/<闸名>]`，`GOX_GUARD_SKIP=1` 整体跳过。首个闸门 `secrets`：
 
-- 触发：PreToolUse 匹配 Bash，命令里同一段含 `git … push` 才动作（`git log | grep push` 不算）。
-  只拦 push 不拦 commit：commit 本地廉价可重做，且 `git add && git commit` 一条命令时 pre-commit
-  扫到的是 add 前的索引；push 才是泄漏不可逆的临界点，区间也在此刻确定。
-- 区间：`HEAD --not --remotes`（`--all`/`--mirror` 扩为 `--branches --not --remotes`）。
+- 触发：PreToolUse 匹配 Bash，命令含 `git [全局选项] push` 才动作；`git stash push`、
+  `git log | grep push` 不算。只拦 push 不拦 commit。
+- 区间：`HEAD --not --remotes`，`--all` / `--mirror` 时扩为 `--branches --not --remotes`。
   没有待推送提交不调扫描器。
-- 扫描器：betterleaks（gitleaks 原作者的后继项目，MIT，gitleaks 已宣布 feature complete）。
-  不 pin 版本、不兼容 gitleaks 二进制、不自动安装：本机有就用，没有就拦下 push 并让模型提醒
-  用户 `brew install betterleaks`。SessionStart 也检查一次，缺失时提前提示。
-- 结果：干净静默放行；有发现返回 `permissionDecision: deny`，reason 刻意压短（单条约 500 字符，
-  它会进主 agent 上下文）：一行一条的发现列表（RuleID、File:StartLine、@commit、fp=Fingerprint，
-  最多 10 条，超出只报数量）+ 两句裁定规则（真密钥删除并轮换 / 误报 `betterleaks:allow`、
-  `.betterleaksignore`、`.betterleaks.toml` allowlist 三个出口 / 绝不加白真值）。不附手册，
-  有发现时也不提逃生口。文案全部集中在脚本顶部常量。扫描器缺失或异常退出同样 deny 而非静默放行。
-- 硬约束：`--redact` 常开；永不传 `--validation`（bats 静态断言）。
-- 逃生口：`GOX_GUARD_SKIP=1`。
-- 零写入：不要求也不生成任何配置文件；betterleaks 自行在仓库根解析 `.betterleaks.toml`/
-  `.gitleaks.toml`/`.betterleaksignore`。
-- 退出码永远 0（hook 规范）；阻断靠 JSON 而非退出码。缺 jq 与缺扫描器同等对待：用固定
-  JSON 输出，push 判定退化为对原始 stdin 跑同一条正则，命中即 deny 并提示 `brew install jq`。
-- bats：23 个用例，stub 扫描器覆盖干净/有发现/缺失/出错，临时 git 仓库覆盖区间与触发词，
-  缺 jq 三种路径（用独缺 jq 的软链 PATH 模拟，macOS 15+ 的 /usr/bin 自带 jq）、发现列表上限、
-  文案长度上限。
-  真二进制端到端在开发机验证：假 GitHub PAT 被拦、写入 fingerprint 后放行、单次 0.24s。
-- 分发：加入 marketplace 与 `templates/project-settings.json`；`tests/template.bats` 改为
-  遍历 marketplace，新插件自动纳入。
+- 扫描器：betterleaks。不 pin 版本、不自动安装；缺失时拦下 push 并让模型提醒用户
+  `brew install betterleaks`。SessionStart 也检查一次，缺 jq 同样处理。
+- 结果：干净静默放行；有发现返回 `permissionDecision: deny`，文案为一行一条的发现列表
+  （规则、文件:行、提交、fingerprint，最多 10 条）加两句裁定规则（真密钥删除并轮换 / 误报用
+  `betterleaks:allow`、`.betterleaksignore` 或 `.betterleaks.toml` / 绝不加白真值）。扫描器缺失或
+  出错同样 deny。
+- 硬约束：`--redact` 常开，永不传 `--validation`；不要求也不生成任何配置文件；退出码永远 0。
+- 分发：加入 marketplace 与 `templates/project-settings.json`；`tests/template.bats` 改为遍历
+  marketplace。
 
 ## gox-code-rules
 

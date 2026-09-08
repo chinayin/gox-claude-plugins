@@ -10,7 +10,7 @@ Team plugins for Claude Code, distributed through a single marketplace (`chinayi
 |---|---|
 | `gox-code-rules` | Team coding standards as Agent Skills (Go / frontend / shell / engineering). A skill activates while you edit matching files and reads only the reference file the current task needs. |
 | `token-thrift` | Cheap-model subagents for token-heavy work: reads on Haiku, correctness-sensitive writes on Sonnet, the main agent only orchestrates. Raw material stays out of the main context. |
-| `gox-guard` | Agent-side secret gate. Before Claude runs `git push`, the commits not yet on any remote are scanned with [betterleaks](https://github.com/betterleaks/betterleaks); a finding blocks the push and hands the model a triage protocol. Commits are never gated, nothing is written into your repo. |
+| `gox-guard` | Deterministic gates for irreversible actions Claude is about to take, one hook script per gate, nothing written into your repo. First gate, `secrets`: before `git push`, the commits not yet on any remote are scanned with [betterleaks](https://github.com/betterleaks/betterleaks) and a finding blocks the push. |
 
 Centralising standards here avoids the usual cost of copying them into every repo's `CLAUDE.md`: drift across repos, context bloat, and unclear ownership. The skills are in-session guidance and may not always trigger; final enforcement is `golangci-lint` / CI / PR review. `gox-guard` is the one deterministic piece: it runs an external scanner and can block a tool call, so it is documented separately below.
 
@@ -71,7 +71,7 @@ Sits at the one moment a leaked credential becomes irreversible: the push. Every
 | Claude runs a Bash command containing `git … push` | Scans the commits on `HEAD` that are not on any remote (`--all` / `--mirror` widen this to every local branch). Nothing pending: allowed without scanning. Clean: allowed silently. Findings: the push is **denied**; the model gets one line per finding (rule, file:line, commit, fingerprint; capped at 10) and a two-sentence verdict rule. |
 | Scanner (or `jq`) missing, or scanner failing | The push is denied with the reason, not silently allowed. A gate that fails open is no gate. |
 
-The block message is deliberately short (about 500 characters for one finding) because it lands in the main agent's context, and it carries no manual: the model already knows git. What it tells the model:
+The block message is deliberately short because it lands in the main agent's context, and it carries no manual: the model already knows git. What it tells the model:
 
 1. Real secret: remove it from the offending commits and tell you it already exists in local history and should be rotated. Never allowlist a real secret.
 2. False positive on one line: `# betterleaks:allow` comment on that line.

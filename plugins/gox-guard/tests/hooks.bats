@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 #
-# gox-guard 的 hook 注册：SessionStart 做安装检查，PreToolUse 只挂 Bash 工具，
-# 事件名以参数传给同一个脚本；PreToolUse 要带超时（扫描是外部进程）。
+# gox-guard 的 hook 注册：SessionStart 做依赖检查，PreToolUse 只挂 Bash 工具并带超时，
+# 事件名以参数传给脚本；hooks/ 下的脚本与 hooks.json 的注册一一对应。
 
 HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
 

@@ -1,6 +1,27 @@
 # Changelog
 
-本仓两个插件各自独立演进版本，按插件分节，新版本在前。
+本仓各插件独立演进版本，按插件分节，新版本在前。
+
+## gox-guard
+
+### 0.1.0 — 2026-09-08
+
+新插件：agent 侧不可逆动作的确定性闸门。每道闸一个脚本 `hooks/<闸名>.sh`，在 hooks.json 同一事件下
+并列注册，文案前缀 `[gox-guard/<闸名>]`，`GOX_GUARD_SKIP=1` 整体跳过。首个闸门 `secrets`：
+
+- 触发：PreToolUse 匹配 Bash，命令含 `git [全局选项] push` 才动作；`git stash push`、
+  `git log | grep push` 不算。只拦 push 不拦 commit。
+- 区间：`HEAD --not --remotes`，`--all` / `--mirror` 时扩为 `--branches --not --remotes`。
+  没有待推送提交不调扫描器。
+- 扫描器：betterleaks。不 pin 版本、不自动安装；缺失时拦下 push 并让模型提醒用户
+  `brew install betterleaks`。SessionStart 也检查一次，缺 jq 同样处理。
+- 结果：干净静默放行；有发现返回 `permissionDecision: deny`，文案为一行一条的发现列表
+  （规则、文件:行、提交、fingerprint，最多 10 条）加两句裁定规则（真密钥删除并轮换 / 误报用
+  `betterleaks:allow`、`.betterleaksignore` 或 `.betterleaks.toml` / 绝不加白真值）。扫描器缺失或
+  出错同样 deny。
+- 硬约束：`--redact` 常开，永不传 `--validation`；不要求也不生成任何配置文件；退出码永远 0。
+- 分发：加入 marketplace 与 `templates/project-settings.json`；`tests/template.bats` 改为遍历
+  marketplace。
 
 ## gox-code-rules
 

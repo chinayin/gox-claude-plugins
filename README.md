@@ -38,6 +38,7 @@ Single machine:
 | Go | `/gox-code-rules:go` | Go tasks — nudge + description, model-invoked (`paths` declared, not load-bearing) | Go architecture + gin HTTP / cobra / gox-config / goose / time & timezone / scaffolding; detail in `references/`, read on demand |
 | Frontend | `/gox-code-rules:frontend` | frontend tasks (same mechanism) | React / Vue / TS / JS / styling (skeleton; body TODO) |
 | Shell | `/gox-code-rules:shell` | shell tasks (same mechanism) | bash/CLI scripts: stdout/stderr split, status prefixes, standard flags, exit codes, `test.sh` |
+| Skill | `/gox-code-rules:skill` | writing or editing a SKILL.md (same mechanism) | naming (`object-action`, no version suffix), body language, no environment facts; adds only what the official skill-creator leaves open |
 
 How to phrase requests so a skill triggers, and what to do when it doesn't: see [USAGE.md](USAGE.md).
 

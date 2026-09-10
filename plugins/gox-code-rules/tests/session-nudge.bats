@@ -16,11 +16,13 @@ setup() {
   echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SubagentStart"'
 }
 
-@test "SessionStart context names the go, shell and engineering skills and the one-skill rule" {
+@test "SessionStart context names the go, shell, python, skill and engineering skills and the one-skill rule" {
   run bash "$HOOK" SessionStart
   ctx="$(echo "$output" | jq -er '.hookSpecificOutput.additionalContext')"
   grep -q "gox-code-rules:go" <<<"$ctx"
   grep -q "gox-code-rules:shell" <<<"$ctx"
+  grep -q "gox-code-rules:python" <<<"$ctx"
+  grep -q "gox-code-rules:skill\`" <<<"$ctx"
   grep -q "gox-code-rules:engineering" <<<"$ctx"
   grep -q "usually exactly one" <<<"$ctx"
   grep -q "not for a one-file edit" <<<"$ctx"
@@ -40,6 +42,8 @@ setup() {
   grep -q "only if the brief names none" <<<"$ctx"
   grep -q "gox-code-rules:go" <<<"$ctx"
   grep -q "gox-code-rules:shell" <<<"$ctx"
+  grep -q "gox-code-rules:python" <<<"$ctx"
+  grep -q "gox-code-rules:skill\`" <<<"$ctx"
   grep -q "Do not invoke \`gox-code-rules:engineering\`" <<<"$ctx"
   # 子代理版必须明显短于主会话版
   run bash "$HOOK" SessionStart

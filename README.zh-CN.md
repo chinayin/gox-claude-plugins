@@ -38,6 +38,7 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 | Go | `/gox-code-rules:go` | 动 Go 文件（`**/*.go, go.mod...`） | Go 架构 + gin HTTP / cobra / gox-config / goose / 时间与时区 / 脚手架；细则在 `references/` 按需读 |
 | 前端 | `/gox-code-rules:frontend` | 动前端文件 | React / Vue / TS / JS / 样式（骨架，正文 TODO） |
 | Shell | `/gox-code-rules:shell` | 动 Shell 文件（`**/*.sh, **/*.bash`） | bash/CLI 脚本：stdout/stderr 分流、状态前缀、标准 flag、退出码、`test.sh` |
+| Skill | `/gox-code-rules:skill` | 写或改 SKILL.md（`**/SKILL.md`） | 命名（对象-动作，不带版本后缀）、正文语言、不写环境事实；只补官方 skill-creator 没定的事，不复述 |
 
 怎么问能稳定触发、没触发怎么办：见 [USAGE.md](USAGE.md)。
 

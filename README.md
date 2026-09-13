@@ -11,6 +11,7 @@ Team plugins for Claude Code, distributed through a single marketplace (`chinayi
 | `gox-code-rules` | Team coding standards as Agent Skills (Go / frontend / shell / engineering). A skill activates while you edit matching files and reads only the reference file the current task needs. |
 | `token-thrift` | Cheap-model subagents for token-heavy work: reads on Haiku, correctness-sensitive writes on Sonnet, the main agent only orchestrates. Raw material stays out of the main context. |
 | `gox-guard` | Deterministic gates for irreversible actions Claude is about to take, one hook script per gate, nothing written into your repo. First gate, `secrets`: before `git push`, the commits not yet on any remote are scanned with [betterleaks](https://github.com/betterleaks/betterleaks) and a finding blocks the push. |
+| `diagram-design` | Third-party ([cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design), MIT), referenced rather than copied; tracks the upstream default branch. Editorial diagrams (40 types) as standalone HTML/SVG plus import/export commands. Opt-in; not in the default template. Registry and intake checklist: [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md). |
 
 Centralising standards here avoids the usual cost of copying them into every repo's `CLAUDE.md`: drift across repos, context bloat, and unclear ownership. The skills are in-session guidance and may not always trigger; final enforcement is `golangci-lint` / CI / PR review. `gox-guard` is the one deterministic piece: it runs an external scanner and can block a tool call, so it is documented separately below.
 
@@ -25,6 +26,7 @@ Single machine:
 /plugin install gox-code-rules@chinayin
 /plugin install token-thrift@chinayin
 /plugin install gox-guard@chinayin
+/plugin install diagram-design@chinayin   # optional, third-party
 /reload-plugins
 ```
 

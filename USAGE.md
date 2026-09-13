@@ -41,7 +41,7 @@
 | Shell 规范 | `/gox-code-rules:shell` | 任务涉及 Shell 脚本(机制同上) | bash/CLI 脚本约定:stdout·stderr 分流、状态前缀、标准 flag、退出码、`test.sh` 自测(单文件 SKILL.md,无 references) |
 | 技能编写规范 | `/gox-code-rules:skill` | 任务涉及写或改 SKILL.md(机制同上) | 命名(一个词是规则集;多词一律对象-动作;不带版本后缀)、正文默认英文、环境事实不入技能;编写过程交给官方 skill-creator,不复述(单文件 SKILL.md,无 references) |
 
-**触发机制(重要)**:实测(见 `docs/mvp-findings.md`,CC 2.1.183)技能加载由模型**显式调用 Skill 工具**驱动,推动力是两层——每会话/子代理注入的 `[gox-code-rules]` 提示(nudge)+ 技能 `description`。设计期(还没动任何文件)同样能触发。frontmatter 的 `paths` 是声明性字段,实测**未观察到**"按文件自动注入"生效,不要把它当成触发保证。
+**触发机制(重要)**:实测(见 `docs/MVP_FINDINGS.md`,CC 2.1.183)技能加载由模型**显式调用 Skill 工具**驱动,推动力是两层——每会话/子代理注入的 `[gox-code-rules]` 提示(nudge)+ 技能 `description`。设计期(还没动任何文件)同样能触发。frontmatter 的 `paths` 是声明性字段,实测**未观察到**"按文件自动注入"生效,不要把它当成触发保证。
 
 > 触发本质带概率(实测真实编码场景约 2/3 命中)。要保证在场,直接手动调用(见 §4)。
 

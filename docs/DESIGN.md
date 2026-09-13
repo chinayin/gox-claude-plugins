@@ -29,7 +29,7 @@
 |---|---|
 | 目标工具 | 仅 Claude Code |
 | 规则正文住哪 | 打进插件 `skills/.../references/`(插件仓即唯一源,零副本) |
-| 激活机制 | **Agent Skills 为主**(`paths` 自动激活 + `description` 模型自调 + 渐进披露)+ **一个薄 SessionStart 提示 hook**(只提示用技能、不含规则正文)。依据:真实测试激活率~2/3,薄提示兜住漏触发与设计期(见 `docs/mvp-findings.md`) |
+| 激活机制 | **Agent Skills 为主**(`paths` 自动激活 + `description` 模型自调 + 渐进披露)+ **一个薄 SessionStart 提示 hook**(只提示用技能、不含规则正文)。依据:真实测试激活率~2/3,薄提示兜住漏触发与设计期(见 `docs/MVP_FINDINGS.md`) |
 | 对用户 repo 写入 | 零写入 |
 | 强制力 | 会话内技能 = **软层引导(概率)**;真强制 = **CI / golangci-lint / PR gate(硬层)** |
 | 代码规范粒度 | 一个 `go` 技能管所有 Go(架构+cli+config+db),内部 `references/` 分文件 |
@@ -109,7 +109,7 @@ gox-claude-plugins/
   则**只在处理 Go 文件时自动激活**。这是 v1 想用 PreToolUse hook 手搓的东西的官方原生替代——
   "写 Go 才加载 Go 规范""编辑 `cmd/` 才看 cli"由 `paths` + SKILL.md 索引共同实现。
   > **实测注记(2026-06-20,CC 2.1.183)**:端到端验证**未观察到** `paths` 自动注入生效;
-  > 实际触发由 nudge + `description` 驱动模型显式调 Skill 工具(见 `docs/mvp-findings.md`)。
+  > 实际触发由 nudge + `description` 驱动模型显式调 Skill 工具(见 `docs/MVP_FINDINGS.md`)。
   > `paths` 保留为声明,不承担触发。
 - **`description` 模型自调(按意图)**:模型在**设计/规划阶段**(还没编辑文件)就能因 description 匹配
   自己把技能调出来——这覆盖了 v1 头疼的"设计期无触发"问题。
@@ -125,7 +125,7 @@ Cursor glob 同类。**所以技能只承担"软引导"。** 真正"必须遵守
 
 ### 2.4 薄 SessionStart 提示(兜住技能欠触发)
 
-真实测试(`docs/mvp-findings.md`)显示技能在真实编码场景激活率 ~2/3——好,但仍有 ~1/3 漏(尤其琐碎任务),且设计/意图期靠 description 偏弱。故加一个**薄 SessionStart 提示 hook**(`hooks/session-nudge.sh`):
+真实测试(`docs/MVP_FINDINGS.md`)显示技能在真实编码场景激活率 ~2/3——好,但仍有 ~1/3 漏(尤其琐碎任务),且设计/意图期靠 description 偏弱。故加一个**薄 SessionStart 提示 hook**(`hooks/session-nudge.sh`):
 - 每会话注入**一句固定提示**:"本仓遵循团队规范;写/设计代码用 `gox-code-rules:go` / `:engineering` 技能;最终强制以 golangci-lint/CI 为准"。
 - **只提示、不含规则正文**(正文仍只在技能 `references/`,单一源不破)。
 - fail-open、绝不 exit 2、缺 jq 静默退出。
@@ -263,7 +263,9 @@ fail-closed。建议性检查归 gox-code-rules;只有 CI 能判断的留在 CI�
 - **插件仓写权限治理**:`chinayin/gox-claude-plugins` 开分支保护 + 强制 PR review;限定可 push 人员。
 - 只走 GitHub 源;`strictKnownMarketplaces` 锁 `chinayin`,挡第三方 marketplace。
 - Managed force-enable 时用户无法关 → 配回滚流程(§10)。
-- 引第三方技能(如 karpathy 上游)**优先抄入自管**,不引外部 marketplace 依赖。
+- 引第三方技能不引外部 marketplace 依赖,分两种:小型纯文本(如 karpathy 上游)**抄入自管**;
+  带可执行载荷、上游根目录是合规插件的,在本 marketplace 里**引用**,默认跟随上游分支不钉版本(准入清单与
+  登记见 `docs/THIRD_PARTY.md`)。两者都保持团队 repo 只声明 `chinayin` 一个 marketplace。
 
 ---
 

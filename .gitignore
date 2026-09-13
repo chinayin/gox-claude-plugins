@@ -12,4 +12,8 @@
 
 # Scratch (skill-creator eval / superpowers)
 .superpowers/
+docs/superpowers/
 gox-code-rules-workspace/
+
+# Claude Code local state (worktrees, local commands)
+.claude/

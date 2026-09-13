@@ -11,6 +11,7 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 | `gox-code-rules` | 团队代码规范，做成 Agent Skills（Go / 前端 / Shell / 工程通则）。动相关文件时激活，只读当前任务用得到的那一篇细则。 |
 | `token-thrift` | 把 token 密集的活外包给便宜模型的 subagent：读用 Haiku、写用 Sonnet、编排用 Opus。原文不进主上下文。 |
 | `gox-guard` | 针对 Claude 即将执行的不可逆动作的确定性闸门，一闸一脚本，不往 repo 写任何东西。首个闸门 `secrets`：`git push` 之前用 [betterleaks](https://github.com/betterleaks/betterleaks) 扫"本地有、任何远端都没有"的那段提交，有发现就拦下这次 push。 |
+| `diagram-design` | 第三方（[cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)，MIT），引用、不拷贝，跟随上游默认分支。40 种编辑风格的图出成单文件 HTML/SVG，附导入/导出命令。按需启用，不在默认模板里。登记与准入清单见 [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md)。 |
 
 集中到一个 marketplace，避免把规范抄进每个 repo `CLAUDE.md` 的老问题：多 repo 漂移、占用 context、归属不清。技能是会话内软引导，可能不触发；真正的强制以 `golangci-lint` / CI / PR review 为准。`gox-guard` 是其中唯一确定性的一块：它执行外部扫描器、可以阻断一次工具调用，所以在下面单独说明。
 
@@ -25,6 +26,7 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 /plugin install gox-code-rules@chinayin
 /plugin install token-thrift@chinayin
 /plugin install gox-guard@chinayin
+/plugin install diagram-design@chinayin   # 可选，第三方
 /reload-plugins
 ```
 

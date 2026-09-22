@@ -14,7 +14,7 @@ codex plugin add gox-code-rules@chinayin
 codex plugin add gox-guard@chinayin
 ```
 
-The same `chinayin` marketplace supports `gox-code-rules` and `gox-guard` in Codex. Review and trust their hooks with `/hooks`, then start a new session. See [Codex compatibility and development setup](docs/CODEX.md) for version requirements and limitations.
+The same `chinayin` marketplace supports `gox-code-rules` and `gox-guard` in Codex. The rules plugin uses shared skills without session hooks. Review and trust the guard hooks with `/hooks`, then start a new session. See [Codex compatibility and development setup](docs/CODEX.md) for version requirements and limitations.
 
 ## Plugins
 

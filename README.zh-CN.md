@@ -14,7 +14,7 @@ codex plugin add gox-code-rules@chinayin
 codex plugin add gox-guard@chinayin
 ```
 
-Codex 复用同一个 `chinayin` 市场，当前支持 `gox-code-rules` 和 `gox-guard`。安装后通过 `/hooks` 审查并信任 hooks，再开启新会话。版本要求、兼容范围及本地开发方式见 [Codex 说明](docs/CODEX.md)。
+Codex 复用同一个 `chinayin` 市场，当前支持 `gox-code-rules` 和 `gox-guard`。规范插件共用 skills，不启用会话提醒 hooks；安装后通过 `/hooks` 审查并信任 guard 的 hooks，再开启新会话。版本要求、兼容范围及本地开发方式见 [Codex 说明](docs/CODEX.md)。
 
 ## 插件
 

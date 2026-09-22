@@ -1,22 +1,32 @@
-# Codex support
+# Codex compatibility
 
-Codex CLI 0.155.1 can use the existing Claude marketplace and plugin manifests:
+Claude Code is the primary platform. Codex compatibility is a small configuration
+patch; Claude manifests, skills, hook configurations, and scripts remain unchanged.
+
+The shared marketplace is `chinayin`. Only `gox-code-rules` needs a Codex override:
 
 ```text
-.claude-plugin/marketplace.json       # shared marketplace: chinayin
-plugins/gox-code-rules/               # same layout for gox-guard
-├── .claude-plugin/plugin.json        # read by both clients
-├── hooks/
-└── skills/
+.claude-plugin/marketplace.json
+plugins/gox-code-rules/
+├── .claude-plugin/plugin.json        # primary Claude configuration
+├── .codex-plugin/plugin.json         # Codex: shared skills, hooks disabled
+├── hooks/                           # unchanged Claude reminders
+└── skills/                          # shared content
 ```
 
-No separate Codex manifest, marketplace, build step, or copied plugin is needed for
-these two plugins. The marketplace name is `chinayin` in both clients.
+The Codex manifest sets `"skills": "./skills/"` and `"hooks": {}`, following
+[superpowers's Codex configuration](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/.codex-plugin/plugin.json).
+Codex can discover and use the skills, but does not receive the Claude SessionStart
+or SubagentStart reminders. No platform checks or Codex-specific prose are added to
+the shared scripts. Keep the two rules-plugin manifest versions aligned when releasing.
+
+`gox-guard` needs no Codex manifest: it reuses its Claude manifest and hooks directly.
+Disabling its hooks would disable the guard itself.
 
 ## Install from GitHub
 
-Requires a Codex version with Claude-compatible plugin and hook support; verified
-with CLI 0.155.1. Hook dependencies are Bash and jq, plus betterleaks for gox-guard.
+Verified with Codex CLI 0.155.1. Use a version with Claude-compatible plugin discovery
+and manifest hook overrides. Guard dependencies are Bash, jq, and betterleaks.
 
 ```sh
 codex plugin marketplace add chinayin/gox-claude-plugins
@@ -24,52 +34,33 @@ codex plugin add gox-code-rules@chinayin
 codex plugin add gox-guard@chinayin
 ```
 
-The GitHub commands use the default branch. The Codex-specific rules reminder in
-this change becomes available there after merge. Before merge, reviewers can select
-the PR branch with `--ref feat/codex-shared-plugins` on the marketplace-add command.
+These commands use the default branch; the rules-plugin Codex override is available
+there after this PR merges. Before merge, reviewers can add the marketplace with
+`--ref feat/codex-shared-plugins` to test this branch.
 
-Review and trust the plugin hooks using `/hooks`, then start a new session. Installing
-a plugin does not automatically trust its hooks.
+Review and trust the **gox-guard** hooks using `/hooks`, then start a new session.
+Installing a plugin does not automatically trust its hooks. The rules plugin has no
+Codex hooks to trust.
 
 For local development only, replace the marketplace-add command with
 `codex plugin marketplace add "$PWD"` from the checkout root. Use one source for
-`chinayin`; do not register both a checkout and GitHub under the same name.
+`chinayin`, either the checkout or GitHub.
 
-## Compatibility
+## Scope and verification
 
-- `gox-code-rules`: all five shared skills. Frontend remains an unfinished placeholder,
-  as in Claude; the reminder recommends Go, shell, skill authoring, and engineering.
-- `gox-guard`: shared SessionStart dependency check and PreToolUse git-push check.
-  Codex maps `exec_command` to `Bash` and provides `.tool_input.command`, matching the
-  existing script. Indirect commands and subsequent `write_stdin` input are not a
-  complete enforcement boundary.
-- The shared marketplace also lists `token-thrift` and `diagram-design`. Listing or
-  successful installation does not establish behavioral compatibility. `token-thrift`
-  still depends on Claude agents/models; `diagram-design` has not been evaluated for
-  Codex here. Only the two plugins above are covered by these instructions.
+- Rules: five shared skills; frontend remains its existing unfinished placeholder.
+  Codex skill discovery does not guarantee that a model will consult every applicable rule.
+- Guard: shared SessionStart dependency check and PreToolUse git-push check.
+  Codex maps `exec_command` to `Bash`. Indirect commands and later `write_stdin`
+  input remain outside a complete enforcement boundary.
+- The shared marketplace also lists `token-thrift` and `diagram-design`. Token-thrift
+  still depends on Claude agents/models; diagram-design has not been evaluated for
+  Codex here. Only rules and guard are covered by these installation instructions.
 
-Codex discovers the existing `hooks/hooks.json` and supplies `CLAUDE_PLUGIN_ROOT`
-for compatibility. The rules reminder checks Codex's documented `PLUGIN_ROOT`
-extension to point to installed skill files rather than a Claude Skill tool. Its
-Claude output remains unchanged. See the [official hook contract](https://learn.chatgpt.com/docs/hooks).
+`make validate` includes the Codex override. Codex app-server `plugin/read` verifies
+5 skills and **zero hooks** for rules, and 2 hook events for guard. Real GitHub
+installation with `@chinayin` was verified in a temporary isolated `CODEX_HOME`;
+trusted hook execution in a model session has not been tested end-to-end.
 
-[Superpowers](https://github.com/obra/superpowers/tree/5bf4e78011075bcfc0dc295f0724994cd123ee71)
-uses shared skills with separate platform manifests, but its Codex manifest explicitly
-sets `"hooks": {}`. Its hook script detects other hosts using environment variables;
-it does not use our Codex `PLUGIN_ROOT` branch. We borrow its shared-content approach,
-not its Codex hook behavior. A separate `.codex-plugin/plugin.json` would be useful
-if we later need a Codex-specific override or presentation metadata, but is unnecessary
-for the current plugins. Claude reads `.claude-plugin/plugin.json`; a Codex manifest
-would not register a second Claude plugin or a second set of hooks.
-
-The [OpenAI packaging documentation](https://developers.openai.com/plugins/build/plugins)
-documents the legacy-compatible Claude marketplace and Claude-compatible manifests.
-Portal conversion of an uploaded Claude archive is a separate distribution workflow.
-
-## Verification
-
-`make validate` and `make test` check manifests and script behavior. Codex app-server
-`plugin/read` discovers 5 skills and 2 hook events for gox-code-rules, and 2 hook events
-for gox-guard, using only the Claude manifests. GitHub default-branch installation was
-also tested with an isolated temporary `CODEX_HOME`, using the commands above.
-This does not verify hook execution in a trusted, installed model session.
+See [Codex hook overrides and compatibility variables](https://learn.chatgpt.com/docs/hooks)
+and [plugin packaging](https://developers.openai.com/plugins/build/plugins).

@@ -6,6 +6,16 @@ Team plugins for Claude Code, distributed through a single marketplace (`chinayi
 
 [中文说明](README.zh-CN.md)
 
+## Codex installation
+
+```sh
+codex plugin marketplace add chinayin/gox-claude-plugins
+codex plugin add gox-code-rules@chinayin
+codex plugin add gox-guard@chinayin
+```
+
+The same `chinayin` marketplace supports `gox-code-rules` and `gox-guard` in Codex. Review and trust their hooks with `/hooks`, then start a new session. See [Codex compatibility and development setup](docs/CODEX.md) for version requirements and limitations.
+
 ## Plugins
 
 | Plugin | Purpose |

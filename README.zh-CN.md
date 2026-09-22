@@ -6,6 +6,16 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 
 [English](README.md)
 
+## Codex 安装
+
+```sh
+codex plugin marketplace add chinayin/gox-claude-plugins
+codex plugin add gox-code-rules@chinayin
+codex plugin add gox-guard@chinayin
+```
+
+Codex 复用同一个 `chinayin` 市场，当前支持 `gox-code-rules` 和 `gox-guard`。安装后通过 `/hooks` 审查并信任 hooks，再开启新会话。版本要求、兼容范围及本地开发方式见 [Codex 说明](docs/CODEX.md)。
+
 ## 插件
 
 | 插件 | 用途 |

@@ -20,8 +20,8 @@
     {
       "name": "diagram-design",
       "source": {
-        "source": "github",
-        "repo": "cathrynlavery/diagram-design"
+        "source": "url",
+        "url": "https://github.com/cathrynlavery/diagram-design.git"
       },
       "description": "Third-party (MIT, cathrynlavery/diagram-design): editorial diagrams (architecture, flowchart, sequence, ER, Gantt ... 40 types) as standalone HTML/SVG, plus import (Mermaid/draw.io/Excalidraw), export and profile commands. Tracks the upstream default branch; see docs/THIRD_PARTY.md"
     }

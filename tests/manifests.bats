@@ -37,13 +37,13 @@ remote_names() { jq -r '.plugins[] | select(.source|type=="object") | .name' "$M
   done
 }
 
-@test "every remote (third-party) entry is a github/git-subdir source with a repo/url" {
+@test "every remote (third-party) entry is a github/url/git-subdir source with a repo/url" {
   for name in $(remote_names); do
     run jq -er --arg n "$name" '.plugins[] | select(.name==$n) | .source.source' "$MKT"
     [ "$status" -eq 0 ] || { echo "remote entry without source.source: $name"; false; }
     case "$output" in
       github)     run jq -er --arg n "$name" '.plugins[] | select(.name==$n) | .source.repo' "$MKT" ;;
-      git-subdir) run jq -er --arg n "$name" '.plugins[] | select(.name==$n) | .source.url' "$MKT" ;;
+      url|git-subdir) run jq -er --arg n "$name" '.plugins[] | select(.name==$n) | .source.url' "$MKT" ;;
       *) echo "unsupported remote source for $name: $output"; false ;;
     esac
     [ "$status" -eq 0 ] || { echo "remote entry without repo/url: $name"; false; }

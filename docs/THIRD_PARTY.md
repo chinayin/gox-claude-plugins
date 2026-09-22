@@ -30,3 +30,5 @@
 | 写盘 | 画风档写 `~/.diagram-design/profiles/`，不写 repo |
 | 已知行为 | 新项目首次画图会问一次是否定制品牌色 |
 | 接入审计 | 2026-09-13，上游 commit `8d8b299`（2.6.22）：validate 通过，脚本无联网 |
+
+Codex 兼容：使用 `source: "url"` 和完整 Git URL 引用上游，Claude 与 Codex 均支持。已验证 Codex CLI 0.155.1 可安装 `diagram-design@chinayin`；`source: "github"` 简写在该版本中未被识别。

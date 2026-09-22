@@ -1,6 +1,7 @@
 ---
 name: engineering
-description: Team general engineering behavioral guidelines (Karpathy: think before coding, simplicity first, surgical changes, goal-driven execution). Consult before writing, reviewing, or refactoring any code in this repo, even if the user never says "standards".
+description: >-
+  Team general engineering behavioral guidelines (Karpathy: think before coding, simplicity first, surgical changes, goal-driven execution). Consult before writing, reviewing, or refactoring any code in this repo, even if the user never says "standards".
 ---
 
 # Karpathy Behavioral Guidelines

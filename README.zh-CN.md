@@ -91,7 +91,7 @@ agent 与技能正文用英文编写（对模型更友好）；本文件与英�
 
 ## 开发
 
-- 依赖与测试：`make deps`（jq + bats-core）、`make validate`（jq 校验所有 manifest 与模板）、`make test`（全部 bats）。
+- 默认已有 `python3`。`make deps` 安装 jq、bats-core 和 PyYAML；`make validate` 校验 JSON manifest 与模板；`make test` 运行全部 bats，直接用 `python3` 解析 YAML frontmatter。PyYAML 仅供测试使用。
 - 测试分层：中央 `tests/` 放跨插件检查（`manifests` / `skills` / `template`，循环 `plugins/*`，新插件自动覆盖）；插件专属测试放 `plugins/<name>/tests/`。`make test` = `bats tests plugins/*/tests`。
 - 触发/命中率（模型是否加载技能、是否派活）不进 bats，是概率性的，用 skill-creator eval 流程评估（with-plugin vs baseline）。`make eval` 有提示。
 - `gox-guard` 完全确定性，bats 用 stub 扫描器覆盖四种情形（干净 / 有发现 / 缺失 / 出错）。要跑真二进制，把 `GOX_GUARD_BIN` 指向一个 `betterleaks`，再往 hook 的 stdin 喂一段 PreToolUse JSON。

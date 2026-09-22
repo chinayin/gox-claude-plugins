@@ -1,6 +1,6 @@
 #  local dev tasks (no CI; run these by hand).
 #
-#   make deps      install jq + bats-core
+#   make deps      install jq + bats-core + PyYAML (requires python3)
 #   make validate  jq-validate every manifest + the project-settings template
 #   make test      run all bats: central cross-plugin + each plugin's own tests
 #   make eval      reminder: skill trigger-rate is a manual skill-creator eval
@@ -9,6 +9,7 @@
 
 deps:
 	brew install jq bats-core
+	python3 -m pip install -r requirements-dev.txt
 
 validate:
 	@for f in .claude-plugin/marketplace.json templates/project-settings.json plugins/*/.claude-plugin/plugin.json; do jq -e . "$$f" >/dev/null && echo "OK  $$f" || { echo "BAD $$f"; exit 1; }; done

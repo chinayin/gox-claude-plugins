@@ -91,7 +91,7 @@ Design choices worth knowing:
 
 ## Development
 
-- Deps and tests: `make deps` (jq + bats-core), `make validate` (jq-check every manifest and the template), `make test` (all bats).
+- Requires an existing `python3`. Run `make deps` to install jq, bats-core and PyYAML; `make validate` checks JSON manifests and the template; `make test` runs all bats, including YAML frontmatter parsing with `python3`. PyYAML is a test dependency only.
 - Test layout: central `tests/` holds cross-plugin checks (`manifests` / `skills` / `template`, looping `plugins/*`, so new plugins are covered automatically); plugin-specific tests live under `plugins/<name>/tests/`. `make test` runs `bats tests plugins/*/tests`.
 - Trigger/hit rate (does the model load a skill, does it delegate) is not a bats gate; it is probabilistic. Evaluate with the skill-creator eval flow (with-plugin vs baseline). `make eval` has the pointer.
 - `gox-guard` is fully deterministic and its bats cover it with a stub scanner (clean / findings / missing / failing). To exercise the real binary point `GOX_GUARD_BIN` at a `betterleaks` build and feed the hook a PreToolUse JSON on stdin.

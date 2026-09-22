@@ -10,7 +10,7 @@
 ROOT="$BATS_TEST_DIRNAME/.."
 
 @test "every skill has parseable YAML with non-empty name and description strings" {
-  run "${PYTHON:-python3}" - "$ROOT"/plugins/*/skills/*/SKILL.md <<'PY'
+  run python3 - "$ROOT"/plugins/*/skills/*/SKILL.md <<'PY'
 import sys
 from pathlib import Path
 

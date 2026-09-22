@@ -17,6 +17,3 @@ gox-code-rules-workspace/
 
 # Claude Code local state (worktrees, local commands)
 .claude/
-
-# Local test dependencies
-.venv/

@@ -1,0 +1,19 @@
+{
+  "name": "gox-code-rules",
+  "version": "0.1.0",
+  "description": "Team Go, shell, skill-authoring and engineering standards for Codex.",
+  "author": {
+    "name": "chinayin"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Gox Code Rules",
+    "shortDescription": "Team Go, shell, skill-authoring and engineering standards for Codex.",
+    "longDescription": "Team Go, shell, skill-authoring and engineering standards for Codex.",
+    "developerName": "chinayin",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Apply the team standards to this change."
+  },
+  "license": "Apache-2.0"
+}

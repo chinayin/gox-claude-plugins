@@ -1,5 +1,7 @@
 # gox-claude-plugins
 
+Codex 支持采用[独立打包方案](codex/README.md)，复用规范正文和扫描脚本，保留 Claude 原有安装方式。
+
 Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按需加载，不往你的 repo 写入任何内容。
 
 [English](README.md)

@@ -4,6 +4,8 @@ Team plugins for Claude Code, distributed through a single marketplace (`chinayi
 
 [中文说明](README.zh-CN.md)
 
+Codex support is built separately under [`codex/`](codex/README.md), reusing the standards and secret scanner without changing the Claude installation flow.
+
 ## Plugins
 
 | Plugin | Purpose |

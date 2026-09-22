@@ -9,12 +9,32 @@
 
 ROOT="$BATS_TEST_DIRNAME/.."
 
-@test "every skill has name + description frontmatter" {
-  for s in "$ROOT"/plugins/*/skills/*/SKILL.md; do
-    [ -e "$s" ] || continue
-    grep -qE '^name:[[:space:]]*\S' "$s"        || { echo "missing name: $s"; false; }
-    grep -qE '^description:[[:space:]]*\S' "$s"  || { echo "missing description: $s"; false; }
-  done
+@test "every skill has parseable YAML with non-empty name and description strings" {
+  run "${PYTHON:-python3}" - "$ROOT"/plugins/*/skills/*/SKILL.md <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+errors = []
+for filename in sys.argv[1:]:
+    try:
+        lines = Path(filename).read_text(encoding="utf-8").splitlines()
+        if not lines or lines[0] != "---":
+            raise ValueError("missing YAML frontmatter")
+        end = lines.index("---", 1)
+        metadata = yaml.safe_load("\n".join(lines[1:end]))
+        if not isinstance(metadata, dict):
+            raise ValueError("frontmatter must be a mapping")
+        for field in ("name", "description"):
+            if not isinstance(metadata.get(field), str) or not metadata[field].strip():
+                raise ValueError(f"{field} must be a non-empty string")
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        errors.append(f"{filename}: {exc}")
+print("\n".join(errors))
+sys.exit(bool(errors))
+PY
+  [ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
 @test "no orphan references — every references/*.md is indexed in its SKILL.md" {

@@ -1,6 +1,7 @@
 ---
 name: shell
-description: Team shell/bash scripting standards — how to structure a script and its CLI: argument/flag parsing, stdout-vs-stderr, status output (no emoji or color), exit codes, and a self-test harness. Use whenever you write, edit, or design any shell script or command-line tool in this repo — .sh/.bash files, helper/CI/build/automation scripts, even tiny one-offs — regardless of whether the user says "standards".
+description: >-
+  Team shell/bash scripting standards — how to structure a script and its CLI: argument/flag parsing, stdout-vs-stderr, status output (no emoji or color), exit codes, and a self-test harness. Use whenever you write, edit, or design any shell script or command-line tool in this repo — .sh/.bash files, helper/CI/build/automation scripts, even tiny one-offs — regardless of whether the user says "standards".
 paths: "**/*.sh, **/*.bash"
 ---
 

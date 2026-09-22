@@ -32,6 +32,13 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ## gox-code-rules
 
+### 0.8.1 — 2026-09-22
+
+- 修复 engineering 与 shell 的 description 中冒号导致的 YAML frontmatter 解析错误，保持描述与规范正文含义不变。
+- 移除 marketplace、插件描述和 session/subagent 提醒中指向未交付 Python Skill 的声明；不新增未经团队定义的 Python 规范。
+- 技能检查改用 PyYAML 解析，提醒测试验证引用的 Skill 文件确实存在；同步纠正 paths 的声明性元数据说明。
+- PyYAML 为开发测试依赖，通过 `make deps` 安装到 `.venv`，不增加插件运行依赖。
+
 ### 0.7.0 — 2026-09-09
 
 新增 `skill` 技能：写 agent 技能（SKILL.md）时的几条裁定。编写过程归官方 skill-creator，本技能只补它

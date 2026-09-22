@@ -1,6 +1,6 @@
 {
   "name": "gox-code-rules",
-  "version": "0.8.0",
-  "description": "Team coding-standards skills: Go (architecture/HTTP-gin/CLI/config/migrations/scaffold) + frontend (React/Vue/TS) + shell (bash/CLI scripts) + python (typing/tooling/testing) + skill authoring (naming/description/layout of SKILL.md) + general engineering guidelines, auto-activated while you code.",
+  "version": "0.8.1",
+  "description": "Team coding-standards skills: Go (architecture/HTTP-gin/CLI/config/migrations/scaffold) + frontend (React/Vue/TS) + shell (bash/CLI scripts) + skill authoring (naming/description/layout of SKILL.md) + general engineering guidelines, auto-activated while you code.",
   "author": { "name": "chinayin" }
 }

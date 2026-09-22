@@ -32,6 +32,34 @@ Single machine:
 
 `gox-guard` additionally needs the scanner on the machine: `brew install betterleaks` (or `go install github.com/betterleaks/betterleaks@latest`). The plugin never installs it for you; until it is present, pushes from Claude are blocked with an install hint.
 
+## Use with Codex
+
+Codex CLI 0.155.1 was verified to install `gox-code-rules` and `gox-guard` directly
+from this repository's existing Claude-format marketplace and plugin manifests.
+No separate Codex package or build step is needed:
+
+```sh
+codex plugin marketplace add chinayin/gox-claude-plugins
+codex plugin add gox-code-rules@chinayin
+codex plugin add gox-guard@chinayin
+```
+
+In Codex, open `/hooks` to review and trust the plugins' hooks, then start a new
+session. The hooks need Bash and jq; `gox-guard` also needs betterleaks (see below).
+Installing a plugin does not automatically trust its hooks.
+
+Codex stores its own marketplace and plugin enablement settings in
+`~/.codex/config.toml`; installing or enabling these plugins in Claude Code does
+not configure them in Codex. The rules plugin exposes the same skills and
+SessionStart/SubagentStart reminders, and the guard exposes its dependency check
+and pre-push scan. Installation and hook discovery were verified; identical model
+behavior and trusted-session execution have not been verified end to end.
+`token-thrift` depends on Claude-specific models and agents; `diagram-design` has
+not been evaluated for Codex here.
+
+See the official [plugin documentation](https://developers.openai.com/plugins/build/plugins)
+and [hook trust instructions](https://learn.chatgpt.com/docs/hooks).
+
 ## gox-code-rules
 
 | Skill | Invoke | Activates when | Content |

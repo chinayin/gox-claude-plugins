@@ -32,6 +32,24 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 
 `gox-guard` 还需要本机装有扫描器：`brew install betterleaks`（或 `go install github.com/betterleaks/betterleaks@latest`）。插件不会替你安装；装好之前，Claude 发起的 push 会被拦下并给出安装提示。
 
+## 在 Codex 中使用
+
+已使用 Codex CLI 0.155.1 验证：`gox-code-rules` 和 `gox-guard` 可以直接通过本仓库现有的 Claude 格式 marketplace 和 plugin 清单安装，无需独立的 Codex 包或构建步骤：
+
+```sh
+codex plugin marketplace add chinayin/gox-claude-plugins
+codex plugin add gox-code-rules@chinayin
+codex plugin add gox-guard@chinayin
+```
+
+安装后，在 Codex 中打开 `/hooks`，审查并信任插件的 hooks，再开启新会话。Hooks 需要 Bash 和 jq；`gox-guard` 还需要 betterleaks（见下文）。安装插件不会自动信任 hooks。
+
+Codex 将自己的 marketplace 和插件启用配置保存在 `~/.codex/config.toml`；在 Claude Code 中安装或启用插件，不会自动替 Codex 配置。规范插件提供同一份 skills 和 SessionStart/SubagentStart 提醒，guard 提供依赖检查和 push 前扫描。已验证安装和 hooks 发现，尚未端到端验证受信任会话中的执行效果，也不保证两种模型行为完全一致。
+
+`token-thrift` 依赖 Claude 专用模型和子代理；本次未评估 `diagram-design` 的 Codex 兼容性。
+
+参见官方[插件文档](https://developers.openai.com/plugins/build/plugins)和 [hooks 信任说明](https://learn.chatgpt.com/docs/hooks)。
+
 ## gox-code-rules
 
 | 技能 | 调用名 | 何时激活 | 内容 |

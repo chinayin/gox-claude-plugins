@@ -1,0 +1,7 @@
+{
+  "name": "gox-code-rules",
+  "version": "0.8.1",
+  "description": "Shared team coding standards for Go, shell, skill authoring, and engineering.",
+  "skills": "./skills/",
+  "hooks": {}
+}

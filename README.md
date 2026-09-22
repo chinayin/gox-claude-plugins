@@ -1,8 +1,20 @@
 # gox-claude-plugins
 
+Codex: see [installation and shared plugin layout](docs/CODEX.md).
+
 Team plugins for Claude Code, distributed through a single marketplace (`chinayin`). They load on demand and write nothing into your repo.
 
 [中文说明](README.zh-CN.md)
+
+## Codex installation
+
+```sh
+codex plugin marketplace add chinayin/gox-claude-plugins
+codex plugin add gox-code-rules@chinayin
+codex plugin add gox-guard@chinayin
+```
+
+The same `chinayin` marketplace supports `gox-code-rules` and `gox-guard` in Codex. The rules plugin uses shared skills without session hooks. Review and trust the guard hooks with `/hooks`, then start a new session. See [Codex compatibility and development setup](docs/CODEX.md) for version requirements and limitations.
 
 ## Plugins
 

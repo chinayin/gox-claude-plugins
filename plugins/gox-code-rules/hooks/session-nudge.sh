@@ -49,6 +49,16 @@ EOF
 )
 fi
 
+# Codex supplies PLUGIN_ROOT as well as the Claude compatibility variables.
+# Keep Claude output unchanged; Codex reads the same installed skill files.
+if [ -n "${PLUGIN_ROOT:-}" ]; then
+  MSG="${MSG//Claude Code/agent}"
+  for SKILL_NAME in engineering go shell skill; do
+    MSG="${MSG//gox-code-rules:$SKILL_NAME/$PLUGIN_ROOT/skills/$SKILL_NAME/SKILL.md}"
+  done
+  MSG="${MSG//If the Skill tool is unavailable, follow your brief instead./Read the applicable SKILL.md with an available file-reading tool and follow its referenced rules.}"
+fi
+
 jq -n --arg ctx "$MSG" --arg ev "$EVENT" \
   '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$ctx}}' \
   || exit 0

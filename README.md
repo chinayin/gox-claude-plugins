@@ -1,5 +1,7 @@
 # gox-claude-plugins
 
+Codex: see [installation and shared plugin layout](docs/CODEX.md).
+
 Team plugins for Claude Code, distributed through a single marketplace (`chinayin`). They load on demand and write nothing into your repo.
 
 [中文说明](README.zh-CN.md)

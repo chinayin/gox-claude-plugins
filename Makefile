@@ -12,7 +12,7 @@ deps:
 	python3 -m pip install -r requirements-dev.txt
 
 validate:
-	@for f in .claude-plugin/marketplace.json templates/project-settings.json plugins/*/.claude-plugin/plugin.json; do jq -e . "$$f" >/dev/null && echo "OK  $$f" || { echo "BAD $$f"; exit 1; }; done
+	@for f in .claude-plugin/marketplace.json templates/project-settings.json plugins/*/.claude-plugin/plugin.json .agents/plugins/marketplace.json plugins/*/.codex-plugin/plugin.json; do jq -e . "$$f" >/dev/null && echo "OK  $$f" || { echo "BAD $$f"; exit 1; }; done
 
 test:
 	bats tests plugins/*/tests

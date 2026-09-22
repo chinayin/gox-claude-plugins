@@ -111,3 +111,17 @@ setup() {
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
+
+@test "Codex reminders use installed skill files for both events" {
+  for ev in SessionStart SubagentStart; do
+    run env PLUGIN_ROOT="/tmp/plugin cache/gox-code-rules" bash "$HOOK" "$ev"
+    [ "$status" -eq 0 ]
+    ctx="$(echo "$output" | jq -er '.hookSpecificOutput.additionalContext')"
+    [[ "$ctx" == *'/tmp/plugin cache/gox-code-rules/skills/go/SKILL.md'* ]]
+    [[ "$ctx" == *'/tmp/plugin cache/gox-code-rules/skills/shell/SKILL.md'* ]]
+    [[ "$ctx" == *'Read the applicable SKILL.md'* ]]
+    [[ "$ctx" != *'Skill tool'* ]]
+    [[ "$ctx" != *'Claude Code'* ]]
+    [[ "$ctx" != *'gox-code-rules:'* ]]
+  done
+}

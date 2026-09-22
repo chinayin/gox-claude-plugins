@@ -1,5 +1,7 @@
 # gox-claude-plugins
 
+Codex 支持：参见[安装方式与共享插件目录](docs/CODEX.md)。
+
 Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按需加载，不往你的 repo 写入任何内容。
 
 [English](README.md)

@@ -1,333 +1,86 @@
-# gox-claude-plugins 设计文档(v2 · 技能方案)
+# 当前架构与维护约定
 
-> 团队内部 Claude Code 规范分发基建。单一权威文档,供复盘与继续深入。
-> 状态:**v2 经官方规范核准,改为 Agent Skills 方案,待按此重构实现**(2026-06-19)。
-> v1(hook/routing.json/bash 方案)已被本版取代,保留于 §14 供复盘。
+本文描述仓库当前实现，更新于 2026-10-09。安装见 [README](../README.zh-CN.md)，Claude 使用细节见 [USAGE](../USAGE.md)，Codex 支持范围见 [CODEX](CODEX.md)。历史实验见 [MVP_FINDINGS](MVP_FINDINGS.md)，版本变化见 [CHANGELOG](../CHANGELOG.md)。
 
----
+## 分发与目录
 
-## 0. 演进史(为什么走到 v2)
+仓库用一个 `chinayin` marketplace 分发插件。Claude Code 是主要使用平台；Codex 直接复用现有 marketplace、插件清单和内容，不维护独立构建包或第二套规范。
 
-1. **goxctl 三层模型**:规则单一来源 `.kiro/steering/`,由 `goxctl claude` 同步进各 repo,
-   同时服务 Kiro + Claude Code;难点是把 Kiro front-matter 触发语义编译成 CC 原生机制。
-2. **收窄为 CC 插件**:放弃 Kiro 双目标,只把 Claude Code 服务到极致;规则正文打进插件
-   (插件仓即唯一源),从 org marketplace 分发,零写用户 repo。
-3. **v1 hook 方案**:用 SessionStart + PreToolUse hook + `routing.json` + bash 引擎按后缀/路径注入规则。
-4. **双评审 + 官方文档核准后的关键反转**(导致 v2):
-   - `enabledPlugins` **支持 project scope**(官方团队推荐做法)→ 作用域靠"团队 repo 提交
-     `.claude/settings.json`"收敛,**不需要运行时 repo 闸门**。
-   - **command 与 skill 已合并**(官方:"Custom commands have been merged into skills")→
-     一个"命令"就是带 `disable-model-invocation: true` 的技能。无需两套机制。
-   - 技能 frontmatter 原生支持 **`paths` glob 限定自动激活** → "写 `.go` 才加载 Go 规范"
-     **一行 frontmatter 即可,不需要自写 PreToolUse hook / bash / routing.json**。
-   - 真正的"强制"本就该靠 **CI/lint/PR gate**(确定性硬层);会话内规则是"软层引导"。
-   → 结论:**激活层改用 Agent Skills,插件做成纯技能(零 hook),hook/routing 方案废弃。**
-
-### 已锁定决策(v2)
-
-| 决策点 | 结论 |
-|---|---|
-| 目标工具 | 仅 Claude Code |
-| 规则正文住哪 | 打进插件 `skills/.../references/`(插件仓即唯一源,零副本) |
-| 激活机制 | **Agent Skills 为主**(`paths` 自动激活 + `description` 模型自调 + 渐进披露)+ **一个薄 SessionStart 提示 hook**(只提示用技能、不含规则正文)。依据:真实测试激活率~2/3,薄提示兜住漏触发与设计期(见 `docs/MVP_FINDINGS.md`) |
-| 对用户 repo 写入 | 零写入 |
-| 强制力 | 会话内技能 = **软层引导(概率)**;真强制 = **CI / golangci-lint / PR gate(硬层)** |
-| 代码规范粒度 | 一个 `go` 技能管所有 Go(架构+cli+config+db),内部 `references/` 分文件 |
-| 作用域收敛 | **project-scope 启用**(团队 repo 的 `.claude/settings.json`),非运行时闸门 |
-| 分发 | org marketplace `chinayin` + project-scope `enabledPlugins`(+ Managed force-enable 强制) |
-| goxctl-claude | CC 同步角色退役 |
-
-### 命名(最终)
-
-| 对象 | 名称 |
-|---|---|
-| 仓库 | `chinayin/gox-claude-plugins` |
-| marketplace | `chinayin` |
-| 插件:代码规范 | `gox-code-rules`(含 `go` 技能;未来加 `node`/`python` 技能) |
-| 插件:产品需求(未来) | `gox-prd` |
-| 前缀 | `gox-` |
-
----
-
-## 1. 架构总览
-
-一个 **marketplace monorepo**,仓内 `plugins/` 放多个**纯技能插件**(不含 hook)。
-每个插件自带规则正文(在技能的 `references/` 下)+ 技能的 frontmatter 激活声明,对用户 repo 零写入。
-
-```
-gox-claude-plugins/
-  .claude-plugin/marketplace.json        # name: chinayin
-  plugins/
-    gox-code-rules/
-      .claude-plugin/plugin.json
-      hooks/
-        hooks.json                       # SessionStart → 薄提示
-        session-nudge.sh                 # 只注入"用 go/engineering 技能"的提示,不含规则正文
-      skills/
-        engineering/
-          SKILL.md                       # 通用行为准则(Karpathy)
-        go/
-          SKILL.md                       # Go 入口:description + paths + 索引
-          references/
-            rules.md  code-style.md  service-layout.md  http.md  cli.md  config.md  db-migrations.md  time-and-timezone.md  scaffold.md
-        # 未来:node/  python/
-    gox-guard/                           # agent 侧密钥闸门(见 §8.1)
-      .claude-plugin/plugin.json
-      hooks/
-        hooks.json                       # SessionStart 安装检查 + PreToolUse(Bash) 拦 git push
-        secrets.sh                       # 闸门 secrets:betterleaks 扫待推送区间(一闸一脚本,并列注册)
-      tests/*.bats
-    gox-prd/                             # 未来:产品需求技能
-      .claude-plugin/plugin.json
-      skills/prd/SKILL.md
-  docs/DESIGN.md
+```text
+.claude-plugin/marketplace.json        # 本地插件与第三方 Git 源的统一目录
+plugins/
+  gox-code-rules/
+    .claude-plugin/plugin.json
+    skills/                           # engineering、go、frontend、shell、skill
+    hooks/                            # SessionStart / SubagentStart 提醒
+    tests/
+  token-thrift/
+    .claude-plugin/plugin.json
+    skills/delegate/                  # 委派策略
+    agents/                           # Claude 的 cheap-reader / careful-writer
+    tests/
+  gox-guard/
+    .claude-plugin/plugin.json
+    hooks/                            # 依赖检查与 git push 前扫描
+    tests/
+templates/project-settings.json       # Claude 项目配置模板
+tests/                               # 跨插件结构、技能和模板校验
+docs/                                # 当前设计、兼容边界、第三方登记、历史实验
 ```
 
-**设计原则**
-1. 知识单一源:规则正文只在技能的 `references/`,不复制。
-2. 激活声明集中在技能 frontmatter(`description` + `paths`),不散落。
-3. 软/硬分层:会话内技能软引导;CI/lint 硬强制。
-4. 对用户 repo 零副作用;仅一个薄 SessionStart 提示 hook(只回显固定提示文本、fail-open、绝不 exit 2),信任面仍小。
+`diagram-design` 通过 Git URL 引用上游，不复制到 `plugins/`。它是可选插件，不进入默认项目模板；审计记录见 [THIRD_PARTY](THIRD_PARTY.md)。
 
----
+## 组件职责
 
-## 2. 激活模型(核心)
-
-技能用官方"**渐进披露**"三层 + 两种触发,正好覆盖我们要的全部场景。
-
-### 2.1 三层加载(省 token 的关键)
-
-| 层 | 内容 | 何时在上下文 |
+| 组件 | 当前行为 | 边界 |
 |---|---|---|
-| **metadata**(`name`+`description`,≤1536 字符) | "这是什么、何时用" | **永远在**——模型据此决定调不调 |
-| **SKILL.md 正文** | 概览 + "何时读 references 里哪份"的索引 + 可内联最关键铁律 | 技能**激活时** |
-| **`references/` 细节文件** | 各领域详规 | 模型**按索引、按当下任务**读哪份才加载哪份 |
+| `gox-code-rules` | 五个技能入口；Go 细则按 `references/` 索引读取；会话和子代理收到轻量提醒 | 软引导，不能保证模型加载或遵守；frontend 仍是占位内容，未提供 Python 技能 |
+| `token-thrift` | Claude 的读任务委派给 Haiku，可靠写任务委派给 Sonnet，主模型接收结论 | 依赖 Claude 的模型与代理接口；尚未完成 Codex 适配；成本收益需实测 |
+| `gox-guard` | 对匹配的工具调用执行外部扫描器，并通过 hook 输出拒绝 push | 仅覆盖受支持且实际触发 hook 的调用；不能替代仓库 CI |
 
-### 2.2 两种触发(对应规则的不同高度)
+规范正文维护在各技能的 `SKILL.md` 和 `references/` 中，不复制进用户仓库。hooks 只提供提醒或执行检查，不向用户仓库写配置。用户仍需主动安装插件、配置启用范围；任务产生的代码或图表由对应任务决定。
 
-- **`paths` 自动激活(按文件)**:技能 frontmatter 写 `paths: "**/*.go, go.mod, go.work"`,
-  则**只在处理 Go 文件时自动激活**。这是 v1 想用 PreToolUse hook 手搓的东西的官方原生替代——
-  "写 Go 才加载 Go 规范""编辑 `cmd/` 才看 cli"由 `paths` + SKILL.md 索引共同实现。
-  > **实测注记(2026-06-20,CC 2.1.183)**:端到端验证**未观察到** `paths` 自动注入生效;
-  > 实际触发由 nudge + `description` 驱动模型显式调 Skill 工具(见 `docs/MVP_FINDINGS.md`)。
-  > `paths` 保留为声明,不承担触发。
-- **`description` 模型自调(按意图)**:模型在**设计/规划阶段**(还没编辑文件)就能因 description 匹配
-  自己把技能调出来——这覆盖了 v1 头疼的"设计期无触发"问题。
-- **`disable-model-invocation: true`(手动)**:= 旧"命令"。只有用户 `/插件名:技能名` 能调,
-  模型不自动调。用于刻意发起、有副作用的流程(如某些 PRD 操作)。
+## 技能加载与提醒
 
-### 2.3 确定性的诚实定位
+技能的 `description` 提供发现线索，`SKILL.md` 给出规则和索引，模型按当前任务读取 references。用户也可以在 Claude 中显式调用 `/gox-code-rules:go` 等技能。
 
-技能触发(`description` 自调、`paths` 自动加载)**仍是模型参与的、概率性的**——这点和 v1 批评
-Cursor glob 同类。**所以技能只承担"软引导"。** 真正"必须遵守"由确定性硬层兜底:
-**`golangci-lint` / 格式化 / CI / PR review**。文档不宣称技能能"强制统一规范",只宣称"高概率在场引导"。
-这与原则 3 一致,也是放弃 v1 那套为"确定性"硬搓的 hook 复杂度的依据。
+`paths` 在本仓保留为声明性元数据，不承担自动加载保证。历史 Claude 实验中，实际加载通过模型调用 Skill 工具发生；没有观察到 `paths` 自动注入。实验结果只适用于当时客户端、模型和样本，不能外推为当前触发率。
 
-### 2.4 薄 SessionStart 提示(兜住技能欠触发)
+`session-nudge.sh` 注册两个事件：
 
-真实测试(`docs/MVP_FINDINGS.md`)显示技能在真实编码场景激活率 ~2/3——好,但仍有 ~1/3 漏(尤其琐碎任务),且设计/意图期靠 description 偏弱。故加一个**薄 SessionStart 提示 hook**(`hooks/session-nudge.sh`):
-- 每会话注入**一句固定提示**:"本仓遵循团队规范;写/设计代码用 `gox-code-rules:go` / `:engineering` 技能;最终强制以 golangci-lint/CI 为准"。
-- **只提示、不含规则正文**(正文仍只在技能 `references/`,单一源不破)。
-- fail-open、绝不 exit 2、缺 jq 静默退出。
-- 作用:把模型推向技能(提升那 ~1/3 漏触发与设计期的命中),而不重塞规则、不回到 v1 的按文件注入引擎。
-这是"技能为主 + 薄确定性提示"的混合,介于纯技能(欠触发)与 v1 重 hook(过度)之间。
+- `SessionStart`：提示模型按任务选择技能、避免重复加载；派写入子代理时把适用规范放进任务说明。
+- `SubagentStart`：使用更短的提醒，优先遵循已有任务说明；对 `cheap-reader` 跳过注入。
 
----
+提醒脚本 fail-open：缺少 jq、事件未知等情况下静默退出，不阻断会话。提醒中仍有 Claude Skill 工具相关措辞，Codex 下的实际加载效果需另行验证，见 [CODEX](CODEX.md)。
 
-## 3. SKILL.md 规范(官方,权威)
+技能只提供软引导。格式化、lint、CI 和代码审查负责各自覆盖的检查；检查通过也不代表已经遵守全部团队规范。
 
-**目录**:技能 = 一个目录,`SKILL.md` 为入口;支撑文件放 `references/`(文档)/`scripts/`/`assets/`。
-**插件内路径**:`<plugin>/skills/<name>/SKILL.md` → 调用名 `/<插件名>:<目录名>`。
+## secrets 闸门
 
-**frontmatter 字段**:
+`gox-guard/hooks/secrets.sh` 在 `SessionStart` 检查 jq、betterleaks；在 `PreToolUse` 的 Bash 调用中匹配 `git … push`，扫描待推送提交。
 
-| 字段 | 必需 | 说明 |
-|---|---|---|
-| `name` | 否 | 显示名,默认取目录名 |
-| `description` | 推荐 | 做什么 + 何时用;**与 `when_to_use` 合计被截到 1536 字符**,关键用例写前面;略"push"以防欠触发 |
-| `when_to_use` | 否 | 追加触发语境/示例 |
-| `paths` | 否 | glob,限定仅在处理匹配文件时自动激活(逗号分隔或 YAML 列表) |
-| `disable-model-invocation` | 否 | `true` = 仅用户手动 `/` 调 |
-| `allowed-tools`/`disallowed-tools` | 否 | 技能激活时的工具权限 |
-| `effort` | 否 | 覆盖会话 effort |
+- 默认扫描 `HEAD --not --remotes`，`--all` / `--mirror` 时扩展为 `--branches --not --remotes`。范围依据本地远端跟踪引用；脚本不执行 fetch。
+- 没有待扫描提交时不调用扫描器；有发现、扫描器缺失或执行失败时，返回 `permissionDecision: deny`。阻断通过 JSON 表达，脚本退出码保持 0。
+- 始终启用 `--redact`，不启用扫描器的在线验证。扫描器不由插件安装。
+- `GOX_GUARD_BIN` 可指定扫描器；`GOX_GUARD_SKIP=1` 跳过 push 检查，仅在用户明确要求时使用。
 
----
+脚本依赖 Bash、jq、Git、betterleaks 和常规命令行工具，并使用临时文件接收扫描错误；不向用户仓库写入文件。人手在终端执行的 push、脚本间接调用等未被匹配的执行方式不在完整覆盖承诺内。Codex 的 hook 信任与运行验证边界见 [CODEX](CODEX.md)。
 
-## 4. 各技能设计
+## 配置与升级
 
-### 4.1 `engineering`(通用行为准则)
-```yaml
----
-name: engineering
-description: 团队通用工程准则(Karpathy:先想后写、简单优先、外科手术式改动、目标驱动)。编写、审查或重构任何代码前都应参考,即使用户未明说"规范"。
----
-```
-正文 = Karpathy 四原则正文(从上游 karpathy-guidelines 抄入,MIT,注明出处;不引外部 marketplace 依赖)。
-无 `paths`(普遍适用)。**注**:技能本质按需加载;若要 engineering "每会话第一轮就常驻",见 §13 开放问题。
+Claude 项目配置模板包含 `extraKnownMarketplaces` 和对象形式的 `enabledPlugins`，每个插件 ID 对应布尔值。模板默认启用三个本地插件；用户应将其合并到已有配置，而不是覆盖整个文件。
 
-### 4.2 `go`(Go 架构 + 编码,一个技能管全部)
-```yaml
----
-name: go
-description: 团队 Go 架构与编码规范。设计或编写本仓 Go 代码、CLI 命令(cobra)、配置(viper)、数据库迁移、Makefile/CI 脚手架时务必使用——只要在动 Go 代码就该参考,即使用户没说"规范"。
-paths: "**/*.go, go.mod, go.work"
----
-```
-正文 = 概览 + **索引**(替代旧 fileMatch):
-> - 写任何 Go 代码 → 读 `references/rules.md`
-> - 设计/写 `cmd/` 下命令(cobra)→ 读 `references/cli.md`
-> - 配置(viper)→ 读 `references/config.md`
-> - 数据库迁移 → 读 `references/db-migrations.md`
+项目配置声明启用范围，不代替每位协作者安装插件。Codex 使用自己的安装与启用配置，不能直接套用 `.claude/settings.json`。具体操作统一维护在 README 和 USAGE，避免设计文档再复制一份安装示例。
 
-`references/` 四份 = 现有 steering 同名文件的正文(单一源迁入此处)。
+插件版本由各自 `plugin.json` 管理，变更记录写入 CHANGELOG。修改已安装插件后，需要更新对应客户端的安装副本并重新加载或开启新会话；Codex hook 定义发生变化时还需重新审阅信任。仅修改源码或版本号不代表现有会话已更新。
 
-### 4.3 `gox-prd`(未来,独立插件)
-PRD 撰写/骨架生成做成技能;按需可设 `disable-model-invocation: true` 让用户 `/gox-prd:new` 手动发起。
-与 `gox-code-rules` 共享 marketplace,版本/激活独立。详设另开文档。
+## 验证与扩展
 
----
+- `make validate` 检查 marketplace、插件清单和模板的 JSON 语法，不是完整客户端 schema 或安装验证。
+- `make test` 运行中央与各插件的 bats：技能 YAML、引用文件、模板格式与默认启用范围、提醒输出、扫描调用与阻断分支等。
+- 技能触发、规范采纳、代理路由及费用用真实模型会话评估。`make eval` 提供评估提示，不执行模型测试。
+- Codex 安装发现、受信任 hook 执行和模型行为属于不同验证层，不以其中一层通过代替其他层。
 
-## 5. 分发与升级
+新增语言或领域时，在 `gox-code-rules/skills/` 下增加入口，按需增加 references，并同步说明与相关测试。若需要会话提醒指向新技能，还应检查提醒脚本。只有可确定判断、作用于对外操作的检查才考虑加入 `gox-guard`；每道闸门使用独立脚本与测试。
 
-- 加 marketplace:`/plugin marketplace add chinayin/gox-claude-plugins`(GitHub 源,相对路径源才解析)。
-- **作用域收敛主路径 = project-scope 启用**:团队每个 repo 提交 `.claude/settings.json`:
-  ```json
-  {
-    "extraKnownMarketplaces": { "chinayin": { "source": { "source": "github", "repo": "chinayin/gox-claude-plugins" } } },
-    "enabledPlugins": ["gox-code-rules@chinayin"]
-  }
-  ```
-  协作者信任该 repo 文件夹后被提示安装/启用 → **天然只在团队 repo 生效**,无需运行时闸门。
-  分发该 settings 用 repo 模板 / scaffold(可由 goxctl 顺带写入)。
-- **企业加固**:`strictKnownMarketplaces` 只信 `chinayin`(URL 易因尾斜杠/`.git` 差异落空,优先 `hostPattern`);
-  Managed 层 `enabledPlugins` force-enable = 全员强制、不可关。
-- 升级:插件打 tag、marketplace 指新版;`/reload-plugins` 或重启生效(回滚非实时,见 §10)。
-
----
-
-## 6. 与 goxctl-claude 的关系
-
-本插件落地后,`goxctl-claude` 对 CC 的同步职责退役(规则随技能走、不进 repo)。保留为历史/非 CC 残留场景。
-
----
-
-## 7. 多语言扩展配方(以加 Node 为例)
-
-1. 新增 `plugins/gox-code-rules/skills/node/SKILL.md`,`paths: "**/*.ts, **/*.js, package.json"`,正文索引。
-2. 新增 `skills/node/references/*.md`。
-3. 打新版 tag。完事——无引擎、无 hook 要改。
-
----
-
-## 8. 强制力分层(软/agent 侧闸门/硬)
-
-| 层 | 机制 | 性质 |
-|---|---|---|
-| 软(会话内引导) | 技能(`paths` 自动 + `description` 自调 + 渐进披露) | 高概率在场,模型可忽略 |
-| **agent 侧确定性闸门** | `gox-guard`:PreToolUse 拦 Claude 即将执行的不可逆动作 | 确定性,但只覆盖 Claude 会话内的动作;不写用户 repo |
-| 硬(真正卡死) | `golangci-lint` / 格式化 / CI / PR review | 确定性,覆盖所有人 |
-
-技能负责"让模型默认知道并倾向遵循规范";"必须"由 CI/lint 兜底。中间层补的是"agent 把东西送出
-本机前"这类动作:既不是代码规范(技能管不了),又发生在 CI 之前(CI 管晚了)。
-
-### 8.1 gox-guard
-
-`gox-guard` 是闸门这一类的总名(对齐 `gox-code-rules` = 规范、`token-thrift` = token 经济,按领域不按功能点起名)。
-每道闸一个脚本 `hooks/<闸名>.sh`,在 hooks.json 同一事件下并列注册、互不感知,文案前缀 `[gox-guard/<闸名>]`,
-`GOX_GUARD_SKIP=1` 为总开关。新闸门须同时满足:确定性判断、只拦对外且难撤回的动作、对用户 repo 零写入、
-fail-closed。建议性检查归 gox-code-rules;只有 CI 能判断的留在 CI。
-
-闸门 `secrets`(betterleaks 扫待推送提交):
-
-- **拦 push 不拦 commit**:commit 本地廉价可重做;`git add && git commit` 一条命令时 pre-commit 扫到的是
-  add 前的索引;push 才是泄漏不可逆的临界点,且此刻待推送区间(`HEAD --not --remotes`)完全确定。
-- **零配置、零写入**:没配置用内置规则;白名单(`.betterleaksignore` / `.betterleaks.toml` / 行内
-  `betterleaks:allow`)在第一次需要时由模型作为普通改动加进 repo,走 review。插件不生成它们。
-- **不 pin 版本、不装工具**:只扫待推送区间,新规则不会让老提交报红;缺工具时拦下并让模型提醒用户安装。
-- **fail-closed**:扫描器缺失、jq 缺失、扫描器异常都 deny;与 gox-code-rules 的 nudge hook(fail-open)相反,
-  因为闸门静默放行等于没有。
-- **deny 文案短**:一行一条的发现列表(上限 10)+ 两句裁定规则,不附手册(模型本来就会 git),
-  不另开技能(metadata 常驻上下文)。
-- **边界**:管不到人手敲的 push 与 CI,仓库 CI 仍是最后一道硬闸。
-- **扫描器选型**:betterleaks(gitleaks 原作者的后继项目,MIT,默认离线;gitleaks 已进入只修安全补丁阶段)。
-
----
-
-## 9. 安全与治理
-
-- `gox-code-rules` 仅一个**薄 SessionStart 提示 hook**(回显固定文本、fail-open、不读用户文件、不执行外部命令),信任面远小于一般带 hook 的插件;但插件机制本身仍是高信任组件,治理照旧。
-- `gox-guard` 是仓内**唯一会执行外部程序并可阻断工具调用**的插件,信任级别不同,单列:
-  只在 Bash 命令含 `git … push` 时动作;只读 git 对象与 stdin 的 hook 输入;唯一执行的外部程序是
-  `PATH` 上的 `betterleaks`(或 `GOX_GUARD_BIN` 指定);常开 `--redact`,永不开 `--validation`;
-  不联网、不安装、不写用户 repo;退出码永远 0,阻断只通过 `permissionDecision: deny`。
-- **插件仓写权限治理**:`chinayin/gox-claude-plugins` 开分支保护 + 强制 PR review;限定可 push 人员。
-- 只走 GitHub 源;`strictKnownMarketplaces` 锁 `chinayin`,挡第三方 marketplace。
-- Managed force-enable 时用户无法关 → 配回滚流程(§10)。
-- 引第三方技能不引外部 marketplace 依赖,分两种:小型纯文本(如 karpathy 上游)**抄入自管**;
-  带可执行载荷、上游根目录是合规插件的,在本 marketplace 里**引用**,默认跟随上游分支不钉版本(准入清单与
-  登记见 `docs/THIRD_PARTY.md`)。两者都保持团队 repo 只声明 `chinayin` 一个 marketplace。
-
----
-
-## 10. 测试 / 版本 / 回滚
-
-- **测试**:技能用 skill-creator 的 eval 流程(给定真实 prompt,跑 with-skill vs baseline,看触发与产出);
-  `description` 触发率用其 description 优化脚本评。无 bash 引擎可单测(已无)。
-- **版本兼容**:记录插件 version × CC version;CC 若改技能 frontmatter 字段(如 `paths` 语义)需跟随并标最低 CC 版本。
-- **回滚**:改 Managed/项目 `enabledPlugins` 关闭,或 marketplace 回退 tag;**生效非实时**——在场会话需
-  `/reload-plugins` 或重启,事故预案要写明时延。
-
----
-
-## 11. MVP 与分期(先验证假设)
-
-未证假设:① `paths` + `description` 的**自动触发率**(模型真会在写 Go 时调 `go` 技能吗);
-② 技能引导下模型对 Go 规范的**采纳度**;③ project-scope 启用的**作用域**是否如预期。
-
-- **MVP(P0)**:`gox-code-rules` 插件,含 `engineering` + `go` 两个技能(`go` 带 `paths` 与 `references/rules.md`
-  最小种子)。经 project-scope 在 3 个真实 Go repo 启用,用一周,观测上述三点 +(用 skill-creator)测 `go` 触发率。
-- **P1**:把 `references/` 补全(cli/config/db 从 steering 迁入)+ 按 skill-creator eval 优化 `description`/索引。
-- **P2**:加 `node`/`python` 技能;`gox-prd`。
-- **P3**:Managed force-enable + `strictKnownMarketplaces` 全面铺开;CI/lint 硬层对齐(golangci-lint 规则与技能正文同源校对)。
-
-> 决策门:P0 先证"技能自动触发够不够准"。若触发率不足,再考虑补一个极薄 SessionStart 兜底(见 §13),而非回到 v1 整套 hook。
-
----
-
-## 12. 验收标准
-
-- [ ] 编辑 `*.go` 时 `go` 技能被自动激活(`paths` 生效),模型能复述/遵循 `rules.md`。
-- [ ] 设计阶段(未编辑文件)问"怎么设计这个 cmd 命令",模型能自调 `go` 技能并读 `cli.md`。
-- [ ] 编辑非 Go 文件(README 等)不激活 `go` 技能。
-- [ ] `engineering` 在编码/审查任务中被引用。
-- [ ] 规则正文仅存在于技能 `references/`,无副本。
-- [ ] 团队 repo(已 project-scope 启用)生效;未启用 repo 不生效。
-- [ ] 加一门语言只需加一个 `skills/<lang>/`(SKILL.md + references),无引擎改动。
-- [ ] 插件不含 hook(纯技能)。
-
----
-
-## 13. 待深入 / 开放问题
-
-- **`engineering` 要不要"永远在场"**:技能是按需加载;若要 engineering 从第一轮常驻,需一个极薄 SessionStart hook
-  或写进项目 CLAUDE.md(破"零 hook/零写 repo")。**默认:做成技能(零 hook 纯净)**;若实测发现通用准则
-  常被漏用,再加兜底。← 唯一可回退的取舍点。
-- **`paths` 自动激活的真实可靠性**:官方说"仅在处理匹配文件时自动加载",但仍模型参与 → 用 skill-creator
-  eval 量化触发率,决定是否需 description 加强或兜底。
-- **SKILL.md 索引 vs `references/` 颗粒度**:索引写多细、cli/config/db 是否进一步拆,按 eval 结果调。
-- **CI/lint 与技能正文同源**:golangci-lint 规则与 `rules.md` 如何保持一致(谁是源)。
-- `gox-prd` 完整设计。
-
----
-
-## 14. 附:v1(已取代)方案备忘(供复盘)
-
-v1 用 **SessionStart + PreToolUse hook + `routing.json`(gitignore 语法)+ bash 引擎**按后缀/路径注入规则,
-并设运行时 repo 闸门收敛作用域。**取代原因**:
-- 官方 `enabledPlugins` 支持 project scope → repo 闸门多余。
-- 官方技能 `paths` 原生支持按文件激活 → 自写 hook/bash/routing 多余,且省掉跨平台二进制分发、
-  bash 版本(中文 bats)、fail-open 等一堆运维负担。
-- command 与 skill 合并 → 无需 hook/skill/command 三套划分。
-- 真强制本就该靠 CI/lint → hook 的"确定性注入"价值被弱化为软引导,技能已够。
-
-v1 的实现产物(`hooks/inject-common.sh` 等)若已落地,按 v2 重构为技能;hook 相关文件移除。
+旧的按路径注入引擎、独立 Codex 打包及覆盖清单不属于当前架构。未采用方案保留在 Git / PR 历史中，不作为现行开发要求。

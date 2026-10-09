@@ -8,7 +8,7 @@ Team plugins for Claude Code, distributed through a single marketplace (`chinayi
 
 | Plugin | Purpose |
 |---|---|
-| `gox-code-rules` | Team coding standards as Agent Skills (Go / frontend / shell / engineering). A skill activates while you edit matching files and reads only the reference file the current task needs. |
+| `gox-code-rules` | Team coding standards as Agent Skills (Go / frontend / shell / skill authoring / engineering). Descriptions and session reminders guide the model to load relevant skills and references; automatic activation is not guaranteed. |
 | `token-thrift` | Cheap-model subagents for token-heavy work: reads on Haiku, correctness-sensitive writes on Sonnet, the main agent only orchestrates. Raw material stays out of the main context. |
 | `gox-guard` | Deterministic gates for irreversible actions Claude is about to take, one hook script per gate, nothing written into your repo. First gate, `secrets`: before `git push`, the commits not yet on any remote are scanned with [betterleaks](https://github.com/betterleaks/betterleaks) and a finding blocks the push. |
 | `diagram-design` | Third-party ([cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design), MIT), referenced rather than copied; tracks the upstream default branch. Editorial diagrams (40 types) as standalone HTML/SVG plus import/export commands. Opt-in; not in the default template. Registry and intake checklist: [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md). |
@@ -17,7 +17,7 @@ Centralising standards here avoids the usual cost of copying them into every rep
 
 ## Install
 
-Per project (recommended, shared via git). Merge `templates/project-settings.json` into the repo's `.claude/settings.json` and commit. Collaborators who trust the repo are prompted to enable the plugins; scope is that repo only. Full config in [USAGE.md](USAGE.md).
+Per project (recommended, shared via git). Merge `templates/project-settings.json` into the repo's `.claude/settings.json` and commit. `enabledPlugins` maps plugin IDs to booleans. Project settings declare enablement for that repo; each collaborator still needs to install and trust the plugins. Full config in [USAGE.md](USAGE.md).
 
 Single machine:
 
@@ -54,8 +54,10 @@ not configure them in Codex. The rules plugin exposes the same skills and
 SessionStart/SubagentStart reminders, and the guard exposes its dependency check
 and pre-push scan. Installation and hook discovery were verified; identical model
 behavior and trusted-session execution have not been verified end to end.
-`token-thrift` depends on Claude-specific models and agents; `diagram-design` has
-not been evaluated for Codex here.
+`token-thrift` depends on Claude-specific models and agents and has not been adapted
+for Codex. Installation of `diagram-design` through its full Git URL was verified;
+its runtime features have not been fully tested. See [Codex compatibility](docs/CODEX.md)
+for the recorded verification scope and remaining work.
 
 See the official [plugin documentation](https://developers.openai.com/plugins/build/plugins)
 and [hook trust instructions](https://learn.chatgpt.com/docs/hooks).
@@ -66,11 +68,11 @@ and [hook trust instructions](https://learn.chatgpt.com/docs/hooks).
 |---|---|---|---|
 | Engineering | `/gox-code-rules:engineering` | session nudge + description (no file filter) | Karpathy guidelines: think first, keep it simple, surgical changes, goal-driven |
 | Go | `/gox-code-rules:go` | Go tasks — nudge + description, model-invoked (`paths` declared, not load-bearing) | Go architecture + gin HTTP / cobra / gox-config / goose / time & timezone / scaffolding; detail in `references/`, read on demand |
-| Frontend | `/gox-code-rules:frontend` | frontend tasks (same mechanism) | React / Vue / TS / JS / styling (skeleton; body TODO) |
+| Frontend | `/gox-code-rules:frontend` | frontend tasks, model-invoked from its description | React / Vue / TS / JS / styling (skeleton; body TODO) |
 | Shell | `/gox-code-rules:shell` | shell tasks (same mechanism) | bash/CLI scripts: stdout/stderr split, status prefixes, standard flags, exit codes, `test.sh` |
 | Skill | `/gox-code-rules:skill` | writing or editing a SKILL.md (same mechanism) | naming (`object-action`, no version suffix), body language, no environment facts; adds only what the official skill-creator leaves open |
 
-How to phrase requests so a skill triggers, and what to do when it doesn't: see [USAGE.md](USAGE.md).
+How to make applicable skills clear in requests, and what to do when they don't load: see [USAGE.md](USAGE.md).
 
 ## token-thrift
 
@@ -123,7 +125,7 @@ Design choices worth knowing:
 - Test layout: central `tests/` holds cross-plugin checks (`manifests` / `skills` / `template`, looping `plugins/*`, so new plugins are covered automatically); plugin-specific tests live under `plugins/<name>/tests/`. `make test` runs `bats tests plugins/*/tests`.
 - Trigger/hit rate (does the model load a skill, does it delegate) is not a bats gate; it is probabilistic. Evaluate with the skill-creator eval flow (with-plugin vs baseline). `make eval` has the pointer.
 - `gox-guard` is fully deterministic and its bats cover it with a stub scanner (clean / findings / missing / failing). To exercise the real binary point `GOX_GUARD_BIN` at a `betterleaks` build and feed the hook a PreToolUse JSON on stdin.
-- Adding a language or domain: one skill per language in the same plugin, each with `description` + `paths` + `references/`. See `docs/DESIGN.md`.
+- Adding a language or domain: one skill per language in the same plugin, with a description and references as needed. `paths` is declarative metadata, not an activation guarantee. See [current architecture](docs/DESIGN.md).
 
 ## License
 

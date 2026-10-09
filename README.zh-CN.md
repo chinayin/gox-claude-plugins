@@ -8,8 +8,8 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 
 | 插件 | 用途 |
 |---|---|
-| `gox-code-rules` | 团队代码规范，做成 Agent Skills（Go / 前端 / Shell / 工程通则）。动相关文件时激活，只读当前任务用得到的那一篇细则。 |
-| `token-thrift` | 把 token 密集的活外包给便宜模型的 subagent：读用 Haiku、写用 Sonnet、编排用 Opus。原文不进主上下文。 |
+| `gox-code-rules` | 团队代码规范，做成 Agent Skills（Go / 前端 / Shell / 技能编写 / 工程通则）。描述和会话提醒引导模型加载相关技能与细则，不保证自动触发。 |
+| `token-thrift` | 把 token 密集的活外包给便宜模型的 subagent：读用 Haiku、写用 Sonnet、当前会话主模型负责编排。原文不进主上下文。 |
 | `gox-guard` | 针对 Claude 即将执行的不可逆动作的确定性闸门，一闸一脚本，不往 repo 写任何东西。首个闸门 `secrets`：`git push` 之前用 [betterleaks](https://github.com/betterleaks/betterleaks) 扫"本地有、任何远端都没有"的那段提交，有发现就拦下这次 push。 |
 | `diagram-design` | 第三方（[cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)，MIT），引用、不拷贝，跟随上游默认分支。40 种编辑风格的图出成单文件 HTML/SVG，附导入/导出命令。按需启用，不在默认模板里。登记与准入清单见 [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md)。 |
 
@@ -17,7 +17,7 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 
 ## 安装
 
-项目级（推荐，随 git 共享）：把 `templates/project-settings.json` 并入该 repo 的 `.claude/settings.json` 并提交。协作者信任该 repo 后会被提示启用，作用域仅该 repo。完整配置见 [USAGE.md](USAGE.md)。
+项目级（推荐，随 git 共享）：把 `templates/project-settings.json` 并入该 repo 的 `.claude/settings.json` 并提交。`enabledPlugins` 是插件 ID 到布尔值的对象。项目配置声明该 repo 的启用范围，每位协作者仍需安装并信任插件。完整配置见 [USAGE.md](USAGE.md)。
 
 单机：
 
@@ -46,7 +46,7 @@ codex plugin add gox-guard@chinayin
 
 Codex 将自己的 marketplace 和插件启用配置保存在 `~/.codex/config.toml`；在 Claude Code 中安装或启用插件，不会自动替 Codex 配置。规范插件提供同一份 skills 和 SessionStart/SubagentStart 提醒，guard 提供依赖检查和 push 前扫描。已验证安装和 hooks 发现，尚未端到端验证受信任会话中的执行效果，也不保证两种模型行为完全一致。
 
-`token-thrift` 依赖 Claude 专用模型和子代理；本次未评估 `diagram-design` 的 Codex 兼容性。
+`token-thrift` 依赖 Claude 专用模型和子代理，尚未完成 Codex 适配。`diagram-design` 通过完整 Git URL 的安装已验证，运行功能尚未完整验证。已有验证范围与后续工作统一见 [Codex 兼容说明](docs/CODEX.md)。
 
 参见官方[插件文档](https://developers.openai.com/plugins/build/plugins)和 [hooks 信任说明](https://learn.chatgpt.com/docs/hooks)。
 
@@ -55,16 +55,16 @@ Codex 将自己的 marketplace 和插件启用配置保存在 `~/.codex/config.t
 | 技能 | 调用名 | 何时激活 | 内容 |
 |---|---|---|---|
 | 工程通则 | `/gox-code-rules:engineering` | 描述匹配（无文件限定） | Karpathy 准则：先想后写、简单优先、外科手术式改动、目标驱动 |
-| Go | `/gox-code-rules:go` | 动 Go 文件（`**/*.go, go.mod...`） | Go 架构 + gin HTTP / cobra / gox-config / goose / 时间与时区 / 脚手架；细则在 `references/` 按需读 |
-| 前端 | `/gox-code-rules:frontend` | 动前端文件 | React / Vue / TS / JS / 样式（骨架，正文 TODO） |
-| Shell | `/gox-code-rules:shell` | 动 Shell 文件（`**/*.sh, **/*.bash`） | bash/CLI 脚本：stdout/stderr 分流、状态前缀、标准 flag、退出码、`test.sh` |
-| Skill | `/gox-code-rules:skill` | 写或改 SKILL.md（`**/SKILL.md`） | 命名（对象-动作，不带版本后缀）、正文语言、不写环境事实；只补官方 skill-creator 没定的事，不复述 |
+| Go | `/gox-code-rules:go` | Go 任务，通过提醒与描述引导模型调用 | Go 架构 + gin HTTP / cobra / gox-config / goose / 时间与时区 / 脚手架；细则在 `references/` 按需读 |
+| 前端 | `/gox-code-rules:frontend` | 前端任务，通过描述引导模型调用 | React / Vue / TS / JS / 样式（骨架，正文 TODO） |
+| Shell | `/gox-code-rules:shell` | Shell 任务，通过提醒与描述引导模型调用 | bash/CLI 脚本：stdout/stderr 分流、状态前缀、标准 flag、退出码、`test.sh` |
+| Skill | `/gox-code-rules:skill` | 编写技能时，通过提醒与描述引导模型调用 | 命名（对象-动作，不带版本后缀）、正文语言、不写环境事实；只补官方 skill-creator 没定的事，不复述 |
 
-怎么问能稳定触发、没触发怎么办：见 [USAGE.md](USAGE.md)。
+怎么让适用技能更明确、没触发怎么办：见 [USAGE.md](USAGE.md)。`paths` 仅作声明，不保证按文件自动加载。
 
 ## token-thrift
 
-把 token 密集的活外包给便宜模型的 subagent。主 agent（Opus）只做编排，大块原料不进它的上下文，后续每轮也就不再重发计费。
+把 token 密集的活外包给便宜模型的 subagent。主 agent 使用当前会话模型负责编排，大块原料留在子代理上下文；实际 token 与费用收益需要按任务测量。
 
 | 组件 | 调用名 | 模型 | 角色 |
 |---|---|---|---|
@@ -113,7 +113,7 @@ agent 与技能正文用英文编写（对模型更友好）；本文件与英�
 - 测试分层：中央 `tests/` 放跨插件检查（`manifests` / `skills` / `template`，循环 `plugins/*`，新插件自动覆盖）；插件专属测试放 `plugins/<name>/tests/`。`make test` = `bats tests plugins/*/tests`。
 - 触发/命中率（模型是否加载技能、是否派活）不进 bats，是概率性的，用 skill-creator eval 流程评估（with-plugin vs baseline）。`make eval` 有提示。
 - `gox-guard` 完全确定性，bats 用 stub 扫描器覆盖四种情形（干净 / 有发现 / 缺失 / 出错）。要跑真二进制，把 `GOX_GUARD_BIN` 指向一个 `betterleaks`，再往 hook 的 stdin 喂一段 PreToolUse JSON。
-- 加语言或领域：一语言一技能，同插件内并存，各带 `description` + `paths` + `references/`。见 `docs/DESIGN.md`。
+- 加语言或领域：一语言一技能，同插件内并存，提供描述并按需增加 references；`paths` 是声明性元数据。见[当前架构](docs/DESIGN.md)。
 
 ## License
 

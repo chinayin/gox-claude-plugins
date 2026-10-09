@@ -1,0 +1,19 @@
+{
+  "name": "gox-claude-plugins",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi package for the chinayin plugins: .pi/extensions plus the gox-code-rules skills (Claude Code and Codex read .claude-plugin/ instead)",
+  "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "./.pi/extensions/gox-code-rules.ts",
+      "./.pi/extensions/gox-guard.ts"
+    ],
+    "skills": [
+      "./plugins/gox-code-rules/skills"
+    ]
+  }
+}

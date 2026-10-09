@@ -4,5 +4,9 @@
       "source": { "source": "github", "repo": "chinayin/gox-claude-plugins" }
     }
   },
-  "enabledPlugins": ["gox-code-rules@chinayin", "token-thrift@chinayin", "gox-guard@chinayin"]
+  "enabledPlugins": {
+    "gox-code-rules@chinayin": true,
+    "token-thrift@chinayin": true,
+    "gox-guard@chinayin": true
+  }
 }

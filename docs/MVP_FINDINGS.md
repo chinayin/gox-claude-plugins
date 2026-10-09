@@ -1,15 +1,26 @@
-# MVP 验证结论:`go` 技能触发率(2026-06-20)
+# 历史实验记录：技能触发与工程准则
 
-用 skill-creator 对 `gox-code-rules` 的 `go` 技能做了三轮验证。核心结论:**纯靠 description 的技能自触发,实测不可靠,且无法靠调 description 改善;`paths`(编辑期自动激活)是唯一可能可靠的杠杆,但尚未验证。**
+> 记录范围：2026-06-20 的 Go 技能触发实验、2026-08-25 的 engineering 内容对照实验。本文保留实验过程及当时判断；当前架构以 [DESIGN](DESIGN.md) 为准，不将历史结果视为当前客户端的性能保证。
 
-## 方法
+## 最终结论与适用范围
+
+- 后续真实插件实验中，技能加载由模型调用 Skill 工具发生；在当时的 Claude Code 2.1.183 中未观察到 `paths` 自动注入。本仓因此不依赖 `paths` 保证加载。
+- 提醒和 description 能推动模型咨询技能，但不保证触发，也不保证读到规则后遵守。lint、CI 和代码审查负责各自覆盖的检查。
+- “2/3”来自仅三个任务的单轮实验，不是稳定触发率。engineering 的“0/5 对 5/5”来自单任务、单模型且使用 system prompt 注入的实验，不能直接等同于真实技能加载效果。
+- 下文按时间保留假设、结果和修正。早期“description 调优无效”“等待验证 paths”等判断已被后续实验补充或取代，不再作为待办。
+
+## 第一阶段：纯文本触发实验（2026-06-20，历史判断）
+
+用 skill-creator 对 `gox-code-rules` 的 `go` 技能做了三轮验证。当时的判断是：纯靠 description 的自触发不可靠，本轮调优未改善结果，拟继续验证 `paths`。后续实验修正了这一判断，见下文。
+
+### 方法
 - 工具:skill-creator `run_eval.py` / `run_loop.py`,经 `claude -p` 实测。
 - 评估集:14 条真实查询(8 条该触发的 Go 任务 + 6 条近似干扰项:Python/React/SQL/README/PRD/k8s)。
 - 重要前提:eval 是**纯文本 prompt,没有真实编辑某个 `.go` 文件** → 只测了 **description 触发**,**未测 `paths` 触发**。
 
-## 结果
+### 结果
 
-### 1. 触发率基线(run_eval,2 次/查询)
+#### 1. 触发率基线(run_eval,2 次/查询)
 | 类别 | 结果 |
 |---|---|
 | 不该触发(干扰项) | **6/6 全对**(无误触发) |
@@ -17,28 +28,28 @@
 
 写 service / 加 cobra 参数 / goose 迁移 / 搭骨架 / 改 config / 设计 cli / 修 goroutine 超时——**几乎都没调起技能**。
 
-### 2. description 优化(run_loop,2 轮迭代)
+#### 2. description 优化(run_loop,2 轮迭代)
 - 原 description:train 4/9,test 2/5。
 - 优化器迭代版(更激进):train 4/9,**test 2/5(完全一样)**,最终选回原版(`best == original`)。
 - **结论:瓶颈不在措辞,调 description 救不回来。**
 
-### 3. 根因
+#### 3. 当时的根因判断
 官方文档已述并被实测验证:**Claude 对"自己就能做"的任务不去 consult 技能**(写个 flag、加个迁移它觉得"我会")。这是 description 触发的结构性天花板。
 
-## 结论与影响
+### 当时的结论与影响
 - **不会误触发**(负例 6/6),作用域干净。
 - **该触发时严重欠触发**,且 description 调优无效。
 - **纯技能(description 自触发)不足以保证 Go 规范可靠在场**——尤其设计/意图期(那一档只能靠 description)。
 - `paths`(编辑 `.go` 时自动激活)是编码期唯一可能可靠的机制,**eval 测不到,需真实会话手验**(见 §下)。
 
-## 待办决策
+### 当时的待办（后续结果见下文）
 1. **手验 `paths`**:真实 repo 里编辑 `.go`,看 `go` 技能是否被 `paths` 自动激活。决定编码期是否成立。
 2. 据结果决定是否转**混合**:加一层薄 SessionStart 确定性兜底(只塞"本仓 Go,遵循 go 技能"的指针,推模型用技能),技能仍管深度;真强制仍靠 golangci-lint/CI/PR。
 
-## `paths` 手验步骤(在 Claude Code 里执行)
+### 当时拟定的 `paths` 手验步骤
 ```
 # 1. 本地加 marketplace(用本地路径)
-/plugin marketplace add /Users/tian/Sites/github/chinayin/golibs/gox-claude-plugins
+/plugin marketplace add /path/to/gox-claude-plugins
 /plugin install gox-code-rules@chinayin
 /reload-plugins        # 确认 /plugin Installed 里有它、无 Errors
 
@@ -63,9 +74,9 @@
 | 读 PORT 环境变量 | ✅ | 调技能 → 读 `config.md` → 用 **gox/config**(正确避开 os.Getenv) |
 | 加 `/healthz` handler | ❌ | 任务琐碎,模型直接写了,没查技能 |
 
-**结论:真实编码场景下激活率 ≈ 2/3,且激活时团队约定套用质量高。** 远好于纯文本 eval 的 1/8。漏的那次是琐碎任务(符合"Claude 对简单任务不查技能")。
+**本轮观察：三个任务中有两个调用了技能，并采用了对应约定。** 本轮方法与纯文本 eval 不同，不能直接用 2/3 和 1/8 推导稳定效果差异。
 
-边界:N=3 方向性;model=sonnet;个人技能装法(机制等价插件装法)。仍有 ~1/3 漏 → 非"保证在场"。
+边界:N=3 方向性;model=sonnet;个人技能装法，尚不是后文的真实插件测试。存在漏触发，不保证每次加载。
 
 ## 据此的决策(已落地)
 - **v2 技能方案保留**(真实场景可行 + 套用质量高)。
@@ -91,7 +102,7 @@
 | D | 负向:只改 README | ✅ 正确不激活 | — |
 | E | **设计期**:聊"用 Go 设计 CSV 导入 CLI",无 .go 文件 | ✅ | 显式调技能、读全部 references |
 
-要点:① **monorepo 子目录(根无 go.mod)照常触发**——`paths`/触发看的是被动文件路径,不看 go.mod 位置,老顾虑作废。② **设计期(无文件)也触发**——靠 nudge 推模型显式调,之前预测的"设计期盲区"被 nudge 堵上。③ 负向不误触发。
+要点:① **本轮 monorepo 子目录任务在根无 go.mod 时也触发了技能**，但不能据此证明 `paths` 的作用。② **设计期(无文件)也观察到了触发**，说明该场景可以通过模型显式调用技能覆盖，不代表必然触发。③ 本轮 README 负例没有误触发。
 
 ### B 漏触发 → 强化 → 再测(关键)
 B 这类"模型自认会做"的简单 env 读取漏调技能。把 nudge/description 的触发场景**显式加入"读配置/环境变量/密钥、即使小改动"**后重测:

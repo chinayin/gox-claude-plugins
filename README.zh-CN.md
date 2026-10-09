@@ -50,6 +50,16 @@ Codex 将自己的 marketplace 和插件启用配置保存在 `~/.codex/config.t
 
 参见官方[插件文档](https://developers.openai.com/plugins/build/plugins)和 [hooks 信任说明](https://learn.chatgpt.com/docs/hooks)。
 
+## 在 pi 中使用
+
+仓库根的 `package.json` 声明了 pi 包，包含 `gox-code-rules` 的技能与提醒扩展、`gox-guard` 的 push 前扫描扩展：
+
+```sh
+pi install git:github.com/chinayin/gox-claude-plugins
+```
+
+guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，`diagram-design` 不在本包内。兼容范围、已做的验证与已知限制见 [pi 兼容说明](docs/PI.md)。
+
 ## gox-code-rules
 
 | 技能 | 调用名 | 何时激活 | 内容 |

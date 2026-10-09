@@ -7,6 +7,23 @@
 - 修正 Claude 项目模板的 `enabledPlugins`：由数组改为插件 ID 到布尔值的对象；同步安装示例，并增加格式与启用值校验。
 - 将设计文档整理为当前架构，标注历史实验的适用范围；新增 Codex 兼容说明，统一安装发现与运行验证的边界。插件实现及版本未变。
 
+## pi 包
+
+pi（`@earendil-works/pi-coding-agent`）不读 `.claude-plugin/`。仓库根的 `package.json` 声明 pi 包，pi 专属文件只在
+根目录的 `.pi/` 与 `tests/pi/`；`plugins/` 下各插件不含任何 pi 文件，Claude / Codex 安装到的内容与版本不变。
+
+### 0.1.0 — 2026-10-10
+
+- `gox-code-rules`：`pi.skills` 交出插件的 `skills/`，SKILL.md 与 `references/` 原样复用。`.pi/extensions/gox-code-rules.ts`
+  在 `before_agent_start` 把提醒写入 system prompt 的 `gox-code-rules` 段（跨轮次与压缩保留，文案不变不重发）。
+  文案只属于 pi、写在扩展里：裸技能名（`go` / `shell` / `skill` / `engineering`），加载方式为读 `SKILL.md`；
+  测试校验点名的技能在插件中存在。
+- `gox-guard`：`.pi/extensions/gox-guard.ts` 把 `tool_call`（bash）以 Claude hook 的 stdin 形状转给插件的
+  `hooks/secrets.sh`，deny 翻译为 `{ block, reason }`；`session_start` 缺依赖时 `ui.notify`。脚本不感知 pi；
+  脚本调用失败不吞，由 pi 按 handler 出错拦截。
+- 测试：`tests/pi/*.test.mjs`（`node --test`），`make test` 在 bats 之后一起运行；`make validate` 校验 `package.json`。
+- 未适配：`token-thrift`；`diagram-design` 不在包内。
+
 ## 第三方引用
 
 ### diagram-design 接入 — 2026-09-13

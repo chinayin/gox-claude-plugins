@@ -62,6 +62,19 @@ for the recorded verification scope and remaining work.
 See the official [plugin documentation](https://developers.openai.com/plugins/build/plugins)
 and [hook trust instructions](https://learn.chatgpt.com/docs/hooks).
 
+## Use with pi
+
+The root `package.json` declares a pi package: the `gox-code-rules` skills and
+reminder extension, and the `gox-guard` pre-push scan extension:
+
+```sh
+pi install git:github.com/chinayin/gox-claude-plugins
+```
+
+The guard needs Bash, jq, Git and betterleaks. `token-thrift` has not been adapted
+for pi, and `diagram-design` is not part of this package. See [pi compatibility](docs/PI.md)
+(Chinese) for scope, verification and known limits.
+
 ## gox-code-rules
 
 | Skill | Invoke | Activates when | Content |

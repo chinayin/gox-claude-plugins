@@ -75,6 +75,10 @@ The guard needs Bash, jq, Git and betterleaks. `token-thrift` has not been adapt
 for pi, and `diagram-design` is not part of this package. See [pi compatibility](docs/PI.md)
 (Chinese) for scope, verification and known limits.
 
+With pi-subagents, foreground subagents do not load installed extensions (no guard,
+no reminder); configure `subagents.defaultSubagentOnlyExtensions` as described in
+[pi compatibility](docs/PI.md#pi-subagents-子代理需手动配置).
+
 ## gox-code-rules
 
 | Skill | Invoke | Activates when | Content |

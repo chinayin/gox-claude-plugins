@@ -60,6 +60,8 @@ pi install git:github.com/chinayin/gox-claude-plugins
 
 guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，`diagram-design` 不在本包内。兼容范围、已做的验证与已知限制见 [pi 兼容说明](docs/PI.md)。
 
+使用 pi-subagents 时，前台子代理不加载已安装的扩展（不受 guard 约束、收不到提醒），需按 [pi 兼容说明](docs/PI.md#pi-subagents-子代理需手动配置) 配置 `subagents.defaultSubagentOnlyExtensions`。
+
 ## gox-code-rules
 
 | 技能 | 调用名 | 何时激活 | 内容 |

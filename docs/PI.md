@@ -1,6 +1,6 @@
 # pi 兼容范围与待验证事项
 
-文档整理于 2026-10-10，验证环境为 pi 1.1.0（`@earendil-works/pi-coding-agent`）、Node 24。
+文档整理于 2026-10-10，验证环境为 pi 1.1.0（`@earendil-works/pi-coding-agent`）、pi-subagents 0.76.1、Node 24。
 
 ## 布局：pi 与 Claude / Codex 互不影响
 
@@ -50,15 +50,38 @@ pi -e ./                                                       # 本地调试：
 
 扫描逻辑不在 TS 里另写一份：安全闸门的正则与 fail-closed 规则两处维护容易漂移。依赖与 Claude 相同：Bash、jq、Git、betterleaks；逃生口仍是 `GOX_GUARD_SKIP=1`。扩展只看 `bash` 工具，不覆盖用户在 pi 中用 `!` 直接执行的命令（那是用户自己的操作），也不覆盖 `powershell` 工具。
 
+## pi-subagents 子代理：需手动配置
+
+[pi-subagents](https://github.com/nicobailon/pi-subagents) 的**前台子代理**（默认方式，`async: false`）运行在父进程里，**不加载父会话已安装的扩展**；后台子代理（`async: true`）默认加载。所以只装本包时，前台子代理既不受 guard 约束（push 会直接执行），也收不到规范提醒。
+
+用 pi-subagents 的设置 `subagents.defaultSubagentOnlyExtensions` 让所有子代理额外加载这两个扩展，写在 `~/.pi/agent/settings.json`：
+
+```json
+{
+  "subagents": {
+    "defaultSubagentOnlyExtensions": [
+      "~/.pi/agent/git/github.com/chinayin/gox-claude-plugins/.pi/extensions/gox-guard.ts",
+      "~/.pi/agent/git/github.com/chinayin/gox-claude-plugins/.pi/extensions/gox-code-rules.ts"
+    ]
+  }
+}
+```
+
+- 路径对应**默认的全局安装**（`pi install git:…`，不带 `--local`）：pi 把 git 包装在 `<配置目录>/git/<host>/<repo>`，配置目录默认 `~/.pi/agent`。pi-subagents 会展开 `~/`，所以 macOS / Linux 上与用户名无关。
+- 以下情况要换成实际安装位置（`pi list` 可查）：设置了 `PI_CODING_AGENT_DIR`；用 `--local` 做项目安装。该设置只接受文件路径，不接受 `git:` 包地址。
+- 某个代理若在 frontmatter 或 `agentOverrides` 里自己声明了 `subagentOnlyExtensions`，会覆盖这个默认值（列表不合并），那个代理需单独加上。
+- 后台子代理会同时从已安装的包和这里各加载一次，guard 扫两遍、提醒段写同一个键，结果不变；实测无报错。
+- 未采用的替代：扩展里调用 pi-subagents 的 `registerRequiredChildExtensions` 强制注册，保证更强（不会被代理配置覆盖），但要依赖 pi-subagents 内部的全局注册表格式，且每个会话只能登记一次。
+
 ## 已做的验证
 
 - `make test`：bats 与 `tests/pi/`（翻译层、接线、提醒点名的技能均存在）。
 - 真实 pi 会话，guard：临时仓库 + 本地 bare remote，待推送提交含伪造的 GitHub token，`pi -ne -e <仓库> -t bash -p '…git push origin main'`；bash 调用被拦下（`isError: true`，原因含 `github-pat config.py:1`），remote 未更新。另以 `pi -e git:github.com/chinayin/gox-claude-plugins@<分支>` 从 git 源单次加载，结果一致。
 - 真实 pi 会话，code-rules：默认模型，`pi -ne -e <仓库> -t read,write,edit,bash -p '写一个读 PORT 环境变量的 HTTP 服务 main.go'`，两次运行都先读 `skills/go/SKILL.md`，再读 `references/` 下的 rules / config / http 后写代码。样本只有两次，不代表命中率；也未与"无提醒、只有技能"的基线对比。
+- 正式安装（`pi install git:github.com/chinayin/gox-claude-plugins`，跟随 main），正常启动 pi（同时加载 pi-subagents 等其他包），主会话中 guard 拦截、code-rules 提醒均生效，启动日志无技能重名告警。
+- pi-subagents 0.76.1：未配置时前台子代理的 `git push` 成功执行（推到临时 bare remote），后台子代理被拦；按上节配置后，前台、后台子代理的 push 均被拦，前台子代理的会话记录中有 `gox-code-rules` 段，且写代码前读了 `skills/go/SKILL.md` 与 `references/`。
 
 ## 待验证 / 后续
 
 1. 技能重名：pi 技能没有插件命名空间，同名时只保留先发现的一个并告警。`go`、`shell`、`skill` 较通用，与其他 pi 包冲突时需改名或在 settings 里筛选。
-2. pi-subagents 的子会话是否加载本包扩展（决定子代理能否收到提醒、guard 是否覆盖子代理的 bash）。
-3. `pi install git:` 的持久安装（写入 settings）未验证。
-4. 提醒的触发率：需按 Claude 侧 eval 的方式，对比有无提醒的基线后再下结论。
+2. 提醒的触发率：需按 Claude 侧 eval 的方式，对比有无提醒的基线后再下结论。

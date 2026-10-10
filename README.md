@@ -62,7 +62,7 @@ for the recorded verification scope and remaining work.
 See the official [plugin documentation](https://developers.openai.com/plugins/build/plugins)
 and [hook trust instructions](https://learn.chatgpt.com/docs/hooks).
 
-## Use with pi
+## Pi
 
 The root `package.json` declares a pi package: the `gox-code-rules` skills and
 reminder extension, and the `gox-guard` pre-push scan extension:

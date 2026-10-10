@@ -50,7 +50,7 @@ Codex 将自己的 marketplace 和插件启用配置保存在 `~/.codex/config.t
 
 参见官方[插件文档](https://developers.openai.com/plugins/build/plugins)和 [hooks 信任说明](https://learn.chatgpt.com/docs/hooks)。
 
-## 在 pi 中使用
+## Pi
 
 仓库根的 `package.json` 声明了 pi 包，包含 `gox-code-rules` 的技能与提醒扩展、`gox-guard` 的 push 前扫描扩展：
 

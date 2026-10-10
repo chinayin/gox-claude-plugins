@@ -62,7 +62,7 @@ for the recorded verification scope and remaining work.
 See the official [plugin documentation](https://developers.openai.com/plugins/build/plugins)
 and [hook trust instructions](https://learn.chatgpt.com/docs/hooks).
 
-## Use with pi
+## Pi
 
 The root `package.json` declares a pi package: the `gox-code-rules` skills and
 reminder extension, and the `gox-guard` pre-push scan extension:
@@ -74,6 +74,10 @@ pi install git:github.com/chinayin/gox-claude-plugins
 The guard needs Bash, jq, Git and betterleaks. `token-thrift` has not been adapted
 for pi, and `diagram-design` is not part of this package. See [pi compatibility](docs/PI.md)
 (Chinese) for scope, verification and known limits.
+
+With pi-subagents, foreground subagents do not load installed extensions (no guard,
+no reminder); configure `subagents.defaultSubagentOnlyExtensions` as described in
+[pi compatibility](docs/PI.md#pi-subagents-子代理需手动配置).
 
 ## gox-code-rules
 

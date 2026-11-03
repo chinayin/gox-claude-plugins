@@ -1,27 +1,31 @@
 # 当前架构与维护约定
 
-本文描述仓库当前实现，更新于 2026-10-09。安装见 [README](../README.zh-CN.md)，Claude 使用细节见 [USAGE](../USAGE.md)，Codex 支持范围见 [CODEX](CODEX.md)。历史实验见 [MVP_FINDINGS](MVP_FINDINGS.md)，版本变化见 [CHANGELOG](../CHANGELOG.md)。
+本文描述仓库当前实现，更新于 2026-11-03（Cursor 清单见 [CURSOR](CURSOR.md)）。安装见 [README](../README.zh-CN.md)，Claude 使用细节见 [USAGE](../USAGE.md)，Codex 支持范围见 [CODEX](CODEX.md)，pi 见 [PI](PI.md)。历史实验见 [MVP_FINDINGS](MVP_FINDINGS.md)，版本变化见 [CHANGELOG](../CHANGELOG.md)。
 
 ## 分发与目录
 
-仓库用一个 `chinayin` marketplace 分发插件。Claude Code 是主要使用平台；Codex 直接复用现有 marketplace、插件清单和内容，不维护独立构建包或第二套规范。
+仓库用一个 `chinayin` marketplace 分发插件。Claude Code 是主要使用平台；Codex 直接复用现有 marketplace、插件清单和内容，不维护独立构建包或第二套规范。Cursor 使用并列的 `.cursor-plugin/` 清单（见 [CURSOR](CURSOR.md)），skills 正文仍共用。`diagram-design` 只出现在 Claude marketplace。
 
 ```text
-.claude-plugin/marketplace.json        # 本地插件与第三方 Git 源的统一目录
+.claude-plugin/marketplace.json        # Claude / Codex：本地插件与第三方 Git 源
+.cursor-plugin/marketplace.json        # Cursor：三个本地插件，不含 diagram-design
 plugins/
   gox-code-rules/
     .claude-plugin/plugin.json
+    .cursor-plugin/plugin.json
     skills/                           # engineering、go、frontend、shell、skill
-    hooks/                            # SessionStart / SubagentStart 提醒
+    hooks/                            # Claude hooks.json + Cursor hooks-cursor.json
     tests/
   token-thrift/
     .claude-plugin/plugin.json
+    .cursor-plugin/plugin.json        # skills + agents；模型别名未在 Cursor 验证
     skills/delegate/                  # 委派策略
-    agents/                           # Claude 的 cheap-reader / careful-writer
+    agents/                           # cheap-reader / careful-writer
     tests/
   gox-guard/
     .claude-plugin/plugin.json
-    hooks/                            # 依赖检查与 git push 前扫描
+    .cursor-plugin/plugin.json
+    hooks/                            # Claude 匹配 Bash；Cursor 匹配 Shell
     tests/
 templates/project-settings.json       # Claude 项目配置模板
 tests/                               # 跨插件结构、技能和模板校验
@@ -35,7 +39,7 @@ docs/                                # 当前设计、兼容边界、第三方�
 | 组件 | 当前行为 | 边界 |
 |---|---|---|
 | `gox-code-rules` | 五个技能入口；Go 细则按 `references/` 索引读取；会话和子代理收到轻量提醒 | 软引导，不能保证模型加载或遵守；frontend 仍是占位内容，未提供 Python 技能 |
-| `token-thrift` | Claude 的读任务委派给 Haiku，可靠写任务委派给 Sonnet，主模型接收结论 | 依赖 Claude 的模型与代理接口；尚未完成 Codex 适配；成本收益需实测 |
+| `token-thrift` | Claude 的读任务委派给 Haiku，可靠写任务委派给 Sonnet，主模型接收结论。Cursor 清单声明同一份 skills 与 agents | 依赖 Claude 的模型与代理接口；Cursor 是否按 `model` / `tools` 路由未验证；尚未完成 Codex 适配；成本收益需实测 |
 | `gox-guard` | 对匹配的工具调用执行外部扫描器，并通过 hook 输出拒绝 push | 仅覆盖受支持且实际触发 hook 的调用；不能替代仓库 CI |
 
 规范正文维护在各技能的 `SKILL.md` 和 `references/` 中，不复制进用户仓库。hooks 只提供提醒或执行检查，不向用户仓库写配置。用户仍需主动安装插件、配置启用范围；任务产生的代码或图表由对应任务决定。
@@ -60,7 +64,7 @@ docs/                                # 当前设计、兼容边界、第三方�
 `gox-guard/hooks/secrets.sh` 在 `SessionStart` 检查 jq、betterleaks；在 `PreToolUse` 的 Bash 调用中匹配 `git … push`，扫描待推送提交。
 
 - 默认扫描 `HEAD --not --remotes`，`--all` / `--mirror` 时扩展为 `--branches --not --remotes`。范围依据本地远端跟踪引用；脚本不执行 fetch。
-- 没有待扫描提交时不调用扫描器；有发现、扫描器缺失或执行失败时，返回 `permissionDecision: deny`。阻断通过 JSON 表达，脚本退出码保持 0。
+- 没有待扫描提交时不调用扫描器；有发现、扫描器缺失或执行失败时拒绝这次 push。Claude 的字段是 `permissionDecision: deny`；`CURSOR_PLUGIN_ROOT` 已设置时改为 `permission: deny`。阻断通过 JSON 表达，脚本退出码保持 0。
 - 始终启用 `--redact`，不启用扫描器的在线验证。扫描器不由插件安装。
 - `GOX_GUARD_BIN` 可指定扫描器；`GOX_GUARD_SKIP=1` 跳过 push 检查，仅在用户明确要求时使用。
 
@@ -76,7 +80,7 @@ Claude 项目配置模板包含 `extraKnownMarketplaces` 和对象形式的 `ena
 
 ## 验证与扩展
 
-- `make validate` 检查 marketplace、插件清单和模板的 JSON 语法，不是完整客户端 schema 或安装验证。
+- `make validate` 检查 Claude 与 Cursor 的 marketplace、插件清单、Cursor hook 配置和模板的 JSON 语法，不是完整客户端 schema 或安装验证。
 - `make test` 运行中央与各插件的 bats：技能 YAML、引用文件、模板格式与默认启用范围、提醒输出、扫描调用与阻断分支等。
 - 技能触发、规范采纳、代理路由及费用用真实模型会话评估。`make eval` 提供评估提示，不执行模型测试。
 - Codex 安装发现、受信任 hook 执行和模型行为属于不同验证层，不以其中一层通过代替其他层。

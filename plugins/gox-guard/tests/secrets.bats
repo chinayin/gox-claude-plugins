@@ -7,6 +7,7 @@
 HOOK="$BATS_TEST_DIRNAME/../hooks/secrets.sh"
 
 setup() {
+  unset CURSOR_PLUGIN_ROOT
   STUB_DIR="$BATS_TEST_TMPDIR/stub"
   mkdir -p "$STUB_DIR"
   STUB_LOG="$BATS_TEST_TMPDIR/stub.log"    # stub 每次被调用追加一行参数
@@ -273,6 +274,49 @@ nojq_path() {
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
   echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "brew install jq"
+}
+
+@test "CURSOR_PLUGIN_ROOT deny is flat permission JSON and reads a top-level command" {
+  stub_betterleaks 1 "$FINDING"
+  add_ahead_commit
+  run env CURSOR_PLUGIN_ROOT=/plugin PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$HOOK" PreToolUse <<EOF
+{"tool_name":"Shell","cwd":"$REPO","command":"git push"}
+EOF
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.permission == "deny"'
+  echo "$output" | jq -e 'has("hookSpecificOutput") | not'
+  reason="$(echo "$output" | jq -er '.user_message')"
+  grep -qE '^aws-access-key +config.txt:3 +@01234567 +fp=' <<<"$reason"
+}
+
+@test "CURSOR_PLUGIN_ROOT still denies when the command is nested in tool_input" {
+  stub_betterleaks 1 "$FINDING"
+  add_ahead_commit
+  run env CURSOR_PLUGIN_ROOT=/plugin PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$HOOK" PreToolUse <<EOF
+{"tool_name":"Shell","cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.permission == "deny"'
+  echo "$output" | jq -e 'has("hookSpecificOutput") | not'
+}
+
+@test "CLAUDE_PLUGIN_ROOT alone keeps permissionDecision deny" {
+  stub_betterleaks 1 "$FINDING"
+  add_ahead_commit
+  run env CLAUDE_PLUGIN_ROOT=/plugin PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$HOOK" PreToolUse <<EOF
+{"cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
+  echo "$output" | jq -e 'has("permission") | not'
+}
+
+@test "CURSOR_PLUGIN_ROOT and jq missing: flat deny names jq" {
+  P="$(nojq_path)"
+  run env CURSOR_PLUGIN_ROOT=/plugin PATH="$P" bash "$HOOK" PreToolUse <<<'{"command":"git push origin main"}'
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.permission == "deny"'
+  echo "$output" | jq -er '.user_message' | grep -q "brew install jq"
 }
 
 @test "script never enables validation and always redacts (static check)" {

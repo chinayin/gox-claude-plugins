@@ -62,6 +62,16 @@ guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，
 
 使用 pi-subagents 时，前台子代理不加载已安装的扩展（不受 guard 约束、收不到提醒），需按 [pi 兼容说明](docs/PI.md#pi-subagents-子代理需手动配置) 配置 `subagents.defaultSubagentOnlyExtensions`。
 
+## 在 Cursor 中使用
+
+Cursor 不执行 Claude 的 `/plugin`。本仓库另有 `.cursor-plugin/marketplace.json`，列出 `gox-code-rules`、`gox-guard`、`token-thrift`。`diagram-design` 仍只在 Claude 的 marketplace 里。
+
+先允许 Local Plugin Imports，把本仓库复制或克隆到 `~/.cursor/plugins/local/`（指向该目录之外的 symlink 会被跳过），再从 Customize 安装这三个插件。Team marketplace 导入同一 Git 仓库时用的是这份清单。技能仍在 `skills/`；Cursor 读 `.cursor-plugin/plugin.json` 和 `hooks/hooks-cursor.json`。
+
+`gox-code-rules` 在 `sessionStart` 和 `subagentStart` 注入现有提醒。`gox-guard` 匹配 Shell 工具，待推送提交扫到 secret 时拒绝 `git push`。两个脚本退出码保持 0，在设置了 `CURSOR_PLUGIN_ROOT` 时改打 Cursor 的 JSON。`token-thrift` 交出技能以及 `cheap-reader` / `careful-writer`。Cursor 的 agent 文件保证 `name` 和 `description`；frontmatter 里的 `model` 和 `tools` 尚未验证会不会按 Claude 的方式选模型和工具。
+
+清单形状和两种 hook 输出由 `make test` 覆盖。Customize 安装、Cursor Agent 会话里的提醒，以及 Cursor 里一次真实 `git push` 拦截，都还没做过。见 [Cursor 兼容说明](docs/CURSOR.md)。
+
 ## gox-code-rules
 
 | 技能 | 调用名 | 何时激活 | 内容 |

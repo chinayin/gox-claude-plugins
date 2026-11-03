@@ -1,0 +1,24 @@
+{
+  "name": "chinayin",
+  "owner": { "name": "chinayin" },
+  "metadata": {
+    "description": "Team plugins: coding standards, pre-push secret gates, and cheap-model subagents."
+  },
+  "plugins": [
+    {
+      "name": "gox-code-rules",
+      "source": "plugins/gox-code-rules",
+      "description": "Team coding standards delivered as skills (Go, frontend, shell, skill authoring, engineering)"
+    },
+    {
+      "name": "gox-guard",
+      "source": "plugins/gox-guard",
+      "description": "Deterministic gates for irreversible actions. Today: scan commits not yet on any remote with betterleaks before git push"
+    },
+    {
+      "name": "token-thrift",
+      "source": "plugins/token-thrift",
+      "description": "Cheap-model subagents for token-heavy work. Cursor loads the skill and agent files; model aliases are not verified to match Claude"
+    }
+  ]
+}

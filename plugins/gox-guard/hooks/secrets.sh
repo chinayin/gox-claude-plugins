@@ -6,7 +6,9 @@
 #   SessionStart —— 检查依赖（jq、betterleaks），缺失时提示一句，齐全时零输出。
 #   PreToolUse   —— 从 stdin 的 hook 输入取 Bash 命令与 cwd，命中 push 才扫描。
 #
-# 退出码永远 0（hook 非零会干扰会话），拦截通过 stdout 的 permissionDecision=deny 表达；
+# 退出码永远 0（hook 非零会干扰会话）。拦截写在 stdout，不靠退出码。
+# Claude：hookSpecificOutput.permissionDecision=deny。
+# Cursor（已设置 CURSOR_PLUGIN_ROOT，即使同时有 CLAUDE_PLUGIN_ROOT）：permission=deny。
 # 因此只 set -u，不用 -e/pipefail。依赖缺失、扫描器出错都拦（闸门静默放行等于没有），
 # 唯一逃生口是环境变量 GOX_GUARD_SKIP=1。给模型的文案只在拦截时出现，并尽量短。
 set -u
@@ -34,18 +36,34 @@ PUSH_RE='(^|[^[:alnum:]_./-])git([[:space:]]+-[^[:space:];&|]*([[:space:]]+[^-[:
 
 # ---------- 输出 ----------
 # 固定文案不含双引号与反斜杠，可以不经 jq 直接拼 JSON；含动态内容的 deny 交给 jq 转义。
+# Cursor 认扁平字段；没有 CURSOR_PLUGIN_ROOT 时保持 Claude 嵌套字段。一次只打一种。
+cursor_mode() { [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; }
 emit_context() {  # $1 事件名  $2 文案
-  printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"[gox-guard/secrets] %s"}}\n' "$1" "$2"
+  if cursor_mode; then
+    printf '{"additional_context":"[gox-guard/secrets] %s"}\n' "$2"
+  else
+    printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"[gox-guard/secrets] %s"}}\n' "$1" "$2"
+  fi
   exit 0
 }
 emit_deny_plain() {
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"[gox-guard/secrets] Push blocked: %s"}}\n' "$1"
+  if cursor_mode; then
+    printf '{"permission":"deny","user_message":"[gox-guard/secrets] Push blocked: %s"}\n' "$1"
+  else
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"[gox-guard/secrets] Push blocked: %s"}}\n' "$1"
+  fi
   exit 0
 }
 emit_deny() {
-  jq -n --arg reason "[gox-guard/secrets] Push blocked: $1" \
-    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$reason}}' \
-    || exit 0
+  if cursor_mode; then
+    jq -n --arg reason "[gox-guard/secrets] Push blocked: $1" \
+      '{permission:"deny",user_message:$reason}' \
+      || exit 0
+  else
+    jq -n --arg reason "[gox-guard/secrets] Push blocked: $1" \
+      '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$reason}}' \
+      || exit 0
+  fi
   exit 0
 }
 
@@ -81,7 +99,8 @@ if [ "$HAVE_JQ" -eq 0 ]; then
   emit_deny_plain "pending commits cannot be checked. $MSG_NO_JQ $MSG_BYPASS"
 fi
 
-CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+# Claude 把命令放在 tool_input.command；Cursor 的 Shell 输入也可能是顶层 command。
+CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // .command // empty' 2>/dev/null || true)"
 [ -n "$CMD" ] || exit 0
 printf '%s' "$CMD" | grep -Eq "$PUSH_RE" || exit 0
 

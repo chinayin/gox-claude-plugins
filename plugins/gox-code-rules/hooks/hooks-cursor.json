@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "bash ./hooks/session-nudge.sh SessionStart"
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "bash ./hooks/session-nudge.sh SubagentStart"
+      }
+    ]
+  }
+}

@@ -6,6 +6,7 @@
 
 - 修正 Claude 项目模板的 `enabledPlugins`：由数组改为插件 ID 到布尔值的对象；同步安装示例，并增加格式与启用值校验。
 - 将设计文档整理为当前架构，标注历史实验的适用范围；新增 Codex 兼容说明，统一安装发现与运行验证的边界。插件实现及版本未变。
+- Cursor 使用并列的 `.cursor-plugin/marketplace.json`，只收三个本地插件。`diagram-design` 仍只在 Claude marketplace。安装界面和 Cursor 内的真实 push 尚未验证，见 `docs/CURSOR.md`。
 
 ## pi 包
 
@@ -33,6 +34,11 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ## gox-guard
 
+### 0.1.1 — 2026-11-03
+
+- 增加 `.cursor-plugin/plugin.json` 与 `hooks/hooks-cursor.json`。Cursor 的 `preToolUse` 匹配 `Shell`；Claude 的 `hooks.json` 仍匹配 `Bash`。
+- `secrets.sh` 在 `CURSOR_PLUGIN_ROOT` 已设置时输出 `additional_context` 或 `permission` / `user_message`，否则保持 Claude 的 `hookSpecificOutput`。命令同时接受顶层 `command` 与 `tool_input.command`。退出码仍为 0。
+
 ### 0.1.0 — 2026-09-08
 
 新插件：agent 侧不可逆动作的确定性闸门。每道闸一个脚本 `hooks/<闸名>.sh`，在 hooks.json 同一事件下
@@ -53,6 +59,11 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
   marketplace。
 
 ## gox-code-rules
+
+### 0.8.2 — 2026-11-03
+
+- 增加 `.cursor-plugin/plugin.json` 与 `hooks/hooks-cursor.json`（`sessionStart` / `subagentStart`）。技能目录不复制。
+- `session-nudge.sh` 在 `CURSOR_PLUGIN_ROOT` 已设置时只输出 `additional_context`；同时存在 `CLAUDE_PLUGIN_ROOT` 时也不打 Claude 形状。`subagent_type` 与 `agent_type` 都能识别 `cheap-reader` 并跳过。
 
 ### 0.8.1 — 2026-09-22
 
@@ -149,6 +160,10 @@ nudge 收窄触发范围,降低会话与子代理里的重复技能加载(规则
 - 初始版本：engineering（Karpathy）+ go（rules/cli/config/db-migrations/scaffold）技能、SessionStart nudge、frontend 骨架、shell 技能、project-scope 启用模板、bats 测试与 MVP 触发率验证（`docs/MVP_FINDINGS.md`）。
 
 ## token-thrift
+
+### 0.1.2 — 2026-11-03
+
+- 增加 `.cursor-plugin/plugin.json`，声明现有 `skills/` 与 `agents/`。技能和 agent 正文未改。Cursor 是否按 `model` / `tools` 选模型和工具尚未验证。
 
 ### 0.1.1 — 2026-08-25
 

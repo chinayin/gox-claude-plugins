@@ -19,11 +19,11 @@ esac
 # 缺 jq -> 静默放行
 command -v jq >/dev/null 2>&1 || exit 0
 
-# SubagentStart：从 stdin 的 hook 输入 JSON 读 agent_type。纯只读的
-# cheap-reader 不写代码，跳过注入（此处与 token-thrift 插件的 agent 名耦合）。
+# SubagentStart：从 stdin 读 agent_type；Cursor 的字段名是 subagent_type。
+# 纯只读的 cheap-reader 不写代码，跳过注入（与 token-thrift 的 agent 名耦合）。
 # 解析失败 / 无输入则照常注入（fail-open）。
 if [ "$EVENT" = "SubagentStart" ] && [ ! -t 0 ]; then
-  AGENT_TYPE="$(jq -r '.agent_type // empty' 2>/dev/null || true)"
+  AGENT_TYPE="$(jq -r '.agent_type // .subagent_type // empty' 2>/dev/null || true)"
   case "$AGENT_TYPE" in
     cheap-reader) exit 0 ;;
   esac
@@ -49,7 +49,14 @@ EOF
 )
 fi
 
-jq -n --arg ctx "$MSG" --arg ev "$EVENT" \
-  '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$ctx}}' \
-  || exit 0
+# Cursor 设置 CURSOR_PLUGIN_ROOT 时只打 additional_context。
+# 它有时同时带上 CLAUDE_PLUGIN_ROOT；先看 Cursor，避免两套一起注入。
+# 没有 CURSOR_PLUGIN_ROOT 时保持 Claude 的 hookSpecificOutput。退出码仍是 0。
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  jq -n --arg ctx "$MSG" '{additional_context:$ctx}' || exit 0
+else
+  jq -n --arg ctx "$MSG" --arg ev "$EVENT" \
+    '{hookSpecificOutput:{hookEventName:$ev,additionalContext:$ctx}}' \
+    || exit 0
+fi
 exit 0

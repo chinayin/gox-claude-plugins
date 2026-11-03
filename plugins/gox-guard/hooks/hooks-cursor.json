@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "bash ./hooks/secrets.sh SessionStart"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "bash ./hooks/secrets.sh PreToolUse",
+        "matcher": "Shell",
+        "timeout": 90
+      }
+    ]
+  }
+}

@@ -79,6 +79,32 @@ With pi-subagents, foreground subagents do not load installed extensions (no gua
 no reminder); configure `subagents.defaultSubagentOnlyExtensions` as described in
 [pi compatibility](docs/PI.md#pi-subagents-子代理需手动配置).
 
+## Use with Cursor
+
+Cursor does not run Claude's `/plugin` commands. This repo ships a separate
+marketplace at `.cursor-plugin/marketplace.json` for `gox-code-rules`,
+`gox-guard`, and `token-thrift`. `diagram-design` stays on the Claude
+marketplace only.
+
+Allow Local Plugin Imports, then copy or clone this repo under
+`~/.cursor/plugins/local/` (a symlink that points outside that directory is
+skipped) and install the three plugins from Customize. A Team marketplace
+import of the same Git repository uses the same manifest. Skills stay in
+`skills/`; Cursor reads `.cursor-plugin/plugin.json` and `hooks/hooks-cursor.json`.
+
+`gox-code-rules` injects the existing reminder on `sessionStart` and
+`subagentStart`. `gox-guard` matches the Shell tool and blocks `git push` when
+the pending commits fail the secret scan. Both scripts keep exit code 0 and
+switch JSON shape when `CURSOR_PLUGIN_ROOT` is set. `token-thrift` exposes its
+skill and the `cheap-reader` / `careful-writer` agents. Cursor's agent files
+guarantee `name` and `description`; the `model` and `tools` frontmatter are not
+verified to route the way they do in Claude.
+
+Manifest shape and both hook output shapes are covered by `make test`.
+Installing from Customize, seeing the reminder in a Cursor Agent session, and
+blocking a real `git push` inside Cursor have not been exercised yet. See
+[Cursor compatibility](docs/CURSOR.md).
+
 ## gox-code-rules
 
 | Skill | Invoke | Activates when | Content |

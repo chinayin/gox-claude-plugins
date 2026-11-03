@@ -2,6 +2,8 @@
 
 setup() {
   HOOK="$BATS_TEST_DIRNAME/../hooks/session-nudge.sh"
+  # 未声明 Cursor 时必须保持 Claude 形状；本机若带上该变量，不能把旧断言翻过去。
+  unset CURSOR_PLUGIN_ROOT
 }
 
 @test "every skill named by either nudge exists in the installed plugin" {
@@ -108,6 +110,33 @@ setup() {
 @test "fail-open when jq is missing (exit 0, no output)" {
   # /bin has bash/cat but no jq, simulating a missing-jq environment
   run env PATH="/bin" bash "$HOOK"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "CURSOR_PLUGIN_ROOT emits additional_context only, even when CLAUDE_PLUGIN_ROOT is also set" {
+  run env CURSOR_PLUGIN_ROOT=/plugin CLAUDE_PLUGIN_ROOT=/plugin bash "$HOOK" SessionStart
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.additional_context | contains("gox-code-rules:go")'
+  echo "$output" | jq -e 'has("hookSpecificOutput") | not'
+  run env CURSOR_PLUGIN_ROOT=/plugin bash "$HOOK" SubagentStart
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -er '.additional_context' | grep -q "Your brief should already state"
+  echo "$output" | jq -e 'has("hookSpecificOutput") | not'
+}
+
+@test "CLAUDE_PLUGIN_ROOT alone keeps the Claude hookSpecificOutput shape" {
+  run env CLAUDE_PLUGIN_ROOT=/plugin bash "$HOOK" SessionStart
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
+  echo "$output" | jq -e 'has("additional_context") | not'
+}
+
+@test "CURSOR_PLUGIN_ROOT SubagentStart skips cheap-reader by agent_type or subagent_type" {
+  run env CURSOR_PLUGIN_ROOT=/plugin bash "$HOOK" SubagentStart <<<'{"agent_type":"cheap-reader"}'
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  run env CURSOR_PLUGIN_ROOT=/plugin bash "$HOOK" SubagentStart <<<'{"subagent_type":"cheap-reader"}'
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }

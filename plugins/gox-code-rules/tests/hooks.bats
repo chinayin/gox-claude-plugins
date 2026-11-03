@@ -13,3 +13,15 @@ HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
   [ "$status" -eq 0 ]
   [[ "$output" == *"session-nudge.sh\" SubagentStart" ]]
 }
+
+@test "hooks-cursor.json registers sessionStart and subagentStart with the Claude event args" {
+  cursor="$BATS_TEST_DIRNAME/../hooks/hooks-cursor.json"
+  run jq -e . "$cursor"
+  [ "$status" -eq 0 ]
+  run jq -er '.hooks.sessionStart[0].command' "$cursor"
+  [ "$output" = "bash ./hooks/session-nudge.sh SessionStart" ]
+  run jq -er '.hooks.subagentStart[0].command' "$cursor"
+  [ "$output" = "bash ./hooks/session-nudge.sh SubagentStart" ]
+  run jq -er '.hooks | keys | sort | join(",")' "$cursor"
+  [ "$output" = "sessionStart,subagentStart" ]
+}

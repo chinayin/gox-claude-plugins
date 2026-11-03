@@ -39,3 +39,19 @@ HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
     [ -f "$dir/../$s" ] || { echo "registered script missing: $s"; false; }
   done
 }
+
+@test "hooks-cursor.json scopes preToolUse to Shell and keeps the PreToolUse arg plus a timeout" {
+  cursor="$BATS_TEST_DIRNAME/../hooks/hooks-cursor.json"
+  run jq -e . "$cursor"
+  [ "$status" -eq 0 ]
+  run jq -er '.hooks.sessionStart[0].command' "$cursor"
+  [ "$output" = "bash ./hooks/secrets.sh SessionStart" ]
+  run jq -er '.hooks.preToolUse[0].matcher' "$cursor"
+  [ "$output" = "Shell" ]
+  run jq -er '.hooks.preToolUse[0].command' "$cursor"
+  [ "$output" = "bash ./hooks/secrets.sh PreToolUse" ]
+  run jq -e '.hooks.preToolUse[0].timeout >= 30' "$cursor"
+  [ "$status" -eq 0 ]
+  run jq -er '.hooks | keys | sort | join(",")' "$cursor"
+  [ "$output" = "preToolUse,sessionStart" ]
+}

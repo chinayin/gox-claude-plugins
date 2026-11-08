@@ -8,12 +8,14 @@
 
 ### Cursor CLI
 
-安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录账号后，在终端添加本仓库的 marketplace，指定主分支：
+安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录账号后，在终端添加本仓库的 marketplace：
 
 ```sh
-cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git --git-ref main
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
 cursor-agent
 ```
+
+省略 `--git-ref` 时，Cursor 使用 Git 仓库的默认分支；本仓默认分支为 `main`。它不会自动选取最新 tag。需要固定其他分支、tag 或 commit 时，才显式传入 `--git-ref <ref>`。该默认行为已通过当前 CLI 的 `plugin marketplace add --help` 核对。
 
 进入交互会话后：
 

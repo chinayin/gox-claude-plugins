@@ -75,12 +75,14 @@ guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，
 
 ## 在 Cursor 中使用
 
-使用 Cursor 原生插件管理器。先安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录，然后添加本仓库主分支的 marketplace：
+使用 Cursor 原生插件管理器。先安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录，然后添加本仓库的 marketplace：
 
 ```sh
-cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git --git-ref main
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
 cursor-agent
 ```
+
+不传 `--git-ref` 时使用仓库默认分支（本仓为 `main`），不会自动选择最新 tag；只有需要指定其他分支、tag 或 commit 时才加该参数。
 
 进入 CLI 后输入 `/plugin`，打开 Marketplace，选择 `chinayin`，分别安装 `gox-code-rules`、`gox-guard`、`token-thrift`，按需要选择 user 或 project 范围。添加 marketplace 是登记插件来源，还需要在管理器中选装插件。如果本机 CLI 名为 `agent`，替换命令前缀即可。依据：[Cursor CLI 命令](https://cursor.com/docs/cli/reference/slash-commands)。
 

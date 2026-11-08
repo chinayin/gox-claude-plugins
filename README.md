@@ -95,12 +95,15 @@ no reminder); configure `subagents.defaultSubagentOnlyExtensions` as described i
 ## Use with Cursor
 
 Use Cursor's plugin manager. With [Cursor CLI](https://cursor.com/docs/cli/installation)
-installed and signed in, add this repository's marketplace from `main`:
+installed and signed in, add this repository's marketplace:
 
 ```sh
-cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git --git-ref main
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
 cursor-agent
 ```
+
+Omitting `--git-ref` uses the repository default branch (`main` here), not the
+latest tag. Set it only when you need a specific branch, tag, or commit.
 
 Inside the CLI, enter `/plugin`, open Marketplace, select `chinayin`, and install
 `gox-code-rules`, `gox-guard`, and `token-thrift`, choosing user or project scope.

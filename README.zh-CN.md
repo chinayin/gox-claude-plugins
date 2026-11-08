@@ -43,7 +43,7 @@
 
 `gox-guard` 还需要本机装有扫描器：`brew install jq betterleaks`（还需 Bash、Git；其他系统用包管理器安装 jq，用 `go install github.com/betterleaks/betterleaks@latest` 安装扫描器）。插件不会替你安装；装好之前，Claude 发起的 push 会被拦下并给出安装提示。
 
-## 在 Codex 中使用
+## 安装到 Codex
 
 已使用 Codex CLI 0.155.1 验证：`gox-code-rules` 和 `gox-guard` 可以直接通过本仓库现有的 Claude 格式 marketplace 和 plugin 清单安装，无需独立的 Codex 包或构建步骤：
 
@@ -61,7 +61,7 @@ Codex 将自己的 marketplace 和插件启用配置保存在 `~/.codex/config.t
 
 参见官方[插件文档](https://developers.openai.com/plugins/build/plugins)和 [hooks 信任说明](https://learn.chatgpt.com/docs/hooks)。
 
-## Pi
+## 安装到 Pi
 
 仓库根的 `package.json` 声明了 pi 包，包含 `gox-code-rules` 的技能与提醒扩展、`gox-guard` 的 push 前扫描扩展：
 
@@ -73,12 +73,12 @@ guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，
 
 使用 pi-subagents 时，前台子代理不加载已安装的扩展（不受 guard 约束、收不到提醒），需按 [pi 兼容说明](docs/PI.md#pi-subagents-子代理需手动配置) 配置 `subagents.defaultSubagentOnlyExtensions`。
 
-## 在 Cursor 中使用
+## 安装到 Cursor
 
 使用 Cursor 原生插件管理器。先安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录，然后添加本仓库的 marketplace：
 
 ```sh
-cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins
 ```
 
 进入 CLI 后输入 `/plugin`，打开 Marketplace，选择 `chinayin`，分别安装 `gox-code-rules`、`gox-guard`、`token-thrift`，按需要选择 user 或 project 范围。安装后即加载，无需额外启用；仅添加 marketplace 不会安装其中的插件。如果本机 CLI 名为 `agent`，替换命令前缀即可。依据：[Cursor CLI 命令](https://cursor.com/docs/cli/reference/slash-commands)。

@@ -45,7 +45,7 @@ Single machine:
 
 `gox-guard` additionally needs the scanner on the machine: `brew install jq betterleaks` (Bash and Git are also required; on other systems install jq with your package manager and betterleaks with `go install github.com/betterleaks/betterleaks@latest`). The plugin never installs it for you; until it is present, pushes from Claude are blocked with an install hint.
 
-## Use with Codex
+## Install in Codex
 
 Codex CLI 0.155.1 was verified to install `gox-code-rules` and `gox-guard` directly
 from this repository's existing Claude-format marketplace and plugin manifests.
@@ -75,7 +75,7 @@ for the recorded verification scope and remaining work.
 See the official [plugin documentation](https://developers.openai.com/plugins/build/plugins)
 and [hook trust instructions](https://learn.chatgpt.com/docs/hooks).
 
-## Pi
+## Install in Pi
 
 The root `package.json` declares a pi package: the `gox-code-rules` skills and
 reminder extension, and the `gox-guard` pre-push scan extension:
@@ -92,13 +92,13 @@ With pi-subagents, foreground subagents do not load installed extensions (no gua
 no reminder); configure `subagents.defaultSubagentOnlyExtensions` as described in
 [pi compatibility](docs/PI.md#pi-subagents-子代理需手动配置).
 
-## Use with Cursor
+## Install in Cursor
 
 Use Cursor's plugin manager. With [Cursor CLI](https://cursor.com/docs/cli/installation)
 installed and signed in, add this repository's marketplace:
 
 ```sh
-cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins
 ```
 
 Inside the CLI, enter `/plugin`, open Marketplace, select `chinayin`, and install

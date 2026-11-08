@@ -11,7 +11,7 @@
 安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录账号后，在终端添加本仓库的 marketplace：
 
 ```sh
-cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins
 ```
 
 进入交互会话后：
@@ -25,7 +25,7 @@ cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugi
 也可以完全在 CLI 会话内添加来源：
 
 ```text
-/plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
+/plugin marketplace add https://github.com/chinayin/gox-claude-plugins
 ```
 
 如果 CLI 可执行文件名是 `agent`，把终端示例里的 `cursor-agent` 换成 `agent`；会话内的 slash 命令不变。
@@ -56,7 +56,7 @@ Teams / Enterprise 可在 Dashboard → Plugins & MCPs → Team Marketplaces 导
 修改插件源码时才需要克隆仓库：
 
 ```sh
-git clone --branch main https://github.com/chinayin/gox-claude-plugins.git
+git clone --branch main https://github.com/chinayin/gox-claude-plugins
 cd gox-claude-plugins
 ```
 

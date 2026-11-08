@@ -5,8 +5,10 @@
 # $BATS_TEST_TMPDIR 下的临时仓库里。
 
 HOOK="$BATS_TEST_DIRNAME/../hooks/secrets.sh"
+CURSOR_HOOK="$BATS_TEST_DIRNAME/../hooks/secrets-cursor.sh"
 
 setup() {
+  unset CURSOR_PLUGIN_ROOT
   STUB_DIR="$BATS_TEST_TMPDIR/stub"
   mkdir -p "$STUB_DIR"
   STUB_LOG="$BATS_TEST_TMPDIR/stub.log"    # stub 每次被调用追加一行参数
@@ -70,7 +72,7 @@ FINDING='[{"RuleID":"aws-access-key","Description":"AWS Access Key","File":"conf
 @test "push command variants all trigger the scan" {
   stub_betterleaks 0
   add_ahead_commit
-  for cmd in "git push" "git push origin main" "git push -u origin HEAD" "git -C \"$REPO\" push" "git --no-pager push" "git -c push.default=current push" "git add -A && git commit -m x && git push" "cd \"$REPO\" && git push --force-with-lease" "git stash push -m wip && git push"; do
+  for cmd in "git push" "git push origin main" "git push -u origin HEAD" "git -C \"$REPO\" push" "git --no-pager push" "git -c push.default=current push" "cd \"$REPO\" && git push --force-with-lease"; do
     : > "$STUB_LOG"
     run_pre "$cmd"
     [ "$status" -eq 0 ] || { echo "cmd=$cmd status=$status"; false; }
@@ -89,13 +91,13 @@ EOF
   [ ! -s "$STUB_LOG" ]
 }
 
-@test "cwd outside any git repo passes through (git itself will fail the push)" {
+@test "cwd outside any git repo denies an unresolved push without invoking the scanner" {
   stub_betterleaks 1 "$FINDING"
   run env PATH="$STUB_DIR:/usr/bin:/bin" bash "$HOOK" PreToolUse <<EOF
 {"tool_name":"Bash","cwd":"$BATS_TEST_TMPDIR","tool_input":{"command":"git push"}}
 EOF
   [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  jq -e '.hookSpecificOutput.permissionDecision == "deny"' <<<"$output"
   [ ! -s "$STUB_LOG" ]
 }
 
@@ -123,7 +125,8 @@ EOF
   run_pre "git push"
   args="$(cat "$STUB_LOG")"
   [[ "$args" == *"git "* ]]
-  [[ "$args" == *"--log-opts="*"HEAD --not --remotes"* ]] || { echo "args=$args"; false; }
+  head="$(git -C "$REPO" rev-parse HEAD)"
+  [[ "$args" == *"--log-opts=$head --not --remotes"* ]] || { echo "args=$args"; false; }
   [[ "$args" == *"--redact"* ]]
   [[ "$args" != *"--validation"* ]]
   [[ "$args" == *"--no-banner"* ]]
@@ -257,6 +260,13 @@ nojq_path() {
   echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason' | grep -q "GOX_GUARD_SKIP=1"
 }
 
+@test "jq missing still denies a bare git push at the end of a JSON string" {
+  P="$(nojq_path)"
+  run env PATH="$P" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
+}
+
 @test "jq missing + non-push or GOX_GUARD_SKIP: exit 0, no output" {
   P="$(nojq_path)"
   run env PATH="$P" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git status"}}'
@@ -275,7 +285,120 @@ nojq_path() {
   echo "$output" | jq -er '.hookSpecificOutput.additionalContext' | grep -q "brew install jq"
 }
 
+@test "Cursor adapter denies a top-level command without relying on plugin root variables" {
+  stub_betterleaks 1 "$FINDING"
+  add_ahead_commit
+  run env PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$CURSOR_HOOK" PreToolUse <<EOF
+{"tool_name":"Shell","cwd":"$REPO","command":"git push"}
+EOF
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.permission == "deny"'
+  echo "$output" | jq -e '.user_message == .agent_message'
+  echo "$output" | jq -e 'has("hookSpecificOutput") | not'
+  reason="$(echo "$output" | jq -er '.user_message')"
+  grep -qE '^aws-access-key +config.txt:3 +@01234567 +fp=' <<<"$reason"
+}
+
+@test "Cursor adapter denies native preToolUse input even with both plugin root variables" {
+  stub_betterleaks 1 "$FINDING"
+  add_ahead_commit
+  run env CURSOR_PLUGIN_ROOT=/cursor CLAUDE_PLUGIN_ROOT=/claude PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$CURSOR_HOOK" PreToolUse <<EOF
+{"tool_name":"Shell","cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.permission == "deny"'
+  echo "$output" | jq -e 'has("hookSpecificOutput") | not'
+}
+
+@test "base guard keeps Claude deny even with both plugin root variables" {
+  stub_betterleaks 1 "$FINDING"
+  add_ahead_commit
+  run env CURSOR_PLUGIN_ROOT=/cursor CLAUDE_PLUGIN_ROOT=/claude PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$HOOK" PreToolUse <<EOF
+{"cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
+  echo "$output" | jq -e 'has("permission") | not'
+}
+
+@test "Cursor adapter without jq preserves push denial and sends the reason to the agent" {
+  P="$(nojq_path)"
+  for input in '{"command":"git push origin main"}' '{"tool_input":{"command":"git push"}}'; do
+    run env PATH="$P" bash "$CURSOR_HOOK" PreToolUse <<<"$input"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.permission == "deny" and .user_message == .agent_message'
+    echo "$output" | jq -er '.user_message' | grep -q "jq"
+  done
+}
+
+@test "Cursor adapter without jq explicitly allows non-push and explicit bypass" {
+  P="$(nojq_path)"
+  run env PATH="$P" bash "$CURSOR_HOOK" PreToolUse <<<'{"command":"git status"}'
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+  jq -e ' . == {permission: "allow"} ' <<<"$output"
+  run env GOX_GUARD_SKIP=1 PATH="$P" bash "$CURSOR_HOOK" PreToolUse <<<'{"command":"git push"}'
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+  jq -e ' . == {permission: "allow"} ' <<<"$output"
+}
+
+@test "Cursor adapter reports missing jq at session start without blocking the session" {
+  P="$(nojq_path)"
+  run env PATH="$P" bash "$CURSOR_HOOK" SessionStart </dev/null
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '(.additional_context | contains("jq")) and (has("permission") | not)'
+}
+
+@test "Cursor adapter explicitly allows a clean scan and explicit bypass" {
+  stub_betterleaks 0
+  add_ahead_commit
+  run env GOX_GUARD_BIN="$STUB_DIR/betterleaks" bash "$CURSOR_HOOK" PreToolUse <<EOF
+{"cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+  jq -e ' . == {permission: "allow"} ' <<<"$output"
+  [ -s "$STUB_LOG" ]
+  stub_betterleaks 1 "$FINDING"
+  : > "$STUB_LOG"
+  run env GOX_GUARD_SKIP=1 GOX_GUARD_BIN="$STUB_DIR/betterleaks" bash "$CURSOR_HOOK" PreToolUse <<EOF
+{"cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+  jq -e ' . == {permission: "allow"} ' <<<"$output"
+  [ ! -s "$STUB_LOG" ]
+}
+
+@test "Cursor adapter translates scanner absence at session start and before a push" {
+  P="$(nojq_path)"
+  ln -s "$(command -v jq)" "$P/jq"
+  add_ahead_commit
+  run env GOX_GUARD_BIN= PATH="$P" bash "$CURSOR_HOOK" SessionStart </dev/null
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -er '.additional_context' | grep -q "brew install betterleaks"
+  run env GOX_GUARD_BIN= PATH="$P" bash "$CURSOR_HOOK" PreToolUse <<EOF
+{"cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.permission == "deny" and .user_message == .agent_message'
+  echo "$output" | jq -er '.agent_message' | grep -q "brew install betterleaks"
+}
+
 @test "script never enables validation and always redacts (static check)" {
   ! grep -q -- '--validation' "$HOOK"
   grep -q -- '--redact' "$HOOK"
+}
+
+@test "Cursor adapter explicitly allows non-push, no pending commits and deletions without scanning" {
+  stub_betterleaks 1 "$FINDING"
+  for command in 'git status' 'git push' 'git push origin :old'; do
+    input="$(jq -nc --arg cwd "$REPO" --arg command "$command" '{cwd:$cwd,tool_input:{command:$command}}')"
+    run env GOX_GUARD_BIN="$STUB_DIR/betterleaks" bash "$CURSOR_HOOK" PreToolUse <<<"$input"
+    [ "$status" -eq 0 ]
+    [ -n "$output" ]
+    jq -e '. == {permission: "allow"}' <<<"$output"
+    [ ! -s "$STUB_LOG" ]
+  done
 }

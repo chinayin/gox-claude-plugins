@@ -2,6 +2,9 @@
 
 setup() {
   HOOK="$BATS_TEST_DIRNAME/../hooks/session-nudge.sh"
+  CURSOR_HOOK="$BATS_TEST_DIRNAME/../hooks/session-nudge-cursor.sh"
+  # 协议由入口决定；默认清空变量，另测两种变量共存的情况。
+  unset CURSOR_PLUGIN_ROOT
 }
 
 @test "every skill named by either nudge exists in the installed plugin" {
@@ -110,4 +113,52 @@ setup() {
   run env PATH="/bin" bash "$HOOK"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
+}
+
+@test "base nudge keeps Claude output even when both plugin root variables are set" {
+  for event in SessionStart SubagentStart; do
+    run env CURSOR_PLUGIN_ROOT=/cursor CLAUDE_PLUGIN_ROOT=/claude bash "$HOOK" "$event"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e --arg event "$event" '.hookSpecificOutput.hookEventName == $event and (has("additional_context") | not)'
+  done
+}
+
+@test "CLAUDE_PLUGIN_ROOT alone keeps the Claude hookSpecificOutput shape" {
+  run env CLAUDE_PLUGIN_ROOT=/plugin bash "$HOOK" SessionStart
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
+  echo "$output" | jq -e 'has("additional_context") | not'
+}
+
+@test "Claude SubagentStart still skips cheap-reader with Cursor environment inherited" {
+  run env CURSOR_PLUGIN_ROOT=/plugin bash "$HOOK" SubagentStart <<<'{"agent_type":"cheap-reader"}'
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "Cursor adapter emits only additional_context with or without plugin root variables" {
+  for root in '' /cursor; do
+    run env CURSOR_PLUGIN_ROOT="$root" CLAUDE_PLUGIN_ROOT=/claude bash "$CURSOR_HOOK" SessionStart <<<'{"subagent_type":"cheap-reader"}'
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '(.additional_context | contains("gox-code-rules:go")) and (has("hookSpecificOutput") | not)'
+  done
+}
+
+@test "Cursor adapter stays silent for unsupported events or missing jq" {
+  run bash "$CURSOR_HOOK" BogusEvent
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  for event in SessionStart SubagentStart; do
+    run env PATH=/bin bash "$CURSOR_HOOK" "$event"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+  done
+}
+
+@test "Cursor adapter does not emit unsupported subagentStart context" {
+  for input in '{"subagent_type":"careful-writer"}' '{"subagent_type":"cheap-reader"}' 'not-json' ''; do
+    run bash "$CURSOR_HOOK" SubagentStart <<<"$input"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+  done
 }

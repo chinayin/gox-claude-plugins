@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 #
 # gox-guard 的 hook 注册：SessionStart 做依赖检查，PreToolUse 只挂 Bash 工具并带超时，
-# 事件名以参数传给脚本；hooks/ 下的脚本与 hooks.json 的注册一一对应。
+# 事件名以参数传给脚本；Claude 与 Cursor 的入口分别注册。
 
 HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
 
@@ -30,12 +30,29 @@ HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
   [ "$output" = "PreToolUse,SessionStart" ]
 }
 
-@test "every hook script under hooks/ is registered in hooks.json and every registered script exists" {
+@test "every hook script is registered in a platform config and every registered script exists" {
   dir="$BATS_TEST_DIRNAME/../hooks"
+  cursor="$dir/hooks-cursor.json"
   for s in "$dir"/*.sh; do
-    grep -q "hooks/$(basename "$s")" "$HOOKS" || { echo "script not registered: $(basename "$s")"; false; }
+    grep -q "hooks/$(basename "$s")" "$HOOKS" "$cursor" || { echo "script not registered: $(basename "$s")"; false; }
   done
-  for s in $(jq -r '.. | .command? // empty' "$HOOKS" | grep -oE 'hooks/[A-Za-z0-9_-]+\.sh' | sort -u); do
+  for s in $(jq -r '.. | .command? // empty' "$HOOKS" "$cursor" | grep -oE 'hooks/[A-Za-z0-9_-]+\.sh' | sort -u); do
     [ -f "$dir/../$s" ] || { echo "registered script missing: $s"; false; }
   done
+}
+
+@test "hooks-cursor.json scopes preToolUse to Shell and keeps the PreToolUse arg plus a timeout" {
+  cursor="$BATS_TEST_DIRNAME/../hooks/hooks-cursor.json"
+  run jq -e . "$cursor"
+  [ "$status" -eq 0 ]
+  run jq -er '.hooks.sessionStart[0].command' "$cursor"
+  [ "$output" = "bash ./hooks/secrets-cursor.sh SessionStart" ]
+  run jq -er '.hooks.preToolUse[0].matcher' "$cursor"
+  [ "$output" = "Shell" ]
+  run jq -er '.hooks.preToolUse[0].command' "$cursor"
+  [ "$output" = "bash ./hooks/secrets-cursor.sh PreToolUse" ]
+  run jq -e '.hooks.preToolUse[0].timeout >= 30 and .hooks.preToolUse[0].failClosed == true' "$cursor"
+  [ "$status" -eq 0 ]
+  run jq -er '.hooks | keys | sort | join(",")' "$cursor"
+  [ "$output" = "preToolUse,sessionStart" ]
 }

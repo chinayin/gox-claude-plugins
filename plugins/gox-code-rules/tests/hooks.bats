@@ -13,3 +13,13 @@ HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
   [ "$status" -eq 0 ]
   [[ "$output" == *"session-nudge.sh\" SubagentStart" ]]
 }
+
+@test "hooks-cursor.json only registers sessionStart because subagentStart cannot inject context" {
+  cursor="$BATS_TEST_DIRNAME/../hooks/hooks-cursor.json"
+  run jq -e . "$cursor"
+  [ "$status" -eq 0 ]
+  run jq -er '.hooks.sessionStart[0].command' "$cursor"
+  [ "$output" = "bash ./hooks/session-nudge-cursor.sh SessionStart" ]
+  run jq -er '.hooks | keys | sort | join(",")' "$cursor"
+  [ "$output" = "sessionStart" ]
+}

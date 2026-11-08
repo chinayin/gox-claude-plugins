@@ -1,15 +1,15 @@
 // gox-guard 的 pi 扩展：把 pi 的 tool_call / session_start 转给 plugins/gox-guard/hooks/secrets.sh，
-// 再把脚本的 deny / 提示翻译回 pi。扫描逻辑本身由 secrets.bats 覆盖，这里只测翻译层。
+// 再把脚本的 deny / 提示翻译回 pi。扫描规则由 secrets.bats / push-scope.bats 覆盖；这里测翻译层及安装包的范围解析。
 // 扫描器用 GOX_GUARD_BIN 指向的 stub 模拟；git 操作只发生在临时目录里。
 // 运行：node --test tests/pi/*.test.mjs（make test 会一起跑）
 
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { chmodSync, cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import guard from "../../.pi/extensions/gox-guard.ts";
 
@@ -62,9 +62,9 @@ function pathWithoutScanner() {
   return `${binDir}:/usr/bin:/bin`;
 }
 
-function load() {
+function load(extension = guard) {
   const handlers = {};
-  guard({ on: (name, handler) => { handlers[name] = handler; } });
+  extension({ on: (name, handler) => { handlers[name] = handler; } });
   const notes = [];
   const ctx = { cwd: repo, hasUI: true, ui: { notify: (message, type) => notes.push({ message, type }) } };
   return { handlers, ctx, notes };
@@ -79,7 +79,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  process.env = savedEnv;
+  // 保留 Node 的环境代理对象；替换整个对象会让 Node 26 子进程继承旧环境。
+  for (const key of Object.keys(process.env)) {
+    if (!(key in savedEnv)) delete process.env[key];
+  }
+  Object.assign(process.env, savedEnv);
   rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -106,6 +110,16 @@ test("lets a bash git push through when the scan is clean", async () => {
   assert.equal(result, undefined);
 });
 
+test("still blocks when Cursor and Claude plugin roots are inherited", async () => {
+  process.env.CURSOR_PLUGIN_ROOT = "/cursor";
+  process.env.CLAUDE_PLUGIN_ROOT = "/claude";
+  stubScanner(1, FINDING);
+  const { handlers, ctx } = load();
+  const result = await handlers.tool_call({ type: "tool_call", toolName: "bash", input: { command: "git push" } }, ctx);
+  assert.equal(result?.block, true);
+  assert.match(result.reason, /aws-access-key {2}config\.txt:3/);
+});
+
 test("ignores tools other than bash", async () => {
   stubScanner(1, FINDING);
   const { handlers, ctx } = load();
@@ -130,4 +144,56 @@ test("stays silent at session start when dependencies are present", async () => 
   const { handlers, ctx, notes } = load();
   await handlers.session_start({ type: "session_start", reason: "startup" }, ctx);
   assert.deepEqual(notes, []);
+});
+
+// 按 pi 包布局复制扩展和完整插件，验证安装后仍能通过相对路径加载 lib。
+async function installedGuard() {
+  const installed = join(tmp, "installed package");
+  mkdirSync(join(installed, ".pi/extensions"), { recursive: true });
+  cpSync(join(repoRoot, "plugins/gox-guard"), join(installed, "plugins/gox-guard"), { recursive: true });
+  const extension = join(installed, ".pi/extensions/gox-guard.ts");
+  cpSync(join(repoRoot, ".pi/extensions/gox-guard.ts"), extension);
+  return { installed, extension: (await import(pathToFileURL(extension).href)).default };
+}
+
+test("installed pi package scans a non-HEAD source via git -C and allows a clean source", async () => {
+  git("-C", repo, "checkout", "-qb", "feature");
+  writeFileSync(join(repo, "config.txt"), "REVIEW_SECRET\n");
+  git("-C", repo, "commit", "-qam", "fixture");
+  git("-C", repo, "checkout", "-q", "main");
+  const scanner = join(tmp, "scope-scanner");
+  writeFileSync(scanner, [
+    "#!/usr/bin/env bash",
+    'for arg in "$@"; do',
+    '  case "$arg" in --log-opts=*) range="${arg#--log-opts=}" ;; esac',
+    "done",
+    "for commit in $(git rev-list $range); do",
+    '  if git grep -q REVIEW_SECRET "$commit" --; then',
+    "    printf '%s' '" + FINDING + "'",
+    "    exit 1",
+    "  fi",
+    "done",
+    "exit 0",
+  ].join("\n") + "\n");
+  chmodSync(scanner, 0o755);
+  process.env.GOX_GUARD_BIN = scanner;
+  const { extension } = await installedGuard();
+  const { handlers, ctx } = load(extension);
+  ctx.cwd = tmp;
+  const push = (ref) => handlers.tool_call({
+    type: "tool_call", toolName: "bash",
+    input: { command: "git -C '" + repo + "' push origin " + ref },
+  }, ctx);
+  assert.equal((await push("feature"))?.block, true);
+  assert.equal(await push("main"), undefined);
+});
+
+test("installed pi package denies when its scope helper is missing", async () => {
+  stubScanner(0);
+  const { installed, extension } = await installedGuard();
+  rmSync(join(installed, "plugins/gox-guard/lib/push-scope.sh"));
+  const { handlers, ctx } = load(extension);
+  const result = await handlers.tool_call({ type: "tool_call", toolName: "bash", input: { command: "git push" } }, ctx);
+  assert.equal(result?.block, true);
+  assert.match(result.reason, /helper could not be loaded/);
 });

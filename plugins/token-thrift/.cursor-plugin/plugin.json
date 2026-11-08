@@ -1,0 +1,10 @@
+{
+  "name": "token-thrift",
+  "version": "0.1.2",
+  "description": "Context-saving subagents for economical reads and reliable writes; the session model decides. Actual savings depend on configured models, usage, and plan.",
+  "author": {
+    "name": "chinayin"
+  },
+  "skills": "./skills/",
+  "agents": "./agents-cursor/"
+}

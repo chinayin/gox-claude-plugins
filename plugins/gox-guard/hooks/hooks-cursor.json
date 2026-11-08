@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "bash ./hooks/secrets-cursor.sh SessionStart"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "bash ./hooks/secrets-cursor.sh PreToolUse",
+        "matcher": "Shell",
+        "timeout": 90,
+        "failClosed": true
+      }
+    ]
+  }
+}

@@ -6,7 +6,8 @@
 #   SessionStart —— 检查依赖（jq、betterleaks），缺失时提示一句，齐全时零输出。
 #   PreToolUse   —— 从 stdin 的 hook 输入取 Bash 命令与 cwd，命中 push 才扫描。
 #
-# 退出码永远 0（hook 非零会干扰会话），拦截通过 stdout 的 permissionDecision=deny 表达；
+# 退出码永远 0（hook 非零会干扰会话）。拦截写在 stdout，不靠退出码。
+# Claude：hookSpecificOutput.permissionDecision=deny。
 # 因此只 set -u，不用 -e/pipefail。依赖缺失、扫描器出错都拦（闸门静默放行等于没有），
 # 唯一逃生口是环境变量 GOX_GUARD_SKIP=1。给模型的文案只在拦截时出现，并尽量短。
 set -u
@@ -30,10 +31,12 @@ MAX_FINDINGS=10
 
 # `git [全局选项...] push`：git 与 push 之间只允许 - 开头的选项及其取值（-C dir、-c k=v），
 # 所以 `git stash push`、`git log | grep push` 都不算；段由 ; & | 分隔，链式命令任一段命中即可。
-PUSH_RE='(^|[^[:alnum:]_./-])git([[:space:]]+-[^[:space:];&|]*([[:space:]]+[^-[:space:];&|][^[:space:];&|]*)?)*[[:space:]]+push([[:space:]]|$|[;&|)])'
+SHELL_PART="(\"[^\"]*\"|'[^']*'|[^[:space:];&|\"'])"
+PUSH_RE="(^|[^[:alnum:]_./-])git([[:space:]]+-${SHELL_PART}*([[:space:]]+${SHELL_PART}+)?)*[[:space:]]+push([[:space:]]|$|[;&|)])"
 
 # ---------- 输出 ----------
 # 固定文案不含双引号与反斜杠，可以不经 jq 直接拼 JSON；含动态内容的 deny 交给 jq 转义。
+# 输出固定为 Claude 协议；其他平台由各自入口适配。
 emit_context() {  # $1 事件名  $2 文案
   printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"[gox-guard/secrets] %s"}}\n' "$1" "$2"
   exit 0
@@ -77,34 +80,34 @@ INPUT="$(cat 2>/dev/null || true)"
 
 # 没有 jq 解析不了输入：对原始 JSON 跑同一条正则，命中即拦并要求装 jq
 if [ "$HAVE_JQ" -eq 0 ]; then
-  printf '%s' "$INPUT" | grep -Eq "$PUSH_RE" || exit 0
+  # 将 JSON 双引号视为分隔符，避免漏过字符串末尾的裸 git push。
+  printf '%s' "${INPUT//\"/ }" | grep -Eq "$PUSH_RE" || exit 0
   emit_deny_plain "pending commits cannot be checked. $MSG_NO_JQ $MSG_BYPASS"
 fi
 
+# 按 Claude 协议读取命令；其他平台的字段差异由入口适配。
 CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
 [ -n "$CMD" ] || exit 0
 printf '%s' "$CMD" | grep -Eq "$PUSH_RE" || exit 0
 
 CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
-[ -n "$CWD" ] && [ -d "$CWD" ] || CWD="$PWD"
-REPO="$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null || true)"
-[ -n "$REPO" ] || exit 0                 # 不在 git 仓库里，让 git 自己报错
-
-# 待推送区间：HEAD 上不在任何远端的提交；--all / --mirror 时扩到所有本地分支
-RANGE="HEAD --not --remotes"
-case "$CMD" in *--all*|*--mirror*) RANGE="--branches --not --remotes" ;; esac
-
-# shellcheck disable=SC2086
-AHEAD="$(git -C "$REPO" rev-list --count $RANGE 2>/dev/null || echo 0)"
-[ "${AHEAD:-0}" -gt 0 ] 2>/dev/null || exit 0   # 没有待推送提交，不必扫
+[ -n "$CWD" ] || CWD="$PWD"
+GUARD_LIB_DIR="$(cd "$(dirname "$0")/../lib" 2>/dev/null && pwd)" || emit_deny "push scope helper is missing. Reinstall gox-guard."
+# shellcheck source=../lib/push-scope.sh
+source "$GUARD_LIB_DIR/push-scope.sh" || emit_deny "push scope helper could not be loaded."
+resolve_push_scope "$CMD" "$CWD" || emit_deny "${SCOPE_ERROR:-the push repository or source commits could not be determined safely. Run git push as a separate command with literal paths and explicit source refs; avoid shell expansions and unsupported options.}"
+[ "${#RANGE[@]}" -gt 0 ] || exit 0
+RANGE+=(--not --remotes)
+AHEAD="$(git -C "$REPO" rev-list --count "${RANGE[@]}" 2>/dev/null)" || emit_deny "pending commits could not be enumerated. Check the repository and push source refs."
+[ "$AHEAD" -gt 0 ] || exit 0   # 没有待推送提交，不必扫。
 
 SCANNER="$(find_scanner || true)"
 [ -n "$SCANNER" ] || emit_deny "$AHEAD pending commit(s) cannot be checked. $MSG_NO_SCANNER $MSG_BYPASS"
 
-# 在仓库根运行，betterleaks 会在那里解析 .betterleaks.toml / .betterleaksignore。
+# 在仓库根运行，使相对配置路径与 ignore 文件对应目标仓库。
 # --redact 必须常开（发现会进模型上下文与 transcript）；绝不开 validation（会把疑似密钥发往厂商 API）。
 STDERR_FILE="$(mktemp 2>/dev/null || echo /tmp/gox-guard.$$)"
-REPORT="$(cd "$REPO" && "$SCANNER" git . --log-opts="$RANGE" --redact --no-banner --no-color \
+REPORT="$(cd "$REPO" && "$SCANNER" git . --log-opts="${RANGE[*]}" --redact --no-banner --no-color \
   --timeout 60 -r - -f json --log-level error 2>"$STDERR_FILE")"
 RC=$?
 ERR="$(tail -n 5 "$STDERR_FILE" 2>/dev/null || true)"

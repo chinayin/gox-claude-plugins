@@ -38,6 +38,20 @@ docs/                                # 当前设计、兼容边界、第三方�
 
 `diagram-design` 通过 Git URL 引用上游，不复制到 `plugins/`。它是可选插件，不进入默认项目模板；审计记录见 [THIRD_PARTY](THIRD_PARTY.md)。
 
+## 文件命名约定
+
+沿用 `gox-guard` 的既有约定：每道闸门一个 `hooks/<闸名>.sh`，如 `secrets.sh`；该规则不要求增加 `hook-` 前缀或 `-hook` 后缀。`hooks/` 目录已经标明脚本用途。规则提醒继续使用职责名 `session-nudge.sh`。
+
+| 文件角色 | 命名与位置 | 本仓示例 |
+|---|---|---|
+| 共享 hook 脚本 | `hooks/<职责>.sh`；guard 的职责名即闸名 | `secrets.sh`、`session-nudge.sh` |
+| 平台协议包装 | 在原职责名后加 `-<平台>` | `secrets-cursor.sh`、`session-nudge-cursor.sh` |
+| hook 注册配置 | 保留 `hooks.json`；专用配置加平台后缀 | `hooks.json`、`hooks-cursor.json` |
+| 共享辅助库 | `lib/<职责>.sh` 或对应语言扩展名 | `push-scope.sh`、`literal-args.jq` |
+| 测试 | `tests/<职责>.bats`；平台专项加后缀 | `push-scope.bats`、`manifests-cursor.bats` |
+
+辅助库由 hook 加载，不作为独立 hook 注册；平台包装只适配协议，不新增一份扫描规则。Pi 入口由 `.pi/extensions/` 目录区分。官方约定的 `.claude-plugin/plugin.json`、`.cursor-plugin/plugin.json`、`SKILL.md` 等文件名保持原样。gox 的 `object-action` 规则针对技能名，不能用它推导 hook 文件必须带某个前后缀。
+
 ## 组件职责
 
 | 组件 | 当前行为 | 边界 |

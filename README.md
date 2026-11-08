@@ -94,14 +94,13 @@ no reminder); configure `subagents.defaultSubagentOnlyExtensions` as described i
 
 ## Use with Cursor
 
-For a local installation on macOS/Linux, clone a checkout containing the Cursor
-manifests, then copy **each complete plugin** into its own local directory:
+For a local installation on macOS/Linux, install Bash, Git, jq, and betterleaks
+first (`brew install jq betterleaks` on macOS; see [Linux setup](docs/CURSOR.md#安装)).
+Then clone `main` and copy **each complete plugin** into its own local directory:
 
 ```sh
-git clone https://github.com/chinayin/gox-claude-plugins.git
+git clone --branch main https://github.com/chinayin/gox-claude-plugins.git
 cd gox-claude-plugins
-# Before the Cursor PR is merged, check out its review branch first.
-brew install jq betterleaks  # macOS; Bash and Git are also required
 for plugin in gox-code-rules gox-guard token-thrift; do
   target="$HOME/.cursor/plugins/local/$plugin"
   mkdir -p "$target"
@@ -116,10 +115,10 @@ plugins and their skills/agents. Local copies are discovered automatically when
 allowed. Enterprise admins may need to enable **Allow Local Plugin Imports**;
 this is an organization setting. See [Cursor's installation documentation](https://cursor.com/docs/plugins).
 
-For review-branch checkout commands, Team marketplace installation, updates, and
-troubleshooting, see [Cursor setup](docs/CURSOR.md#安装). This repository has not
-been submitted to the public Cursor Marketplace. After updating the source,
-repeat the copy and reload; copying replaces local edits to these files.
+For Team marketplace installation, updates, and troubleshooting, see
+[Cursor setup](docs/CURSOR.md#安装). This repository has not been submitted to the
+public Cursor Marketplace. To upgrade, run `git pull --ff-only`
+in the source checkout, repeat the copy, and reload; copying replaces local edits to these files.
 
 Use the skill picker to select `go`, `shell`, `engineering`, or `delegate` from
 the installed plugin; use `/cheap-reader` or `/careful-writer` for its custom
@@ -153,7 +152,7 @@ models, plan, startup overhead, and retries.
 |---|---|---|---|
 | `cheap-reader` | `haiku` | `composer-2.5[fast=false]` | Read-only searches and analysis; return findings |
 | `careful-writer` | `sonnet` | `grok-4.7[fast=false]` | Make authorized changes and verify them |
-| Main agent | Session model, including Opus if selected | Session model | Decisions and integration |
+| Main agent | Session model, including Opus if selected | Session model | Orchestration and decisions |
 
 These are corresponding roles, not model-capability equivalents. Composer and
 Grok use Cursor's own model pool; `fast=false` selects standard speed. This is not

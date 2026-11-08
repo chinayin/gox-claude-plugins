@@ -75,13 +75,11 @@ guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，
 
 ## 在 Cursor 中使用
 
-macOS/Linux 本地安装：获取包含 Cursor 清单的源码，把**每个完整插件目录**分别复制到本地插件目录：
+macOS/Linux 本地安装：先准备 Bash、Git、jq、betterleaks（macOS 可用 `brew install jq betterleaks`，Linux 见[安装说明](docs/CURSOR.md#安装)）。然后克隆 `main`，把**每个完整插件目录**分别复制到本地插件目录：
 
 ```sh
-git clone https://github.com/chinayin/gox-claude-plugins.git
+git clone --branch main https://github.com/chinayin/gox-claude-plugins.git
 cd gox-claude-plugins
-# Cursor PR 合并前，先切换到对应评审分支。
-brew install jq betterleaks  # macOS；还需 Bash、Git
 for plugin in gox-code-rules gox-guard token-thrift; do
   target="$HOME/.cursor/plugins/local/$plugin"
   mkdir -p "$target"
@@ -93,7 +91,7 @@ done
 
 在 Cursor 执行 **Developer: Reload Window**，打开 Customize 检查三个插件及其 skills/agents。本地插件在允许导入时自动发现；Enterprise 组织可能需要管理员开启 **Allow Local Plugin Imports**。这是组织管理项，不是所有个人用户都要找的开关。依据：[Cursor 安装文档](https://cursor.com/docs/plugins)。
 
-评审分支的获取命令、Team marketplace、升级与排障见 [Cursor 安装说明](docs/CURSOR.md#安装)。本仓库未提交到公共 Cursor Marketplace。源码更新后重新复制并 Reload；复制会覆盖这些文件的本地修改。
+Team marketplace、升级与排障见 [Cursor 安装说明](docs/CURSOR.md#安装)。本仓库未提交到公共 Cursor Marketplace。升级时在源码目录执行 `git pull --ff-only`，重新复制并 Reload；复制会覆盖这些文件的本地修改。
 
 技能从选择器里选择已安装插件的 `go`、`shell`、`engineering`、`delegate`；子代理使用 `/cheap-reader`、`/careful-writer`。Claude 的 `/plugin` 和 `.claude/settings.json` 不配置 Cursor。Cursor hook 负责会话提醒和 `allow` / `deny` 转换，guard 启用 `failClosed`，扫描与范围计算仍调用共享库。
 
@@ -119,7 +117,7 @@ done
 |---|---|---|---|
 | `cheap-reader` | `haiku` | `composer-2.5[fast=false]` | 只读搜索、分析，返回结论 |
 | `careful-writer` | `sonnet` | `grok-4.7[fast=false]` | 完成已授权修改并验证 |
-| 主代理 | 当前会话模型，可由用户选择 Opus | 当前会话模型 | 决策、整合 |
+| 主代理 | 当前会话模型，可由用户选择 Opus | 当前会话模型 | 编排、决策 |
 
 这里对齐的是角色，不保证模型能力相等。Composer / Grok 使用 Cursor 自有模型用量池，`fast=false` 显式选择标准速度档；并非声称一定比所有 Claude 型号便宜。模型与费用依据：[Composer](https://cursor.com/docs/models/cursor-composer-2-5)、[Grok](https://cursor.com/docs/models/grok-4-7)。
 

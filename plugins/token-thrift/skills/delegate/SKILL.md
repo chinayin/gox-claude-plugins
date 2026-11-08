@@ -5,30 +5,31 @@ description: Token-saving subagent routing. Use when facing token-heavy, read-he
 
 # Token-saving three-tier split
 
-Keep bulk material in a subagent's context when the parent needs only a conclusion. The parent retains decisions, authorization, and integration; small tasks can stay inline.
+The main agent (whatever top-tier model the session runs) does only orchestration and decisions with the user. Offload token-heavy work; keep raw material out of the main context.
 
-## Which role
+## Which tier
 
-| Kind of work | Dispatch to | Responsibility |
-|---|---|---|
-| Read / compare / verify / search | `cheap-reader` | Read-only evidence gathering; return a compact conclusion |
-| Correctness-sensitive, authorized writes | `careful-writer` | Read the target, make the requested change, verify persistence |
-| Decisions / integration | main agent | Use the session model and keep its context lean |
+| Kind of work | Dispatch to | Model (Claude Code) | Why |
+|---|---|---|---|
+| Read / compare / verify / search (conclusion only) | `cheap-reader` | Haiku | Cheapest tier; raw material is read once and discarded |
+| Correctness-sensitive writes (Lark/Feishu XML/blocks, reliable persistence) | `careful-writer` | Sonnet | Write errors are costly; mid tier at a fraction of the top tier's price |
+| Orchestration / decisions | main agent | session model | Keep the main context lean |
 
-Model configuration belongs to each host's agent definitions. Claude uses Haiku for reads and Sonnet for writes. Cursor uses its own concrete model IDs and permission fields. These are corresponding work roles, not claims of equal model capability or guaranteed savings. Availability, billing, and the actual model selected must be checked in the host.
+In Claude Code, a read that needs subtle judgment may be promoted to Sonnet; a purely mechanical append may drop to Haiku. Change the model within the same role: a cheaper write still belongs to a writer, not the read-only reader.
 
-For difficult read-only work, request a stronger read-only agent or keep it with the parent; do not give a reading task write permission just to change models.
+Cursor uses the same roles with Composer (standard speed) for `cheap-reader` and Grok (standard speed) for `careful-writer`; their concrete model IDs and permissions live in `agents-cursor/`. The main agent keeps the session model. These are role mappings, not claims of equal model capability.
 
-## When to offload
+## When it's worth offloading
 
-A starting heuristic, not a benchmark: delegate when throwaway source material is around 3,000 tokens or more. Skill loading and large reads then stay in the subagent's context, and the parent receives only the useful result.
+Rule of thumb (empirical, not benchmarked): offload when the throwaway material the subagent must process is **≳ 3,000 tokens**. Because:
+1. Skill loading (e.g. `lark-*` SKILL + references, often tens of thousands of tokens) moves from the main model's pricing to the cheaper tier's.
+2. Raw material stays out of the main context, avoiding it being re-billed on every subsequent turn (the biggest lever).
 
-Keep tiny tasks inline. Also stay inline when the parent will need most of the raw material again. Compare total usage, including subagent startup, retries, and output, before claiming savings.
+If the task is tiny, or the main thread will need the raw material again, keep it inline instead.
 
 ## How to dispatch
 
-- Claude Code: select `cheap-reader` or `careful-writer` through the available Task/Agent tool's `subagent_type`.
-- Cursor: select the installed custom subagent by name through its native delegation tool, or use the `/cheap-reader` or `/careful-writer` picker entry. Do not assume Claude's tool API or model aliases.
-- Other hosts: these agent definitions have no supported routing yet. Keep the task inline unless a host-native equivalent has explicitly been configured.
+- Claude Code: use the Task/Agent tool with `subagent_type` set to `cheap-reader` or `careful-writer`.
+- Cursor: select the same named custom agent through its native delegation tool; use the model and permissions from its Cursor agent definition.
 
-Give the subagent a self-contained brief: question or approved change, sources, applicable rules, constraints, and expected output. Request a compact result with paths or links and validation evidence. A read-only agent must not write scratchpads; the parent can save its result if needed. A writer may save larger output only within its authorized target.
+Have it return only a compact conclusion. If the result is large, an agent with write permission may save it to an authorized scratchpad and return the path. A read-only agent returns a compact source index instead; the parent can decide what to retrieve or save. Keep the main context lean.

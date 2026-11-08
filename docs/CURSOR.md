@@ -6,13 +6,11 @@
 
 ### 本地安装（macOS / Linux）
 
-1. 获取包含 `.cursor-plugin/marketplace.json` 的源码。正式安装使用已合并的默认分支；PR #18 合并前，评审时用以下命令取得候选版本：
+1. 从主分支获取源码：
 
    ```sh
-   git clone https://github.com/chinayin/gox-claude-plugins.git
+   git clone --branch main https://github.com/chinayin/gox-claude-plugins.git
    cd gox-claude-plugins
-   git fetch origin pull/18/head
-   git switch --detach FETCH_HEAD
    ```
 
 2. 确认运行 Cursor 的环境能找到 Bash、Git、jq、betterleaks。macOS 可执行 `brew install jq betterleaks`；Linux 用系统包管理器安装 Bash / Git / jq，再用 `go install github.com/betterleaks/betterleaks@latest` 或官方发布的二进制安装扫描器。扫描器不在 PATH 时，可在启动 Cursor 的环境中设置绝对路径 `GOX_GUARD_BIN`。
@@ -33,11 +31,11 @@
 
 本地目录直接发现插件；Team marketplace 是另一种安装方式。本仓库未上架公共 Cursor Marketplace。Enterprise 管理员可在 Dashboard → Settings → Security & Identity → Marketplace and Plugins 管理 **Allow Local Plugin Imports**。外部符号链接可能被跳过；同名 marketplace 安装会优先于本地副本。依据：[Cursor Plugins](https://cursor.com/docs/plugins)。
 
-更新时先更新源码，再重复复制和 Reload。安装副本不是源码目录的实时链接，复制会覆盖本地模型修改；保留定制时应先保存修改内容。评审副本可重新 fetch PR 引用并切到新 FETCH_HEAD；正式安装跟随已合并的默认分支。
+升级时，在最初克隆的源码目录执行 `git pull --ff-only` 更新 main，再重复第 3 步复制和第 4 步 Reload。安装副本不是源码目录的实时链接；复制会覆盖本地模型修改，升级前先保存需要保留的定制。
 
 ### Team marketplace
 
-Teams / Enterprise 在 Dashboard → Plugins & MCPs → Team Marketplaces 导入本仓库 URL，审查目录并发布访问范围，成员再从 Customize 安装相应插件。该流程读取根 `.cursor-plugin/marketplace.json` 中的三个 `source`。评审中的未合并改动先用本地副本验收，不能假定默认分支已包含它们。具体管理选项见 [Team marketplaces](https://cursor.com/docs/plugins#team-marketplaces)。
+Teams / Enterprise 在 Dashboard → Plugins & MCPs → Team Marketplaces 导入本仓库 URL，审查目录并发布访问范围，成员再从 Customize 安装相应插件。该流程读取根 `.cursor-plugin/marketplace.json` 中的三个 `source`。导入仓库主分支，后续更新按 Team marketplace 的刷新设置生效。具体管理选项见 [Team marketplaces](https://cursor.com/docs/plugins#team-marketplaces)。
 
 ### 使用与排障
 
@@ -55,7 +53,7 @@ Teams / Enterprise 在 Dashboard → Plugins & MCPs → Team Marketplaces 导入
 | Pi | 根 `package.json` | `.pi/extensions/` → 共享 guard | 尚未适配 |
 | Cursor | 根及插件 `.cursor-plugin/` | `hooks/hooks-cursor.json` → `*-cursor.sh` → 共享脚本 | `agents-cursor/` |
 
-自定义的平台文件统一使用后缀：`secrets-cursor.sh`、`session-nudge-cursor.sh`、`hooks-cursor.json`、`manifests-cursor.bats`。官方约定的 `.cursor-plugin/plugin.json` 不改名。Pi 专属文件已有 `.pi/` 目录区分，不给共享脚本重复加平台副本。
+文件命名以 [DESIGN 的命名约定](DESIGN.md#文件命名约定) 为准：闸门为 `hooks/<闸名>.sh`，平台包装为 `hooks/<职责>-<平台>.sh`，例如 `secrets-cursor.sh`。平台专用文件统一使用后缀，官方清单文件名不改。
 
 `tests/manifests-cursor.bats` 是维护者执行的 Bats 合约测试，检查 marketplace → plugin → hook/agent 路径。它不提供给模型，也不定义 gox 代码规范。规范仍位于 `plugins/gox-code-rules/skills/*/SKILL.md` 和 `references/`。gox 技能命名规则适用于技能名，不要求所有测试文件都成为技能入口。
 

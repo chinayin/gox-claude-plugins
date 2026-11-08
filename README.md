@@ -101,12 +101,35 @@ installed and signed in, add this repository's marketplace:
 cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins
 ```
 
-Inside the CLI, enter `/plugin`, open Marketplace, select `chinayin`, and install
-`gox-code-rules`, `gox-guard`, and `token-thrift`, choosing user or project scope.
-Installing loads the plugin; no separate enable command is needed. Adding a
-marketplace alone does not install its plugins. If your CLI executable is named
-`agent`, use that prefix instead.
-See [Cursor CLI slash commands](https://cursor.com/docs/cli/reference/slash-commands).
+Then enable the three plugins for the current project. Run this in the target
+project directory; it requires `jq` and merges into existing JSON settings:
+
+```sh
+(
+  set -e
+  mkdir -p .cursor
+  [ -e .cursor/settings.json ] || printf '{}\n' > .cursor/settings.json
+  cursor_settings_tmp="$(mktemp .cursor/settings.json.XXXXXX)"
+  trap 'rm -f "$cursor_settings_tmp"' EXIT
+  jq -e '
+    .plugins["chinayin/gox-code-rules"].enabled = true |
+    .plugins["chinayin/gox-guard"].enabled = true |
+    .plugins["chinayin/token-thrift"].enabled = true
+  ' .cursor/settings.json > "$cursor_settings_tmp"
+  mv "$cursor_settings_tmp" .cursor/settings.json
+)
+```
+
+Cursor CLI loads these declared plugins when it starts in this project. This
+uses the same `.cursor/settings.json` entries as interactive project-scope
+installation. If the file uses JSONC comments or trailing commas, merge the
+three entries manually; the command stops without replacing invalid JSON.
+
+For account-wide installation, enter `/plugin`, open Marketplace → `chinayin`,
+select the plugins, and choose user scope. The current CLI has no
+`plugin install` subcommand or non-interactive user-scope install command.
+See the [project configuration explanation](https://forum.cursor.com/t/feature-request-support-non-interactive-marketplace-plugin-installation-via-cursor-cli/176666).
+If your CLI executable is named `agent`, use that prefix instead.
 
 In the IDE, open **Customize**, find the plugins in your available marketplace,
 and choose **Install**. Teams can import this repository through Dashboard →

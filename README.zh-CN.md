@@ -81,7 +81,27 @@ guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，
 cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins
 ```
 
-进入 CLI 后输入 `/plugin`，打开 Marketplace，选择 `chinayin`，分别安装 `gox-code-rules`、`gox-guard`、`token-thrift`，按需要选择 user 或 project 范围。安装后即加载，无需额外启用；仅添加 marketplace 不会安装其中的插件。如果本机 CLI 名为 `agent`，替换命令前缀即可。依据：[Cursor CLI 命令](https://cursor.com/docs/cli/reference/slash-commands)。
+然后在**目标项目目录**执行以下命令，将三个插件合并到项目配置中（需要 `jq`，保留已有 JSON 配置）：
+
+```sh
+(
+  set -e
+  mkdir -p .cursor
+  [ -e .cursor/settings.json ] || printf '{}\n' > .cursor/settings.json
+  cursor_settings_tmp="$(mktemp .cursor/settings.json.XXXXXX)"
+  trap 'rm -f "$cursor_settings_tmp"' EXIT
+  jq -e '
+    .plugins["chinayin/gox-code-rules"].enabled = true |
+    .plugins["chinayin/gox-guard"].enabled = true |
+    .plugins["chinayin/token-thrift"].enabled = true
+  ' .cursor/settings.json > "$cursor_settings_tmp"
+  mv "$cursor_settings_tmp" .cursor/settings.json
+)
+```
+
+Cursor CLI 在该项目启动时加载这些插件；这与交互安装选择 project 范围写入的 `.cursor/settings.json` 一致。已有文件若使用 JSONC 注释或尾逗号，请手工合并这三个条目；命令遇到无效 JSON 会停止，不替换原文件。
+
+需要账号范围安装时，在 CLI 中输入 `/plugin`，打开 Marketplace → `chinayin`，选装插件并选择 user 范围。当前 CLI 没有 `plugin install` 子命令，也没有账号范围的无交互安装命令。依据：[项目配置方式说明](https://forum.cursor.com/t/feature-request-support-non-interactive-marketplace-plugin-installation-via-cursor-cli/176666)。如果本机 CLI 名为 `agent`，替换命令前缀即可。
 
 使用 IDE 时，从 **Customize** 中找到可见 marketplace 的插件并点击 **Install**。团队也可在 Dashboard → Plugins & MCPs → Team Marketplaces 导入本仓库，再由成员安装。本仓库尚未上架公共 Cursor Marketplace，需要先添加仓库来源或由团队分发。依据：[Cursor Plugins](https://cursor.com/docs/plugins)。
 

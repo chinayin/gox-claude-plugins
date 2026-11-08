@@ -331,12 +331,16 @@ EOF
   done
 }
 
-@test "Cursor adapter without jq preserves non-push and explicit bypass silence" {
+@test "Cursor adapter without jq explicitly allows non-push and explicit bypass" {
   P="$(nojq_path)"
   run env PATH="$P" bash "$CURSOR_HOOK" PreToolUse <<<'{"command":"git status"}'
-  [ "$status" -eq 0 ]; [ -z "$output" ]
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+  jq -e ' . == {permission: "allow"} ' <<<"$output"
   run env GOX_GUARD_SKIP=1 PATH="$P" bash "$CURSOR_HOOK" PreToolUse <<<'{"command":"git push"}'
-  [ "$status" -eq 0 ]; [ -z "$output" ]
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+  jq -e ' . == {permission: "allow"} ' <<<"$output"
 }
 
 @test "Cursor adapter reports missing jq at session start without blocking the session" {
@@ -346,20 +350,24 @@ EOF
   echo "$output" | jq -e '(.additional_context | contains("jq")) and (has("permission") | not)'
 }
 
-@test "Cursor adapter keeps a clean scan and explicit bypass silent" {
+@test "Cursor adapter explicitly allows a clean scan and explicit bypass" {
   stub_betterleaks 0
   add_ahead_commit
   run env GOX_GUARD_BIN="$STUB_DIR/betterleaks" bash "$CURSOR_HOOK" PreToolUse <<EOF
 {"cwd":"$REPO","tool_input":{"command":"git push"}}
 EOF
-  [ "$status" -eq 0 ]; [ -z "$output" ]
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+  jq -e ' . == {permission: "allow"} ' <<<"$output"
   [ -s "$STUB_LOG" ]
   stub_betterleaks 1 "$FINDING"
   : > "$STUB_LOG"
   run env GOX_GUARD_SKIP=1 GOX_GUARD_BIN="$STUB_DIR/betterleaks" bash "$CURSOR_HOOK" PreToolUse <<EOF
 {"cwd":"$REPO","tool_input":{"command":"git push"}}
 EOF
-  [ "$status" -eq 0 ]; [ -z "$output" ]
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+  jq -e ' . == {permission: "allow"} ' <<<"$output"
   [ ! -s "$STUB_LOG" ]
 }
 
@@ -381,4 +389,16 @@ EOF
 @test "script never enables validation and always redacts (static check)" {
   ! grep -q -- '--validation' "$HOOK"
   grep -q -- '--redact' "$HOOK"
+}
+
+@test "Cursor adapter explicitly allows non-push, no pending commits and deletions without scanning" {
+  stub_betterleaks 1 "$FINDING"
+  for command in 'git status' 'git push' 'git push origin :old'; do
+    input="$(jq -nc --arg cwd "$REPO" --arg command "$command" '{cwd:$cwd,tool_input:{command:$command}}')"
+    run env GOX_GUARD_BIN="$STUB_DIR/betterleaks" bash "$CURSOR_HOOK" PreToolUse <<<"$input"
+    [ "$status" -eq 0 ]
+    [ -n "$output" ]
+    jq -e '. == {permission: "allow"}' <<<"$output"
+    [ ! -s "$STUB_LOG" ]
+  done
 }

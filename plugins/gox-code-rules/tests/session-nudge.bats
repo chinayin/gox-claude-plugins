@@ -155,24 +155,10 @@ setup() {
   done
 }
 
-@test "Cursor subagentStart emits the brief-first reminder as additional_context" {
-  run env CURSOR_PLUGIN_ROOT=/cursor CLAUDE_PLUGIN_ROOT=/claude bash "$CURSOR_HOOK" SubagentStart <<<'{"subagent_type":"careful-writer"}'
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '(.additional_context | contains("Your brief should already state")) and (has("hookSpecificOutput") | not)'
-}
-
-@test "Cursor subagentStart skips cheap-reader using native or Claude input fields" {
-  for input in '{"subagent_type":"cheap-reader"}' '{"agent_type":"cheap-reader"}'; do
+@test "Cursor adapter does not emit unsupported subagentStart context" {
+  for input in '{"subagent_type":"careful-writer"}' '{"subagent_type":"cheap-reader"}' 'not-json' ''; do
     run bash "$CURSOR_HOOK" SubagentStart <<<"$input"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-  done
-}
-
-@test "Cursor subagentStart still emits a reminder for invalid or empty input" {
-  for input in 'not-json' ''; do
-    run bash "$CURSOR_HOOK" SubagentStart <<<"$input"
-    [ "$status" -eq 0 ]
-    echo "$output" | jq -e '.additional_context | contains("Your brief should already state")'
   done
 }

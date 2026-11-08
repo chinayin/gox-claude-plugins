@@ -36,3 +36,16 @@ PLUGIN="$BATS_TEST_DIRNAME/.."
     [ -f "$PLUGIN/agents/$ag.md" ] || { echo "skill names a missing agent: $ag"; false; }
   done
 }
+
+@test "cheap-reader declares Cursor readonly permissions as a YAML boolean" {
+  run python3 - "$PLUGIN/agents/cheap-reader.md" <<'PYTHON'
+import sys
+from pathlib import Path
+import yaml
+
+frontmatter = Path(sys.argv[1]).read_text().split("---", 2)[1]
+agent = yaml.safe_load(frontmatter)
+assert agent.get("readonly") is True, "Cursor cheap-reader must declare readonly: true"
+PYTHON
+  [ "$status" -eq 0 ] || { echo "$output"; false; }
+}

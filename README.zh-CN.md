@@ -68,7 +68,7 @@ Cursor 不执行 Claude 的 `/plugin`。本仓库另有 `.cursor-plugin/marketpl
 
 先允许 Local Plugin Imports，把本仓库复制或克隆到 `~/.cursor/plugins/local/`（指向该目录之外的 symlink 会被跳过），再从 Customize 安装这三个插件。Team marketplace 导入同一 Git 仓库时用的是这份清单。技能仍在 `skills/`；Cursor 读 `.cursor-plugin/plugin.json` 和 `hooks/hooks-cursor.json`。
 
-`gox-code-rules` 在 `sessionStart` 和 `subagentStart` 调用提醒包装；子代理复用短提醒并跳过 `cheap-reader`，客户端实际注入效果待实测。`gox-guard` 匹配 Shell 工具，待推送提交扫到 secret 时拒绝 `git push`。两个 Cursor 包装脚本转换原脚本的 Claude 协议，不复制提醒正文和扫描规则。所有入口退出码保持 0；guard 包装在缺 jq 或输出转换失败时仍保留拒绝。原脚本的输出不再受 `CURSOR_PLUGIN_ROOT` 影响。`token-thrift` 交出技能以及 `cheap-reader` / `careful-writer`。Cursor 的 agent 文件保证 `name` 和 `description`；frontmatter 里的 `model` 和 `tools` 尚未验证会不会按 Claude 的方式选模型和工具。
+`gox-code-rules` 仅在 `sessionStart` 调用提醒包装，主代理通过任务 brief 向子代理传递规范。Cursor 的 `subagentStart` 是权限事件，不支持上下文注入，因此不注册。`gox-guard` 匹配 Shell 工具，待推送提交扫到 secret 时拒绝 `git push`。两个 Cursor 包装复用原脚本的正文和扫描规则；guard 显式输出 `allow` / `deny`，并启用 `failClosed`，让 hook 崩溃、超时或无输出时也阻止执行。原脚本的输出不受 `CURSOR_PLUGIN_ROOT` 影响。`token-thrift` 共用技能和 agents，`cheap-reader` 声明 Cursor 的 `readonly: true`；Claude 的 `haiku` / `sonnet` 别名和 `tools` 白名单未验证与 Cursor 等价，模型选择和实际权限仍需客户端验收。
 
 清单形状和两种 hook 输出由 `make test` 覆盖。Customize 安装、Cursor Agent 会话里的提醒，以及 Cursor 里一次真实 `git push` 拦截，都还没做过。见 [Cursor 兼容说明](docs/CURSOR.md)。
 

@@ -51,7 +51,7 @@ HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
   [ "$output" = "Shell" ]
   run jq -er '.hooks.preToolUse[0].command' "$cursor"
   [ "$output" = "bash ./hooks/cursor-secrets.sh PreToolUse" ]
-  run jq -e '.hooks.preToolUse[0].timeout >= 30' "$cursor"
+  run jq -e '.hooks.preToolUse[0].timeout >= 30 and .hooks.preToolUse[0].failClosed == true' "$cursor"
   [ "$status" -eq 0 ]
   run jq -er '.hooks | keys | sort | join(",")' "$cursor"
   [ "$output" = "preToolUse,sessionStart" ]

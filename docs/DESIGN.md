@@ -39,7 +39,7 @@ docs/                                # 当前设计、兼容边界、第三方�
 | 组件 | 当前行为 | 边界 |
 |---|---|---|
 | `gox-code-rules` | 五个技能入口；Go 细则按 `references/` 索引读取；会话和子代理收到轻量提醒 | 软引导，不能保证模型加载或遵守；frontend 仍是占位内容，未提供 Python 技能 |
-| `token-thrift` | Claude 的读任务委派给 Haiku，可靠写任务委派给 Sonnet，主模型接收结论。Cursor 清单声明同一份 skills 与 agents | 依赖 Claude 的模型与代理接口；Cursor 是否按 `model` / `tools` 路由未验证；尚未完成 Codex 适配；成本收益需实测 |
+| `token-thrift` | Claude 的读任务委派给 Haiku，可靠写任务委派给 Sonnet，主模型接收结论。Cursor 清单声明同一份 skills 与 agents | 依赖 Claude 的模型与代理接口；Cursor 声明 `cheap-reader.readonly`，模型别名与运行时权限未验证；尚未完成 Codex 适配；成本收益需实测 |
 | `gox-guard` | 对匹配的工具调用执行外部扫描器，并通过 hook 输出拒绝 push | 仅覆盖受支持且实际触发 hook 的调用；不能替代仓库 CI |
 
 规范正文维护在各技能的 `SKILL.md` 和 `references/` 中，不复制进用户仓库。hooks 只提供提醒或执行检查，不向用户仓库写配置。用户仍需主动安装插件、配置启用范围；任务产生的代码或图表由对应任务决定。
@@ -53,11 +53,11 @@ docs/                                # 当前设计、兼容边界、第三方�
 `session-nudge.sh` 注册两个事件：
 
 - `SessionStart`：提示模型按任务选择技能、避免重复加载；派写入子代理时把适用规范放进任务说明。
-- Claude 的 `SubagentStart`：使用更短的提醒，优先遵循已有任务说明；对 `cheap-reader` 跳过注入。Cursor 的 `subagentStart` 已通过包装接入相同逻辑，客户端实际注入效果待实测。
+- Claude 的 `SubagentStart`：使用更短的提醒，优先遵循已有任务说明；对 `cheap-reader` 跳过注入。Cursor 不注册 `subagentStart`，由主代理通过任务 brief 传递规范。
 
 提醒脚本 fail-open：缺少 jq、事件未知等情况下静默退出，不阻断会话。提醒中仍有 Claude Skill 工具相关措辞，Codex 下的实际加载效果需另行验证，见 [CODEX](CODEX.md)。
 
-`session-nudge.sh` 固定输出 Claude 协议；Cursor 的 `cursor-session-nudge.sh` 将 `subagent_type` 转成 `agent_type`，复用原文并转换为 `additional_context`。入口决定输出协议，不依赖插件根目录环境变量。
+`session-nudge.sh` 固定输出 Claude 协议；Cursor 的 `cursor-session-nudge.sh` 仅处理 `SessionStart`，复用原文并转换为 `additional_context`。入口决定输出协议，不依赖插件根目录环境变量。
 
 技能只提供软引导。格式化、lint、CI 和代码审查负责各自覆盖的检查；检查通过也不代表已经遵守全部团队规范。
 
@@ -68,7 +68,7 @@ docs/                                # 当前设计、兼容边界、第三方�
 - `lib/literal-args.jq` 只分词字面量参数；`lib/push-scope.sh` 解析 `cd '<repo>' &&`、重复 `-C`、显式源引用和默认 push 配置。源引用解析成提交 ID；`--all`、`--tags`、`--mirror` 分别选分支、tag、全部引用。matching 保守选全部本地分支。最终统一追加 `--not --remotes`，仍按本地远端跟踪引用排除已推送提交，不执行 fetch。
 - 组合修改命令、多行命令、shell 展开、远端组、多冒号 revision 表达式、未知选项及无法解析的仓库/引用均拒绝，并提示把 push 拆开执行；不通过 eval 或 shell 执行用户命令。删除引用不发送新提交，单纯删除直接放行。递归子模块 push（包括配置隐式启用）也拒绝：先逐个推送子模块，再以 `--recurse-submodules=no` 推送父仓库。
 - 没有待扫描提交时不调用扫描器；有发现、扫描器缺失或执行失败时拒绝这次 push。`secrets.sh` 固定输出 Claude 的 `permissionDecision: deny`；`cursor-secrets.sh` 将其转换为 `permission: deny`，原因同时传给用户和模型。阻断通过 JSON 表达，脚本退出码保持 0。
-- Cursor 包装兼容顶层 `command` 与原生 `tool_input.command`，将 Shell 的 `working_directory` 归一为 `cwd`，相对路径以输入 `cwd` 为基准。缺 jq 时原始输入仍交给原脚本判断；需要拒绝但无法转换、子脚本非零退出或非空输出无效时，包装输出不依赖 jq 的固定拒绝。正常零输出仍表示放行。pi 继续直接调用 `secrets.sh`。
+- Cursor 包装兼容顶层 `command` 与原生 `tool_input.command`，将 Shell 的 `working_directory` 归一为 `cwd`，相对路径以输入 `cwd` 为基准。缺 jq 时原始输入仍交给原脚本判断；需要拒绝但无法转换、子脚本非零退出或非空输出无效时，包装输出不依赖 jq 的固定拒绝。正常零输出在 `PreToolUse` 转换为显式 `permission: allow`。Cursor 配置启用 `failClosed: true`，进程启动失败、崩溃、超时或无输出由客户端拦截；空输入也拒绝。pi 继续直接调用 `secrets.sh`，保持其零输出放行约定。
 - 始终启用 `--redact`，不启用扫描器的在线验证。扫描器不由插件安装。
 - `GOX_GUARD_BIN` 可指定扫描器；`GOX_GUARD_SKIP=1` 跳过 push 检查，仅在用户明确要求时使用。
 

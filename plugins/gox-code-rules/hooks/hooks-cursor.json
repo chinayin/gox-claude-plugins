@@ -5,11 +5,6 @@
       {
         "command": "bash ./hooks/cursor-session-nudge.sh SessionStart"
       }
-    ],
-    "subagentStart": [
-      {
-        "command": "bash ./hooks/cursor-session-nudge.sh SubagentStart"
-      }
     ]
   }
 }

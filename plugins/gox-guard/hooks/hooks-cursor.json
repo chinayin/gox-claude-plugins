@@ -10,7 +10,8 @@
       {
         "command": "bash ./hooks/cursor-secrets.sh PreToolUse",
         "matcher": "Shell",
-        "timeout": 90
+        "timeout": 90,
+        "failClosed": true
       }
     ]
   }

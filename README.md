@@ -92,17 +92,19 @@ skipped) and install the three plugins from Customize. A Team marketplace
 import of the same Git repository uses the same manifest. Skills stay in
 `skills/`; Cursor reads `.cursor-plugin/plugin.json` and `hooks/hooks-cursor.json`.
 
-`gox-code-rules` runs its reminder wrapper on `sessionStart` and `subagentStart`.
-The latter returns the existing short reminder and skips `cheap-reader`;
-actual subagent context injection in Cursor still needs runtime verification.
-`gox-guard` matches the Shell tool and blocks `git push` when the pending commits
-fail the secret scan. Two Cursor wrappers adapt the existing scripts' Claude
-protocol without copying reminders or scan rules. All hooks keep exit code 0;
-the guard wrapper preserves denial when jq is missing or output conversion fails.
-The base scripts' output no longer depends on `CURSOR_PLUGIN_ROOT`. `token-thrift` exposes its
-skill and the `cheap-reader` / `careful-writer` agents. Cursor's agent files
-guarantee `name` and `description`; the `model` and `tools` frontmatter are not
-verified to route the way they do in Claude.
+`gox-code-rules` runs its reminder wrapper on `sessionStart`; the main agent
+passes applicable rules to subagents in their task briefs. Cursor's
+`subagentStart` permission hook does not support context injection, so this
+plugin does not register it. `gox-guard` matches the Shell tool and blocks
+`git push` when the pending commits fail the secret scan. Two Cursor wrappers
+adapt the shared scripts' Claude protocol without copying reminders or scan rules.
+The guard returns explicit `allow` / `deny` decisions and enables `failClosed`
+so hook crashes, timeouts, or missing output also block execution. The base
+scripts' output does not depend on `CURSOR_PLUGIN_ROOT`. `token-thrift` exposes
+its skill and agents; `cheap-reader` declares Cursor's `readonly: true`.
+Claude's `haiku` / `sonnet` aliases and `tools` allowlist are not verified to
+route equivalently in Cursor; model selection and runtime permissions still
+need client verification.
 
 Manifest shape and both hook output shapes are covered by `make test`.
 Installing from Customize, seeing the reminder in a Cursor Agent session, and

@@ -2,6 +2,7 @@
 name: cheap-reader
 description: Read-heavy, conclusion-only work — reading Lark/Feishu documents in full, wide code/file searches, log or long-document analysis. Runs on Haiku, read-only, returns a compact conclusion; raw material never enters the main agent's context.
 model: haiku
+readonly: true
 tools: Read, Grep, Glob, Bash, Skill
 ---
 

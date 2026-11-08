@@ -22,9 +22,9 @@ adapter_error() {
 DIR="$(cd "$(dirname "$0")" && pwd)" || adapter_error
 INPUT=""
 if [ "$EVENT" = "PreToolUse" ]; then
-  [ -t 0 ] && exit 0
+  [ -t 0 ] && adapter_error
   INPUT="$(cat)" || adapter_error
-  [ -n "$INPUT" ] || exit 0
+  [ -n "$INPUT" ] || adapter_error
   # 原生 preToolUse 已使用 tool_input.command；兼容旧的顶层 command。
   # 缺 jq 时透传原始输入，让原脚本的无 jq 分支判断是否需要拒绝。
   if command -v jq >/dev/null 2>&1; then
@@ -40,7 +40,13 @@ if [ "$EVENT" = "PreToolUse" ]; then
 fi
 
 OUT="$(printf '%s' "$INPUT" | bash "$DIR/secrets.sh" "$EVENT")" || adapter_error
-[ -n "$OUT" ] || exit 0
+if [ -z "$OUT" ]; then
+  # failClosed 把无输出视为失败；正常放行必须显式返回 permission。
+  if [ "$EVENT" = "PreToolUse" ]; then
+    printf '{"permission":"allow"}\n'
+  fi
+  exit 0
+fi
 
 OUT="$(printf '%s' "$OUT" | jq -sce --arg event "$EVENT" '
   if length != 1 then error("expected one hook response")

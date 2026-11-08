@@ -4,8 +4,10 @@
 
 ## 仓库维护（未发布）
 
+- Cursor 审计修复：移除不支持上下文注入的 `subagentStart` 提醒；guard 启用 `failClosed` 并对正常通过显式输出 `permission: allow`，空输入拒绝；`cheap-reader` 声明 `readonly: true`。同步协议回归测试和支持边界文档，客户端验收仍待完成。
+
 - guard 按实际目录和推送源引用计算扫描范围，覆盖 `git -C`、字面量 `cd ... && git push`、Cursor `working_directory`、指定分支/refspec、tag 与 mirror；读取默认 push 配置。无法确定范围的复杂命令拒绝并提示拆分，避免组合 commit/push 扫到旧提交；纯删除引用免扫描。新增真实 Git 提交图回归用例，插件版本未变。
-- Cursor hooks 改用 `cursor-session-nudge.sh` / `cursor-secrets.sh` 薄包装，原脚本固定使用 Claude 协议，避免环境变量影响 pi 拦截。guard 包装保留缺 jq 和转换失败时的拒绝，原因同时传给用户和模型；Cursor 的 `sessionStart` / `subagentStart` 共用提醒包装，转换子代理类型并跳过 `cheap-reader`，客户端注入效果待实测。同步测试及文档，插件版本未变。
+- Cursor hooks 改用 `cursor-session-nudge.sh` / `cursor-secrets.sh` 薄包装，原脚本固定使用 Claude 协议，避免环境变量影响 pi 拦截。guard 包装保留缺 jq 和转换失败时的拒绝，原因同时传给用户和模型；Cursor 的 `sessionStart` 使用提醒包装，子代理规范由任务 brief 传递。同步测试及文档，插件版本未变。
 - 修复 guard 无 jq 兜底匹配漏过 JSON 字符串末尾裸 `git push` 的问题；仍复用原 push 正则。
 - 修正 Claude 项目模板的 `enabledPlugins`：由数组改为插件 ID 到布尔值的对象；同步安装示例，并增加格式与启用值校验。
 - 将设计文档整理为当前架构，标注历史实验的适用范围；新增 Codex 兼容说明，统一安装发现与运行验证的边界。插件实现及版本未变。
@@ -65,7 +67,7 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ### 0.8.2 — 2026-11-03
 
-- 增加 `.cursor-plugin/plugin.json` 与 `hooks/hooks-cursor.json`（`sessionStart` / `subagentStart`）。技能目录不复制。
+- 增加 `.cursor-plugin/plugin.json` 与 `hooks/hooks-cursor.json`（仅 `sessionStart`；子代理规范通过 brief 传递）。技能目录不复制。
 - `session-nudge.sh` 在 `CURSOR_PLUGIN_ROOT` 已设置时只输出 `additional_context`；同时存在 `CLAUDE_PLUGIN_ROOT` 时也不打 Claude 形状。`subagent_type` 与 `agent_type` 都能识别 `cheap-reader` 并跳过。
 
 ### 0.8.1 — 2026-09-22
@@ -166,7 +168,7 @@ nudge 收窄触发范围,降低会话与子代理里的重复技能加载(规则
 
 ### 0.1.2 — 2026-11-03
 
-- 增加 `.cursor-plugin/plugin.json`，声明现有 `skills/` 与 `agents/`。技能和 agent 正文未改。Cursor 是否按 `model` / `tools` 选模型和工具尚未验证。
+- 增加 `.cursor-plugin/plugin.json`，声明现有 `skills/` 与 `agents/`。技能与 agent 正文共用，`cheap-reader` 增加 Cursor 的 `readonly: true` 元数据。模型别名和实际只读权限尚待客户端验证。
 
 ### 0.1.1 — 2026-08-25
 

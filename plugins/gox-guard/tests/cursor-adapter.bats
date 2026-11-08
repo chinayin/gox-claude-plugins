@@ -35,3 +35,20 @@ EOF
   [ "$status" -eq 0 ]
   echo "$output" | jq -e --arg reason "$reason" '.permission == "deny" and .user_message == $reason and .agent_message == $reason'
 }
+
+@test "Cursor adapter denies empty or malformed preToolUse input" {
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$DIR/secrets.sh"
+  for input in '' 'not-json'; do
+    run bash "$DIR/cursor-secrets.sh" PreToolUse <<<"$input"
+    [ "$status" -eq 0 ]
+    [ -n "$output" ]
+    jq -e '.permission == "deny"' <<<"$output"
+  done
+}
+
+@test "Cursor adapter keeps successful sessionStart silent" {
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$DIR/secrets.sh"
+  run bash "$DIR/cursor-secrets.sh" SessionStart </dev/null
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}

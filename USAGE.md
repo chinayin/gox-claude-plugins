@@ -1,4 +1,4 @@
-# 使用手册 — gox-code-rules
+# 使用手册 — Claude Code
 
 > 总览 / 为什么用它 → 见 [`README.md`](README.md)。本手册讲**细节**:怎么启用、怎么用、怎么问、没触发怎么办。
 
@@ -87,3 +87,14 @@
 ## 6. 以后加语言/领域
 
 一语言(领域)一技能,同一插件内并存(如已有 `skills/frontend/`),各自带 `description` + `paths` + `references/`。模型按"正在动哪种文件 / 任务"自动挑对应技能。详见 `docs/DESIGN.md`。
+
+
+## 7. token-thrift 委派
+
+安装 `token-thrift` 后，可在 Claude Code 会话中显式加载委派策略：
+
+```text
+/token-thrift:delegate
+```
+
+然后说明需要处理的任务。`cheap-reader` 用于大量只读搜索、比较和分析；`careful-writer` 用于已授权的写入与结果验证。让子代理返回简短结论和来源，主会话负责决策。Cursor 的调用与模型配置见 [Cursor 说明](docs/CURSOR.md#token-thrift-模型分档)。

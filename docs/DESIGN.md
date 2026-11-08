@@ -92,6 +92,18 @@ docs/                                # 当前设计、兼容边界、第三方�
 
 脚本依赖 Bash、jq、Git、betterleaks 和常规命令行工具，并使用临时文件接收扫描错误；不向用户仓库写入文件。人手在终端执行的 push、脚本间接调用等未被匹配的执行方式不在完整覆盖承诺内。Codex 的 hook 信任与运行验证边界见 [CODEX](CODEX.md)。
 
+### 扫描器配置与误报处理
+
+没有自定义配置时使用 betterleaks 的内置规则。betterleaks 1.10 的 TOML 配置需显式指定，例如在 agent 进程环境中设置 `BETTERLEAKS_CONFIG=/绝对路径/.betterleaks.toml`；仅创建文件不会启用它。`.betterleaksignore` 从扫描目录读取。扫描器不在 PATH 时，可用 `GOX_GUARD_BIN` 指定绝对路径。
+
+拦截结果只返回脱敏后的规则、文件位置、提交与 fingerprint，最多十条。处理方式：
+
+- 真密钥：从相关提交中移除，并告知用户该值已进入本地历史、应轮换；不能将真密钥加入白名单。
+- 单行误报：在确认误报后添加 `# betterleaks:allow` 注释。
+- 已提交的误报：将 fingerprint 追加到 `.betterleaksignore`；反复出现的测试夹具等模式，可在显式启用的 TOML 配置中按路径或正则配置白名单。这些变更应随代码评审。
+
+执行 `git add` / `git commit` 后，再单独执行 `git push`，让扫描器看到最终提交。子模块逐个推送后，父仓库使用 `--recurse-submodules=no`。扫描范围与保守拒绝的命令形式见上文。
+
 ## 配置与升级
 
 Claude 项目配置模板包含 `extraKnownMarketplaces` 和对象形式的 `enabledPlugins`，每个插件 ID 对应布尔值。模板默认启用三个本地插件；用户应将其合并到已有配置，而不是覆盖整个文件。
@@ -101,6 +113,15 @@ Claude 项目配置模板包含 `extraKnownMarketplaces` 和对象形式的 `ena
 插件版本由各自 `plugin.json` 管理，变更记录写入 CHANGELOG。修改已安装插件后，需要更新对应客户端的安装副本并重新加载或开启新会话；Codex hook 定义发生变化时还需重新审阅信任。仅修改源码或版本号不代表现有会话已更新。
 
 ## 验证与扩展
+
+本地开发需 Python 3、Node.js 22.18 或更高版本、jq、bats-core 和 PyYAML。macOS 可用 `make deps` 安装 jq、bats-core 和 PyYAML；Python 与 Node 需预先安装。PyYAML 仅用于测试。
+
+```sh
+make validate
+make test
+```
+
+中央 `tests/` 保存跨插件检查，各插件的 `tests/` 保存专属测试，`tests/pi/` 验证 Pi 扩展。`make test` 运行 Bats 后再运行 Node 测试。`tests/manifests-cursor.bats` 检查清单接线，不会作为技能或模型规则加载。
 
 - `make validate` 检查 Claude 与 Cursor 的 marketplace、插件清单、Cursor hook 配置和模板的 JSON 语法，不是完整客户端 schema 或安装验证。
 - `make test` 运行中央与各插件的 bats：技能 YAML、引用文件、模板格式与默认启用范围、提醒输出、扫描调用与阻断分支等。

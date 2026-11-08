@@ -4,46 +4,40 @@
 
 ## 安装
 
-正式使用通过 Cursor 原生插件管理器安装。CLI 和 IDE 的入口如下；本地目录加载放在后面的开发调试部分。
+### Cursor CLI：手动选装
 
-### Cursor CLI
-
-安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录账号后，在终端添加本仓库的 marketplace：
+安装并登录 [Cursor CLI](https://cursor.com/docs/cli/installation)，在终端添加来源：
 
 ```sh
-cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins
 ```
 
-进入交互会话后：
+然后在 `cursor-agent` 交互会话中：
 
-1. 输入 `/plugin` 打开插件管理器。
-2. 在 Marketplace 中选择 `chinayin`，分别选装 `gox-code-rules`、`gox-guard`、`token-thrift`。
-3. 按需要选择 user 或 project 安装范围。安装后即加载，无需额外启用。
+1. 输入 `/plugin`，打开 Marketplace → `chinayin`。
+2. 分别选择 `gox-code-rules`、`gox-guard`、`token-thrift`，选择 Install。
+3. 为每个插件选择 user 或 project 范围，完成安装。
 
-会话开始提醒使用 `sessionStart`，在下一次会话开始时触发。
+安装后即重新加载，无需额外 enable；`sessionStart` 提醒在下一次会话开始时触发。添加 marketplace 只登记来源，不会安装其中的插件。
 
-也可以完全在 CLI 会话内添加来源：
+CLI `2026.11.05-86047df` 支持 `/plugin`，不支持 `/add-plugin`，也没有独立的 `plugin install` / `plugin enable` 终端子命令。已核对该版本的帮助和交互实现，入口见 [CLI slash 命令](https://cursor.com/docs/cli/reference/slash-commands)。如果可执行文件名是 `agent`，替换终端命令前缀即可。
 
-```text
-/plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
-```
+### Cursor IDE：插件管理界面
 
-如果 CLI 可执行文件名是 `agent`，把终端示例里的 `cursor-agent` 换成 `agent`；会话内的 slash 命令不变。
+使用能访问 `chinayin` marketplace 的账号，在 **Customize** 中搜索并选择插件，点击 **Install**，选择 user 或 project 范围。本仓库未上架公共 Cursor Marketplace，需先添加来源或由团队分发。
 
-这里有两个步骤：`marketplace add` 登记并索引来源，`/plugin` 管理器完成具体插件安装。CLI `2026.11.05-86047df` 的终端子命令仅提供 marketplace 管理，没有独立的非交互 `plugin install` / `plugin enable`，交互 `/plugin` 也没有 `enable` 子命令。已核对该版本 `--help`、随包安装与重新加载逻辑；官方也列出了 [`/plugin` 管理入口](https://cursor.com/docs/cli/reference/slash-commands)。
+IDE 的 Agent 聊天还提供 `/add-plugin` 安装入口；它不适用于 `cursor-agent` 终端会话。自定义来源通过该入口按名称发现并安装的完整流程尚未实机验证。依据：[插件安装文档](https://cursor.com/docs/plugins#installing-plugins)、[IDE `/add-plugin` 发布说明](https://cursor.com/changelog/2-5)。
 
-查看来源或重新索引主分支：
+### 查看与刷新来源
 
 ```sh
 cursor-agent plugin marketplace list
 cursor-agent plugin marketplace update chinayin
 ```
 
-重新索引后，到 `/plugin` 管理器检查安装 / 更新状态，再开启新会话。`marketplace update` 的职责是重新索引，不把它描述为已更新所有运行中的插件实例。
+重新索引后，到 Customize 或 CLI `/plugin` 管理器检查安装 / 更新状态。`marketplace update` 的职责是重新索引，不代表已更新所有运行中的插件实例。
 
-### Cursor IDE 与团队分发
-
-已有可见 marketplace 时，在 **Customize** 中选插件、点击 **Install**，选择项目或用户范围。IDE 也提供 `/add-plugin` 安装入口。本仓库未上架公共 Cursor Marketplace，需先通过上面的 CLI 添加仓库来源，或由团队分发。[安装文档](https://cursor.com/docs/plugins)、[`/add-plugin` 发布说明](https://cursor.com/changelog/2-5)。
+### 团队分发
 
 Teams / Enterprise 可在 Dashboard → Plugins & MCPs → Team Marketplaces 导入本仓库 URL，审查插件并设置访问范围。成员从 Customize 安装。来源使用主分支；管理员按需要设置自动刷新或手动 Refresh。该流程读取根 `.cursor-plugin/marketplace.json` 中的三个 `source`。[Team marketplaces](https://cursor.com/docs/plugins#team-marketplaces)。
 
@@ -56,7 +50,7 @@ Teams / Enterprise 可在 Dashboard → Plugins & MCPs → Team Marketplaces 导
 修改插件源码时才需要克隆仓库：
 
 ```sh
-git clone --branch main https://github.com/chinayin/gox-claude-plugins.git
+git clone --branch main https://github.com/chinayin/gox-claude-plugins
 cd gox-claude-plugins
 ```
 
@@ -148,9 +142,9 @@ Cursor manifest 只指向 `agents-cursor/`，Claude 继续用 `agents/`。Cursor
 
 这些检查证明脚本和入口合约，不能证明四个客户端都已完整验收。Codex 既有安装发现记录见 [CODEX](CODEX.md)，Pi 历史主会话 / 子代理实测见 [PI](PI.md)，不能替代本次新范围解析的真实客户端验收。
 
-本轮核对了 Cursor CLI `2026.11.05-86047df` 的 `--version`、`plugin --help`、`plugin marketplace --help`、`add --help`、`update --help` 和交互 `/plugin` 的随包实现；未执行账户侧添加 / 安装，也未完成 IDE 验收。待验证：
+本轮核对了 Cursor CLI `2026.11.05-86047df` 的 `--version`、marketplace 帮助和交互 `/plugin` 实现。未执行账户侧添加 / 安装或修改用户 AI 配置；IDE 的自定义来源发现与安装仍待实机验收。待验证：
 
-1. 记录 Cursor / 插件版本；按上面的安装步骤确认 Customize 中的组件。
+1. 记录 Cursor / 插件版本；添加来源后在 CLI `/plugin` 中完成三个插件的选装，确认安装范围与状态；IDE 另行确认 Customize 中的发现和安装。
 2. 新开 Agent 会话确认规则提醒；子代理能启动并从 brief 获得规则。
 3. 在临时仓库和本地 bare remote，用合成测试标记确认 Shell push 被拒绝、干净分支通过；模拟 hook 超时 / 启动失败确认 failClosed。
 4. 检查两个代理实际运行的模型与费用；确认 reader 不能编辑文件或执行改变状态的命令。

@@ -4,7 +4,7 @@
 
 ## 直接复用
 
-Codex 使用同一个 `chinayin` marketplace，直接读取现有 Claude 格式插件。规范、脚本和版本保持一份，不新增独立 marketplace、构建产物或仅为安装而增加的覆盖清单。安装命令见 [中文 README](../README.zh-CN.md#在-codex-中使用) / [English README](../README.md#use-with-codex)。
+Codex 使用同一个 `chinayin` marketplace，直接读取现有 Claude 格式插件。规范、脚本和版本保持一份，不新增独立 marketplace、构建产物或仅为安装而增加的覆盖清单。安装命令见 [中文 README](../README.zh-CN.md#安装到-codex) / [English README](../README.md#install-in-codex)。
 
 Codex 的 marketplace 与启用配置独立于 Claude。`templates/project-settings.json` 是 Claude 模板，不用于 Codex；在 Claude 中安装插件也不会替 Codex 完成安装。
 

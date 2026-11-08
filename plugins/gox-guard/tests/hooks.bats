@@ -46,11 +46,11 @@ HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
   run jq -e . "$cursor"
   [ "$status" -eq 0 ]
   run jq -er '.hooks.sessionStart[0].command' "$cursor"
-  [ "$output" = "bash ./hooks/cursor-secrets.sh SessionStart" ]
+  [ "$output" = "bash ./hooks/secrets-cursor.sh SessionStart" ]
   run jq -er '.hooks.preToolUse[0].matcher' "$cursor"
   [ "$output" = "Shell" ]
   run jq -er '.hooks.preToolUse[0].command' "$cursor"
-  [ "$output" = "bash ./hooks/cursor-secrets.sh PreToolUse" ]
+  [ "$output" = "bash ./hooks/secrets-cursor.sh PreToolUse" ]
   run jq -e '.hooks.preToolUse[0].timeout >= 30 and .hooks.preToolUse[0].failClosed == true' "$cursor"
   [ "$status" -eq 0 ]
   run jq -er '.hooks | keys | sort | join(",")' "$cursor"

@@ -4,12 +4,12 @@
 setup() {
   DIR="$BATS_TEST_TMPDIR/installed plugin"
   mkdir -p "$DIR"
-  cp "$BATS_TEST_DIRNAME/../hooks/cursor-secrets.sh" "$DIR/cursor-secrets.sh"
+  cp "$BATS_TEST_DIRNAME/../hooks/secrets-cursor.sh" "$DIR/secrets-cursor.sh"
 }
 
 @test "Cursor adapter denies instead of swallowing a child process failure" {
   printf '#!/usr/bin/env bash\nexit 3\n' > "$DIR/secrets.sh"
-  run bash "$DIR/cursor-secrets.sh" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
+  run bash "$DIR/secrets-cursor.sh" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.permission == "deny" and (.agent_message | length > 0)'
 }
@@ -18,7 +18,7 @@ setup() {
   for response in 'not-json' '{}' '{"hookSpecificOutput":{"permissionDecision":"deny"}}' \
     '{"hookSpecificOutput":{"permissionDecision":"deny","permissionDecisionReason":"first"}} {"hookSpecificOutput":{"permissionDecision":"deny","permissionDecisionReason":"second"}}'; do
     printf '#!/usr/bin/env bash\nprintf "%%s" '\''%s'\''\n' "$response" > "$DIR/secrets.sh"
-    run bash "$DIR/cursor-secrets.sh" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
+    run bash "$DIR/secrets-cursor.sh" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
     [ "$status" -eq 0 ]
     echo "$output" | jq -e '.permission == "deny" and (.agent_message | contains("adapter failed"))'
   done
@@ -31,7 +31,7 @@ setup() {
 #!/usr/bin/env bash
 cat "$(dirname "$0")/response.json"
 EOF
-  run bash "$DIR/cursor-secrets.sh" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
+  run bash "$DIR/secrets-cursor.sh" PreToolUse <<<'{"tool_input":{"command":"git push"}}'
   [ "$status" -eq 0 ]
   echo "$output" | jq -e --arg reason "$reason" '.permission == "deny" and .user_message == $reason and .agent_message == $reason'
 }
@@ -39,7 +39,7 @@ EOF
 @test "Cursor adapter denies empty or malformed preToolUse input" {
   printf '#!/usr/bin/env bash\nexit 0\n' > "$DIR/secrets.sh"
   for input in '' 'not-json'; do
-    run bash "$DIR/cursor-secrets.sh" PreToolUse <<<"$input"
+    run bash "$DIR/secrets-cursor.sh" PreToolUse <<<"$input"
     [ "$status" -eq 0 ]
     [ -n "$output" ]
     jq -e '.permission == "deny"' <<<"$output"
@@ -48,7 +48,7 @@ EOF
 
 @test "Cursor adapter keeps successful sessionStart silent" {
   printf '#!/usr/bin/env bash\nexit 0\n' > "$DIR/secrets.sh"
-  run bash "$DIR/cursor-secrets.sh" SessionStart </dev/null
+  run bash "$DIR/secrets-cursor.sh" SessionStart </dev/null
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }

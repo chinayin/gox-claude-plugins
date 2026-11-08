@@ -31,7 +31,7 @@ pi -e ./                                                       # 本地调试：
 |---|---|---|
 | `gox-code-rules` | `pi.skills` 交出插件的 `skills/`；`.pi/extensions/gox-code-rules.ts` 把提醒写入 system prompt | 已实现 |
 | `gox-guard` | `.pi/extensions/gox-guard.ts`：`tool_call`（bash）与 `session_start` 转给插件的 `secrets.sh` | 已实现 |
-| `token-thrift` | 依赖 Claude 的子代理与模型别名 | 未适配 |
+| `token-thrift` | 只有 Claude / Cursor 子代理配置，没有 Pi 路由 | 未适配 |
 | `diagram-design` | 第三方仓库，不进本包；需要时单独 `pi install` 其仓库 | 不处理 |
 
 ## gox-code-rules

@@ -4,10 +4,14 @@
 
 ## 仓库维护（未发布）
 
+- Cursor 自定义文件统一 `-cursor` 后缀；token-thrift 用独立 `agents-cursor/` 配置 Composer / Grok 标准速度档及原生只读权限，Claude 代理继续使用原有别名。共用策略区分宿主调用方式，修正只读代理写 scratchpad 的矛盾。
+- 双语 README 明确 Claude / Codex / Pi / Cursor 入口和使用方式，补充 Cursor 逐插件完整复制、Reload、Team marketplace、模型替换及验证边界；测试文件不作为模型规则加载。
+- 增加从完整安装副本调用共享 guard / Cursor hooks / Pi 扩展的范围解析回归；修复 Pi 测试在 Node 26 替换 process.env 后子进程继承旧环境的问题。
+
 - Cursor 审计修复：移除不支持上下文注入的 `subagentStart` 提醒；guard 启用 `failClosed` 并对正常通过显式输出 `permission: allow`，空输入拒绝；`cheap-reader` 声明 `readonly: true`。同步协议回归测试和支持边界文档，客户端验收仍待完成。
 
 - guard 按实际目录和推送源引用计算扫描范围，覆盖 `git -C`、字面量 `cd ... && git push`、Cursor `working_directory`、指定分支/refspec、tag 与 mirror；读取默认 push 配置。无法确定范围的复杂命令拒绝并提示拆分，避免组合 commit/push 扫到旧提交；纯删除引用免扫描。新增真实 Git 提交图回归用例，插件版本未变。
-- Cursor hooks 改用 `cursor-session-nudge.sh` / `cursor-secrets.sh` 薄包装，原脚本固定使用 Claude 协议，避免环境变量影响 pi 拦截。guard 包装保留缺 jq 和转换失败时的拒绝，原因同时传给用户和模型；Cursor 的 `sessionStart` 使用提醒包装，子代理规范由任务 brief 传递。同步测试及文档，插件版本未变。
+- Cursor hooks 改用 `session-nudge-cursor.sh` / `secrets-cursor.sh` 薄包装，原脚本固定使用 Claude 协议，避免环境变量影响 pi 拦截。guard 包装保留缺 jq 和转换失败时的拒绝，原因同时传给用户和模型；Cursor 的 `sessionStart` 使用提醒包装，子代理规范由任务 brief 传递。同步测试及文档，插件版本未变。
 - 修复 guard 无 jq 兜底匹配漏过 JSON 字符串末尾裸 `git push` 的问题；仍复用原 push 正则。
 - 修正 Claude 项目模板的 `enabledPlugins`：由数组改为插件 ID 到布尔值的对象；同步安装示例，并增加格式与启用值校验。
 - 将设计文档整理为当前架构，标注历史实验的适用范围；新增 Codex 兼容说明，统一安装发现与运行验证的边界。插件实现及版本未变。

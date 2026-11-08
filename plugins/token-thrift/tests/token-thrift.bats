@@ -37,15 +37,25 @@ PLUGIN="$BATS_TEST_DIRNAME/.."
   done
 }
 
-@test "cheap-reader declares Cursor readonly permissions as a YAML boolean" {
-  run python3 - "$PLUGIN/agents/cheap-reader.md" <<'PYTHON'
+@test "Cursor loads native model IDs and permissions from its own agent directory" {
+  run python3 - "$PLUGIN" <<'PYTHON'
+import json
 import sys
 from pathlib import Path
 import yaml
 
-frontmatter = Path(sys.argv[1]).read_text().split("---", 2)[1]
-agent = yaml.safe_load(frontmatter)
-assert agent.get("readonly") is True, "Cursor cheap-reader must declare readonly: true"
+plugin = Path(sys.argv[1])
+manifest = json.loads((plugin / ".cursor-plugin/plugin.json").read_text())
+directory = plugin / manifest["agents"]
+assert directory.resolve() != (plugin / "agents").resolve(), "Cursor must not load Claude aliases"
+models = {"cheap-reader": "composer-2.5[fast=false]", "careful-writer": "grok-4.7[fast=false]"}
+assert {p.stem for p in directory.glob("*.md")} == set(models)
+for name, model in models.items():
+    metadata = yaml.safe_load((directory / f"{name}.md").read_text().split("---", 2)[1])
+    assert metadata["name"] == name and metadata["description"]
+    assert metadata["model"] == model, f"{name}: use the cost-controlled Cursor model variant"
+    assert metadata["readonly"] is (name == "cheap-reader")
+    assert "tools" not in metadata, "Claude tool allowlists are not Cursor permissions"
 PYTHON
   [ "$status" -eq 0 ] || { echo "$output"; false; }
 }

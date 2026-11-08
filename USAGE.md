@@ -2,7 +2,7 @@
 
 > 总览 / 为什么用它 → 见 [`README.md`](README.md)。本手册讲**细节**:怎么启用、怎么用、怎么问、没触发怎么办。
 
-本文的安装配置和调用方式针对 Claude Code。Codex 的安装与验证边界见 [docs/CODEX.md](docs/CODEX.md)。
+本文的安装配置和调用方式针对 Claude Code。其他宿主见 [Codex](docs/CODEX.md)、[Cursor](docs/CURSOR.md)、[Pi](docs/PI.md)；不要将本文的 `.claude/settings.json` 或 `/plugin` 命令用于它们。
 
 团队代码规范以 **Claude Code 技能(Agent Skills)** 的形式分发，由模型按任务选择或用户显式调用；插件不向你的 repo 写入规范文件。
 

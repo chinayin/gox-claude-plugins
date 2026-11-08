@@ -3,12 +3,12 @@
   "hooks": {
     "sessionStart": [
       {
-        "command": "bash ./hooks/cursor-secrets.sh SessionStart"
+        "command": "bash ./hooks/secrets-cursor.sh SessionStart"
       }
     ],
     "preToolUse": [
       {
-        "command": "bash ./hooks/cursor-secrets.sh PreToolUse",
+        "command": "bash ./hooks/secrets-cursor.sh PreToolUse",
         "matcher": "Shell",
         "timeout": 90,
         "failClosed": true

@@ -45,7 +45,7 @@ MKT="$ROOT/.cursor-plugin/marketplace.json"
   run jq -er '.skills' "$pj"
   [ "$output" = "./skills/" ]
   run jq -er '.agents' "$pj"
-  [ "$output" = "./agents/" ]
+  [ "$output" = "./agents-cursor/" ]
   run jq -e 'has("hooks") | not' "$pj"
   [ "$status" -eq 0 ]
 }

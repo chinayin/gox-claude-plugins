@@ -1,6 +1,8 @@
 {
   "name": "chinayin",
-  "owner": { "name": "chinayin" },
+  "owner": {
+    "name": "chinayin"
+  },
   "metadata": {
     "description": "Team plugins: coding standards, pre-push secret gates, and cheap-model subagents."
   },
@@ -18,7 +20,7 @@
     {
       "name": "token-thrift",
       "source": "plugins/token-thrift",
-      "description": "Cheap-model subagents for token-heavy work. Cursor loads the skill and agent files; model aliases are not verified to match Claude"
+      "description": "Context-saving subagents with native Cursor models: Composer for reads, Grok for writes"
     }
   ]
 }

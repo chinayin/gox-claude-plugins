@@ -19,13 +19,13 @@ Codex 的 marketplace 与启用配置独立于 Claude。`templates/project-setti
 
 安装或启用插件不会自动信任 hooks。在 Codex 的 `/hooks` 中审阅并信任当前定义，再开启新会话。hooks 需要 Bash、jq；`gox-guard` 还需要 Git、betterleaks。Codex 兼容 `CLAUDE_PLUGIN_ROOT`，但环境变量和协议兼容不能代替实际执行验证。参见[官方插件文档](https://developers.openai.com/plugins/build/plugins)与 [hook 信任说明](https://learn.chatgpt.com/docs/hooks)。
 
-规范提醒仍包含 Claude Skill 工具和调用方式的措辞，并在 Skill 工具不可用时回退到任务说明。能发现该 hook，不代表它在 Codex 中能同样有效地引导技能加载。当前不通过 `"hooks": {}` 关闭提醒；若实际出现兼容问题，先复现，再做针对性修改。
+规范提醒使用共享技能名；无 Skill 工具时要求读取已安装的 SKILL.md 与相关 references，宿主省略插件前缀时用裸名。技能不可用时再遵循任务说明。能发现该 hook，不代表它在 Codex 中能同样有效地引导技能加载。当前不通过 `"hooks": {}` 关闭提醒；若实际出现兼容问题，先复现，再做针对性修改。
 
 guard 只检查匹配到的工具调用。不要将安装成功或一次阻断成功描述为覆盖所有 shell 执行方式；间接脚本、别名和后续交互输入等还需单独考虑。仓库 CI 继续负责其自身的检查。
 
 ## token-thrift：尚未实施的适配方向
 
-当前 delegate 技能使用 Claude 的 `Task/Agent`、`subagent_type` 和 Haiku / Sonnet，两个 `agents/*.md` 也使用 Claude 模型别名及工具列表。这些声明不能直接视为 Codex 的模型路由和权限配置。
+当前 delegate 技能区分 Claude / Cursor 的调用方式；Claude 的 `agents/*.md` 使用 Haiku / Sonnet 别名和工具列表，Cursor 的 `agents-cursor/*.md` 使用具体模型 ID 与原生权限字段。两者都不能直接视为 Codex 的模型路由和权限配置，Codex 路径明确保持未适配。
 
 若后续适配，优先修改同一个 delegate 技能：保留 Claude 路径，按 Codex 当时可用的代理接口传递任务与摘要要求；仅在能明确选择低成本模型时宣称低成本路由。代理不可用、模型不可选或任务过小时应有明确处理方式，不新增独立打包系统。
 

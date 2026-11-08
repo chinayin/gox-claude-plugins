@@ -5,26 +5,30 @@ description: Token-saving subagent routing. Use when facing token-heavy, read-he
 
 # Token-saving three-tier split
 
-The main agent (whatever top-tier model the session runs) does only orchestration and decisions with the user. Offload token-heavy work; keep raw material out of the main context.
+Keep bulk material in a subagent's context when the parent needs only a conclusion. The parent retains decisions, authorization, and integration; small tasks can stay inline.
 
-## Which tier
+## Which role
 
-| Kind of work | Dispatch to | Model | Why |
-|---|---|---|---|
-| Read / compare / verify / search (conclusion only) | `cheap-reader` | Haiku | Cheapest tier; raw material is read once and discarded |
-| Correctness-sensitive writes (Lark/Feishu XML/blocks, reliable persistence) | `careful-writer` | Sonnet | Write errors are costly; mid tier at a fraction of the top tier's price |
-| Orchestration / decisions | main agent | session model | Keep the main context lean |
+| Kind of work | Dispatch to | Responsibility |
+|---|---|---|
+| Read / compare / verify / search | `cheap-reader` | Read-only evidence gathering; return a compact conclusion |
+| Correctness-sensitive, authorized writes | `careful-writer` | Read the target, make the requested change, verify persistence |
+| Decisions / integration | main agent | Use the session model and keep its context lean |
 
-A read that needs subtle judgment may be promoted to Sonnet; a purely mechanical append may drop to Haiku.
+Model configuration belongs to each host's agent definitions. Claude uses Haiku for reads and Sonnet for writes. Cursor uses its own concrete model IDs and permission fields. These are corresponding work roles, not claims of equal model capability or guaranteed savings. Availability, billing, and the actual model selected must be checked in the host.
 
-## When it's worth offloading
+For difficult read-only work, request a stronger read-only agent or keep it with the parent; do not give a reading task write permission just to change models.
 
-Rule of thumb (empirical, not benchmarked): offload when the throwaway material the subagent must process is **≳ 3,000 tokens**. Because:
-1. Skill loading (e.g. `lark-*` SKILL + references, often tens of thousands of tokens) moves from the main model's pricing to the cheaper tier's.
-2. Raw material stays out of the main context, avoiding it being re-billed on every subsequent turn (the biggest lever).
+## When to offload
 
-If the task is tiny, or the main thread will need the raw material again, keep it inline instead.
+A starting heuristic, not a benchmark: delegate when throwaway source material is around 3,000 tokens or more. Skill loading and large reads then stay in the subagent's context, and the parent receives only the useful result.
+
+Keep tiny tasks inline. Also stay inline when the parent will need most of the raw material again. Compare total usage, including subagent startup, retries, and output, before claiming savings.
 
 ## How to dispatch
 
-Use the Task/Agent tool with `subagent_type` set to `cheap-reader` or `careful-writer`. Have it return only a compact conclusion; if the result is large, have it write a scratchpad file and return the path. Keep the main context lean.
+- Claude Code: select `cheap-reader` or `careful-writer` through the available Task/Agent tool's `subagent_type`.
+- Cursor: select the installed custom subagent by name through its native delegation tool, or use the `/cheap-reader` or `/careful-writer` picker entry. Do not assume Claude's tool API or model aliases.
+- Other hosts: these agent definitions have no supported routing yet. Keep the task inline unless a host-native equivalent has explicitly been configured.
+
+Give the subagent a self-contained brief: question or approved change, sources, applicable rules, constraints, and expected output. Request a compact result with paths or links and validation evidence. A read-only agent must not write scratchpads; the parent can save its result if needed. A writer may save larger output only within its authorized target.

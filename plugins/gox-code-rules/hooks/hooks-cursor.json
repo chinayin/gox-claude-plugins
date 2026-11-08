@@ -3,7 +3,7 @@
   "hooks": {
     "sessionStart": [
       {
-        "command": "bash ./hooks/cursor-session-nudge.sh SessionStart"
+        "command": "bash ./hooks/session-nudge-cursor.sh SessionStart"
       }
     ]
   }

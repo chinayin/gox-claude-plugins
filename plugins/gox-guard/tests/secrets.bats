@@ -5,7 +5,7 @@
 # $BATS_TEST_TMPDIR 下的临时仓库里。
 
 HOOK="$BATS_TEST_DIRNAME/../hooks/secrets.sh"
-CURSOR_HOOK="$BATS_TEST_DIRNAME/../hooks/cursor-secrets.sh"
+CURSOR_HOOK="$BATS_TEST_DIRNAME/../hooks/secrets-cursor.sh"
 
 setup() {
   unset CURSOR_PLUGIN_ROOT

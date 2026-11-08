@@ -1,6 +1,6 @@
 # gox-claude-plugins
 
-Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按需加载，不往你的 repo 写入任何内容。
+面向 Claude Code、Codex、Pi 和 Cursor 的团队技能与操作闸门。各平台使用自己的安装入口，规范正文和扫描逻辑集中维护；加载插件不往你的项目写入内容。
 
 [English](README.md)
 
@@ -9,13 +9,24 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 | 插件 | 用途 |
 |---|---|
 | `gox-code-rules` | 团队代码规范，做成 Agent Skills（Go / 前端 / Shell / 技能编写 / 工程通则）。描述和会话提醒引导模型加载相关技能与细则，不保证自动触发。 |
-| `token-thrift` | 把 token 密集的活外包给便宜模型的 subagent：读用 Haiku、写用 Sonnet、当前会话主模型负责编排。原文不进主上下文。 |
-| `gox-guard` | 针对 Claude 即将执行的不可逆动作的确定性闸门，一闸一脚本，不往 repo 写任何东西。首个闸门 `secrets`：`git push` 之前用 [betterleaks](https://github.com/betterleaks/betterleaks) 扫"本地有、任何远端都没有"的那段提交，有发现就拦下这次 push。 |
+| `token-thrift` | 把 token 密集的活交给 subagent：Claude 用 Haiku/Sonnet，Cursor 用 Composer/Grok，主会话负责决策。原文不进主上下文。 |
+| `gox-guard` | 为支持的 agent 工具调用提供确定性闸门，扫描逻辑共享、入口按平台适配，不往 repo 写东西。首个闸门 `secrets`：`git push` 之前用 [betterleaks](https://github.com/betterleaks/betterleaks) 扫"本地有、任何远端都没有"的那段提交，有发现就拦下这次 push。 |
 | `diagram-design` | 第三方（[cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)，MIT），引用、不拷贝，跟随上游默认分支。40 种编辑风格的图出成单文件 HTML/SVG，附导入/导出命令。按需启用，不在默认模板里。登记与准入清单见 [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md)。 |
 
 集中到一个 marketplace，避免把规范抄进每个 repo `CLAUDE.md` 的老问题：多 repo 漂移、占用 context、归属不清。技能是会话内软引导，可能不触发；真正的强制以 `golangci-lint` / CI / PR review 为准。`gox-guard` 是其中唯一确定性的一块：它执行外部扫描器、可以阻断一次工具调用，所以在下面单独说明。
 
-## 安装
+## 四个平台如何区分
+
+| 平台 | 安装入口 | 规范 / guard | token-thrift |
+|---|---|---|---|
+| Claude Code | `.claude-plugin/marketplace.json` → 各插件 `.claude-plugin/plugin.json` | `hooks/hooks.json`，匹配 `Bash` | `agents/`，Haiku/Sonnet |
+| Codex | 复用 Claude 格式 marketplace 和插件清单 | 同一份 hooks，需在 Codex 单独信任 | 未适配 |
+| Pi | 根 `package.json` → `.pi/extensions/` 与共享 skills | `tool_call` 的 `bash` → 共享 guard 脚本 | 未适配 |
+| Cursor | `.cursor-plugin/marketplace.json` → 各插件 `.cursor-plugin/plugin.json`；也可本地复制 | `hooks/hooks-cursor.json`，匹配 `Shell` | `agents-cursor/`，Composer/Grok |
+
+每个平台都有入口，但不要求每个平台都复制一套文件。下面的 `/plugin` 命令和 `templates/project-settings.json` **仅用于 Claude Code**。`tests/` 是维护者运行的自动化测试，agent 不会把它当作技能或规则加载。
+
+## 安装到 Claude Code
 
 项目级（推荐，随 git 共享）：把 `templates/project-settings.json` 并入该 repo 的 `.claude/settings.json` 并提交。`enabledPlugins` 是插件 ID 到布尔值的对象。项目配置声明该 repo 的启用范围，每位协作者仍需安装并信任插件。完整配置见 [USAGE.md](USAGE.md)。
 
@@ -30,7 +41,7 @@ Claude Code 团队插件，通过一个 marketplace（`chinayin`）分发。按�
 /reload-plugins
 ```
 
-`gox-guard` 还需要本机装有扫描器：`brew install betterleaks`（或 `go install github.com/betterleaks/betterleaks@latest`）。插件不会替你安装；装好之前，Claude 发起的 push 会被拦下并给出安装提示。
+`gox-guard` 还需要本机装有扫描器：`brew install jq betterleaks`（还需 Bash、Git；其他系统用包管理器安装 jq，用 `go install github.com/betterleaks/betterleaks@latest` 安装扫描器）。插件不会替你安装；装好之前，Claude 发起的 push 会被拦下并给出安装提示。
 
 ## 在 Codex 中使用
 
@@ -64,17 +75,33 @@ guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，
 
 ## 在 Cursor 中使用
 
-Cursor 不执行 Claude 的 `/plugin`。本仓库另有 `.cursor-plugin/marketplace.json`，列出 `gox-code-rules`、`gox-guard`、`token-thrift`。`diagram-design` 仍只在 Claude 的 marketplace 里。
+macOS/Linux 本地安装：获取包含 Cursor 清单的源码，把**每个完整插件目录**分别复制到本地插件目录：
 
-先允许 Local Plugin Imports，把本仓库复制或克隆到 `~/.cursor/plugins/local/`（指向该目录之外的 symlink 会被跳过），再从 Customize 安装这三个插件。Team marketplace 导入同一 Git 仓库时用的是这份清单。技能仍在 `skills/`；Cursor 读 `.cursor-plugin/plugin.json` 和 `hooks/hooks-cursor.json`。
+```sh
+git clone https://github.com/chinayin/gox-claude-plugins.git
+cd gox-claude-plugins
+# Cursor PR 合并前，先切换到对应评审分支。
+brew install jq betterleaks  # macOS；还需 Bash、Git
+for plugin in gox-code-rules gox-guard token-thrift; do
+  target="$HOME/.cursor/plugins/local/$plugin"
+  mkdir -p "$target"
+  cp -R "plugins/$plugin/." "$target/"
+done
+```
 
-`gox-code-rules` 仅在 `sessionStart` 调用提醒包装，主代理通过任务 brief 向子代理传递规范。Cursor 的 `subagentStart` 是权限事件，不支持上下文注入，因此不注册。`gox-guard` 匹配 Shell 工具，待推送提交扫到 secret 时拒绝 `git push`。两个 Cursor 包装复用原脚本的正文和扫描规则；guard 显式输出 `allow` / `deny`，并启用 `failClosed`，让 hook 崩溃、超时或无输出时也阻止执行。原脚本的输出不受 `CURSOR_PLUGIN_ROOT` 影响。`token-thrift` 共用技能和 agents，`cheap-reader` 声明 Cursor 的 `readonly: true`；Claude 的 `haiku` / `sonnet` 别名和 `tools` 白名单未验证与 Cursor 等价，模型选择和实际权限仍需客户端验收。
+目标应直接包含 `~/.cursor/plugins/local/<插件名>/.cursor-plugin/plugin.json`。完整复制会保留隐藏清单、hooks 和 `lib/`，只复制脚本会缺依赖。
 
-清单形状和两种 hook 输出由 `make test` 覆盖。Customize 安装、Cursor Agent 会话里的提醒，以及 Cursor 里一次真实 `git push` 拦截，都还没做过。见 [Cursor 兼容说明](docs/CURSOR.md)。
+在 Cursor 执行 **Developer: Reload Window**，打开 Customize 检查三个插件及其 skills/agents。本地插件在允许导入时自动发现；Enterprise 组织可能需要管理员开启 **Allow Local Plugin Imports**。这是组织管理项，不是所有个人用户都要找的开关。依据：[Cursor 安装文档](https://cursor.com/docs/plugins)。
+
+评审分支的获取命令、Team marketplace、升级与排障见 [Cursor 安装说明](docs/CURSOR.md#安装)。本仓库未提交到公共 Cursor Marketplace。源码更新后重新复制并 Reload；复制会覆盖这些文件的本地修改。
+
+技能从选择器里选择已安装插件的 `go`、`shell`、`engineering`、`delegate`；子代理使用 `/cheap-reader`、`/careful-writer`。Claude 的 `/plugin` 和 `.claude/settings.json` 不配置 Cursor。Cursor hook 负责会话提醒和 `allow` / `deny` 转换，guard 启用 `failClosed`，扫描与范围计算仍调用共享库。
+
+自动化已覆盖清单、协议、完整安装副本的扫描。Cursor 界面发现、实际模型路由、只读权限和客户端 hook 执行仍需完成[客户端验收](docs/CURSOR.md#验证边界)。
 
 ## gox-code-rules
 
-| 技能 | 调用名 | 何时激活 | 内容 |
+| 技能 | Claude Code 调用名 | 何时激活 | 内容 |
 |---|---|---|---|
 | 工程通则 | `/gox-code-rules:engineering` | 描述匹配（无文件限定） | Karpathy 准则：先想后写、简单优先、外科手术式改动、目标驱动 |
 | Go | `/gox-code-rules:go` | Go 任务，通过提醒与描述引导模型调用 | Go 架构 + gin HTTP / cobra / gox-config / goose / 时间与时区 / 脚手架；细则在 `references/` 按需读 |
@@ -82,27 +109,29 @@ Cursor 不执行 Claude 的 `/plugin`。本仓库另有 `.cursor-plugin/marketpl
 | Shell | `/gox-code-rules:shell` | Shell 任务，通过提醒与描述引导模型调用 | bash/CLI 脚本：stdout/stderr 分流、状态前缀、标准 flag、退出码、`test.sh` |
 | Skill | `/gox-code-rules:skill` | 编写技能时，通过提醒与描述引导模型调用 | 命名（对象-动作，不带版本后缀）、正文语言、不写环境事实；只补官方 skill-creator 没定的事，不复述 |
 
-怎么让适用技能更明确、没触发怎么办：见 [USAGE.md](USAGE.md)。`paths` 仅作声明，不保证按文件自动加载。
+表中命令属于 Claude Code；Cursor 从已安装技能选择器选择，Codex / Pi 使用各自的技能发现机制。Claude 的使用与排障见 [USAGE.md](USAGE.md)。`paths` 仅作声明，不保证按文件自动加载。
 
 ## token-thrift
 
-把 token 密集的活外包给便宜模型的 subagent。主 agent 使用当前会话模型负责编排，大块原料留在子代理上下文；实际 token 与费用收益需要按任务测量。
+把大量读取和已授权写入交给子代理，原始材料留在子代理上下文。实际费用还取决于模型、套餐、启动开销与重试次数。
 
-| 组件 | 调用名 | 模型 | 角色 |
+| 角色 | Claude Code | Cursor 默认配置 | 职责 |
 |---|---|---|---|
-| cheap-reader | `subagent_type: cheap-reader`（或 `@cheap-reader`） | Haiku | 只读：读飞书全文、大范围检索、查证、日志/长文分析，返回结论 |
-| careful-writer | `subagent_type: careful-writer`（或 `@careful-writer`） | Sonnet | 正确性敏感的写入，如飞书 XML/block |
-| delegate | `/token-thrift:delegate` | —— | 策略：何时外包、派哪档 |
+| `cheap-reader` | `haiku` | `composer-2.5[fast=false]` | 只读搜索、分析，返回结论 |
+| `careful-writer` | `sonnet` | `grok-4.7[fast=false]` | 完成已授权修改并验证 |
+| 主代理 | 当前会话模型，可由用户选择 Opus | 当前会话模型 | 决策、整合 |
 
-装好后主 agent 会按各 agent 的 description 判断是否外包；也可显式点名，或用 `/token-thrift:delegate` 强制加载策略。
+这里对齐的是角色，不保证模型能力相等。Composer / Grok 使用 Cursor 自有模型用量池，`fast=false` 显式选择标准速度档；并非声称一定比所有 Claude 型号便宜。模型与费用依据：[Composer](https://cursor.com/docs/models/cursor-composer-2-5)、[Grok](https://cursor.com/docs/models/grok-4-7)。
 
-经验阈值：subagent 要处理的“用完即弃”原料约 3k token 以上就外包；任务很小、或原文后续还要复用，则内联。
+Claude 读取 `agents/`，用 `/token-thrift:delegate` 加载策略；Cursor 读取 `agents-cursor/`，从选择器选择 `delegate`，用 `/cheap-reader`、`/careful-writer` 点名代理。Cursor reader 声明 `readonly: true`，不写 scratchpad。共用的委派策略按宿主选用实际工具接口。Codex / Pi 尚未提供 token-thrift 路由。
 
-agent 与技能正文用英文编写（对模型更友好）；本文件与英文 README 面向人。
+本地 Cursor 自定义模型：修改已安装的 `token-thrift/agents-cursor/*.md` 中的 `model`，填入 Cursor 支持的具体 ID，然后 Reload。套餐或管理员限制可能导致模型回退，须在子任务卡片确认实际运行模型；重新复制安装会覆盖本地修改。依据：[Cursor 子代理配置](https://cursor.com/docs/subagents)。
+
+经验起点是约 3k token 的一次性材料才委派；小任务、主会话后续仍需原文的任务留在当前会话。agent 与技能正文用英文，README 面向使用者。
 
 ## gox-guard
 
-针对 Claude 即将执行的不可逆动作的确定性闸门。每道闸是 `plugins/gox-guard/hooks/` 下的一个脚本，在同一事件下并列注册，文案前缀 `[gox-guard/<闸名>]`，`GOX_GUARD_SKIP=1` 整体跳过。什么算闸门：能用确定性规则判断、只作用于对外且难以撤回的动作、不往 repo 写东西。建议性的检查归 `gox-code-rules`；只有 CI 能判断的事留在 CI。
+为支持的 agent 工具调用提供确定性闸门。`hooks/secrets.sh` 负责扫描与裁定，`lib/push-scope.sh` / `lib/literal-args.jq` 负责仓库和源提交解析，各平台入口转换事件与输出。文案前缀 `[gox-guard/<闸名>]`，`GOX_GUARD_SKIP=1` 整体跳过。什么算闸门：能用确定性规则判断、只作用于对外且难以撤回的动作、不往 repo 写东西。建议性的检查归 `gox-code-rules`；只有 CI 能判断的事留在 CI。
 
 ### 闸门：secrets
 
@@ -111,7 +140,7 @@ agent 与技能正文用英文编写（对模型更友好）；本文件与英�
 | 事件 | 行为 |
 |---|---|
 | 会话开始 | 检查 `PATH` 上有没有 `betterleaks`。有：零输出。没有：一句话让模型提醒你安装。 |
-| Claude 执行含 `git … push` 的 Bash 命令 | 解析目标仓库与推送源引用，再扫描不在任何本地远端跟踪引用中的提交。覆盖显式分支/refspec、tag、`--all`、`--mirror` 和配置的 push 映射。没有待推送提交：不扫直接放行。干净：静默放行。有发现：**拒绝**这次 push，给模型一行一条的发现列表（规则、文件:行、提交、fingerprint，最多 10 条）和两句裁定规则。 |
+| 支持的平台传来含 `git … push` 的 shell 工具调用 | 解析目标仓库与推送源引用，再扫描不在任何本地远端跟踪引用中的提交。覆盖显式分支/refspec、tag、`--all`、`--mirror` 和配置的 push 映射。没有待推送提交：不扫直接放行。干净：放行（Cursor 显式返回 `permission: allow`）。有发现：**拒绝**这次 push，给模型一行一条的发现列表（规则、文件:行、提交、fingerprint，最多 10 条）和两句裁定规则。 |
 | 扫描器（或 `jq`）缺失、扫描器出错 | 拦下并说明原因，而不是静默放行。会静默放行的闸门等于没有。 |
 
 拦截文案刻意压短，因为它会进主 agent 的上下文；也不附手册，模型本来就会 git。它告诉模型的只有：
@@ -125,18 +154,18 @@ agent 与技能正文用英文编写（对模型更友好）；本文件与英�
 - **push 与修改命令分开执行。** 独立 commit 不受拦截。先完成 `git add` / `git commit`，再单独调用 `git push`，扫描才能看到最终提交。支持字面量 `cd '<repo>' && git push` 前缀及重复 `git -C`；其他命令链、shell 展开、远端组、多冒号 revision 表达式和未支持的选项会被拒绝，并提示拆分或简化命令。hook 不执行传入的命令文本。
 - **子模块。** 递归推送子模块会被拒绝，包括 Git 配置隐式启用的递归。先分别推送各子模块，再对父仓库执行 `git push --recurse-submodules=no`，确保每个仓库都独立接受扫描。
 - **本地计算范围。** 显式源引用解析成提交 ID；`--all` 选本地分支，`--tags` 选 tag，`--mirror` 选全部引用。matching 推送保守扫描全部本地分支。仍排除所有本地远端跟踪引用已包含的提交，hook 不执行 fetch 或查询服务器。
-- **不要求配置文件。** 没配置就用扫描器内置规则。repo 第一次需要白名单时再加 `.betterleaks.toml` / `.betterleaksignore`，插件永远不写它们。
+- **不要求配置文件。** 没配置就用扫描器内置规则。插件不写配置。betterleaks 1.10 的 TOML 配置需显式选择，例如在 agent 进程环境中设置 `BETTERLEAKS_CONFIG=/绝对路径/.betterleaks.toml`；仅创建该文件不会启用它。`.betterleaksignore` 从扫描目录读取。
 - **不 pin 版本。** 只扫待推送区间，新规则不会让老提交突然报红。brew 给什么版本用什么。
 - **永远脱敏，绝不联网验证。** `--redact` 常开（发现会进模型上下文与 transcript）；扫描器的在线验证功能永不开启（它会把疑似密钥发往厂商 API）。
-- **覆盖边界。** 只看得到 Claude 发起的 push。你在终端手敲的 push、CI，都在它之外：仓库 CI 仍是最后一道硬闸。
+- **覆盖边界。** 只覆盖实际到达 Claude/Codex hooks、Pi 扩展或 Cursor hooks 的调用。终端手敲、未加载扩展的子代理、脚本间接执行和 CI 不在完整覆盖承诺内：仓库 CI 仍是最后一道硬闸。
 - **逃生口。** 环境变量 `GOX_GUARD_SKIP=1` 跳过闸门。模型被告知只有你明确要求时才用。
 
 ## 开发
 
 - 默认已有 `python3`。`make deps` 安装 jq、bats-core 和 PyYAML；`make validate` 校验 JSON manifest 与模板；`make test` 运行全部 bats，直接用 `python3` 解析 YAML frontmatter。PyYAML 仅供测试使用。
-- 测试分层：中央 `tests/` 放跨插件检查（`manifests` / `skills` / `template`，循环 `plugins/*`，新插件自动覆盖）；插件专属测试放 `plugins/<name>/tests/`。`make test` = `bats tests plugins/*/tests`。
+- 测试分层：中央 `tests/` 放跨插件检查（`manifests` / `skills` / `template`，循环 `plugins/*`，新插件自动覆盖）；插件专属测试放 `plugins/<name>/tests/`。`make test` 运行 `bats tests plugins/*/tests` 和 `node --test tests/pi/*.test.mjs`。`tests/manifests-cursor.bats` 检查清单接线，不是团队代码规范；自定义平台文件统一用 `-cursor` 后缀，官方清单文件名保持原样。
 - 触发/命中率（模型是否加载技能、是否派活）不进 bats，是概率性的，用 skill-creator eval 流程评估（with-plugin vs baseline）。`make eval` 有提示。
-- `gox-guard` 完全确定性，bats 用 stub 扫描器覆盖四种情形（干净 / 有发现 / 缺失 / 出错）。要跑真二进制，把 `GOX_GUARD_BIN` 指向一个 `betterleaks`，再往 hook 的 stdin 喂一段 PreToolUse JSON。
+- `gox-guard` 的确定性 hook 测试用 stub 扫描器覆盖四种情形（干净 / 有发现 / 缺失 / 出错）。要跑真二进制，把 `GOX_GUARD_BIN` 指向一个 `betterleaks`，再往 hook 的 stdin 喂一段 PreToolUse JSON。
 - 加语言或领域：一语言一技能，同插件内并存，提供描述并按需增加 references；`paths` 是声明性元数据。见[当前架构](docs/DESIGN.md)。
 
 ## License

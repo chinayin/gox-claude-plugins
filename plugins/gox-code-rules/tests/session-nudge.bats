@@ -2,7 +2,7 @@
 
 setup() {
   HOOK="$BATS_TEST_DIRNAME/../hooks/session-nudge.sh"
-  CURSOR_HOOK="$BATS_TEST_DIRNAME/../hooks/cursor-session-nudge.sh"
+  CURSOR_HOOK="$BATS_TEST_DIRNAME/../hooks/session-nudge-cursor.sh"
   # 协议由入口决定；默认清空变量，另测两种变量共存的情况。
   unset CURSOR_PLUGIN_ROOT
 }

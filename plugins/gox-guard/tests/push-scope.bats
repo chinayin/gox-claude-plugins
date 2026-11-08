@@ -2,8 +2,12 @@
 # 用真实 Git 提交图校验扫描范围；扫描器替身仅把含 REVIEW_SECRET 的提交当作发现。
 
 setup() {
-  HOOK="$BATS_TEST_DIRNAME/../hooks/secrets.sh"
-  CURSOR_HOOK="$BATS_TEST_DIRNAME/../hooks/cursor-secrets.sh"
+  bats_require_minimum_version 1.5.0
+  # 完整复制安装包：hooks 通过相对路径找到 lib，不能依赖源仓库的 cwd。
+  PLUGIN="$BATS_TEST_TMPDIR/installed plugin"
+  cp -R "$BATS_TEST_DIRNAME/.." "$PLUGIN"
+  HOOK="$PLUGIN/hooks/secrets.sh"
+  CURSOR_HOOK="$PLUGIN/hooks/secrets-cursor.sh"
   REPO="$BATS_TEST_TMPDIR/repo with spaces"
   REMOTE="$BATS_TEST_TMPDIR/remote.git"
   SCANNER="$BATS_TEST_TMPDIR/scanner"
@@ -54,7 +58,7 @@ check_push() {
   input="$(jq -nc \
     --arg cmd "$cmd" --arg cwd "$cwd" --arg wd "$working_dir" \
     '{cwd:$cwd,tool_input:({command:$cmd} + (if $wd == "" then {} else {working_directory:$wd} end))}')" || return 1
-  run env GOX_GUARD_BIN="$SCANNER" bash "$hook" PreToolUse <<<"$input"
+  run --separate-stderr env GOX_GUARD_BIN="$SCANNER" bash "$hook" PreToolUse <<<"$input"
   [ "$status" -eq 0 ]
 }
 
@@ -270,4 +274,41 @@ assert_denied() {
   check_push "git -C '$BATS_TEST_TMPDIR/missing' push"
   assert_denied
   [ ! -e "$SCAN_LOG" ]
+}
+
+@test "installed Claude and Codex hook command resolves helper files outside the repo cwd" {
+  secret_branch
+  command="$(jq -r '.hooks.PreToolUse[0].hooks[0].command' "$PLUGIN/hooks/hooks.json")"
+  input="$(jq -nc --arg cwd "$BATS_TEST_TMPDIR" --arg cmd "git -C '$REPO' push origin feature" '{cwd:$cwd,tool_input:{command:$cmd}}')"
+  cd "$BATS_TEST_TMPDIR"
+  # 执行受信任的配置入口，不执行 payload 中的待拦截命令。
+  run env GOX_GUARD_BIN="$SCANNER" CLAUDE_PLUGIN_ROOT="$PLUGIN" bash -c "$command" <<<"$input"
+  [ "$status" -eq 0 ]
+  assert_denied
+  [ -s "$SCAN_LOG" ]
+}
+
+@test "installed Cursor hook command scans the requested non-HEAD ref and allows a clean ref" {
+  secret_branch
+  commit_fixture clean
+  command="$(jq -r '.hooks.preToolUse[0].command' "$PLUGIN/hooks/hooks-cursor.json")"
+  cd "$PLUGIN"
+  for ref in feature main; do
+    input="$(jq -nc --arg cwd "$BATS_TEST_TMPDIR" --arg wd "$REPO" --arg cmd "git push origin $ref" '{cwd:$cwd,tool_input:{command:$cmd,working_directory:$wd}}')"
+    run env GOX_GUARD_BIN="$SCANNER" bash -c "$command" <<<"$input"
+    [ "$status" -eq 0 ]
+    if [ "$ref" = feature ]; then assert_denied
+    else jq -e '.permission == "allow"' <<<"$output"; fi
+    [ -s "$SCAN_LOG" ]
+  done
+}
+
+@test "installed shared and Cursor hooks deny when the packaged scope helper is missing" {
+  commit_fixture clean
+  rm "$PLUGIN/lib/push-scope.sh"
+  for hook in "$HOOK" "$CURSOR_HOOK"; do
+    check_push 'git push' "$REPO" "$hook"
+    assert_denied
+    [ ! -e "$SCAN_LOG" ]
+  done
 }

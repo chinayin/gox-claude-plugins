@@ -17,7 +17,7 @@ The main agent (whatever top-tier model the session runs) does only orchestratio
 
 In Claude Code, a read that needs subtle judgment may be promoted to Sonnet; a purely mechanical append may drop to Haiku. Change the model within the same role: a cheaper write still belongs to a writer, not the read-only reader.
 
-Cursor uses the same roles with Composer (standard speed) for `cheap-reader` and Grok (standard speed) for `careful-writer`; their concrete model IDs and permissions live in `agents-cursor/`. The main agent keeps the session model. These are role mappings, not claims of equal model capability.
+Cursor uses the same task tiers: economical reads through `cheap-reader`, reliable writes through `careful-writer`, and decisions in the main session. Use the models and permissions configured in `agents-cursor/`; the routing policy does not depend on a particular model family or version. These are role mappings, not claims of equal model capability.
 
 ## When it's worth offloading
 

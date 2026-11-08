@@ -79,12 +79,9 @@ guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，
 
 ```sh
 cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
-cursor-agent
 ```
 
-不传 `--git-ref` 时使用仓库默认分支（本仓为 `main`），不会自动选择最新 tag；只有需要指定其他分支、tag 或 commit 时才加该参数。
-
-进入 CLI 后输入 `/plugin`，打开 Marketplace，选择 `chinayin`，分别安装 `gox-code-rules`、`gox-guard`、`token-thrift`，按需要选择 user 或 project 范围。添加 marketplace 是登记插件来源，还需要在管理器中选装插件。如果本机 CLI 名为 `agent`，替换命令前缀即可。依据：[Cursor CLI 命令](https://cursor.com/docs/cli/reference/slash-commands)。
+进入 CLI 后输入 `/plugin`，打开 Marketplace，选择 `chinayin`，分别安装 `gox-code-rules`、`gox-guard`、`token-thrift`，按需要选择 user 或 project 范围。安装后即加载，无需额外启用；仅添加 marketplace 不会安装其中的插件。如果本机 CLI 名为 `agent`，替换命令前缀即可。依据：[Cursor CLI 命令](https://cursor.com/docs/cli/reference/slash-commands)。
 
 使用 IDE 时，从 **Customize** 中找到可见 marketplace 的插件并点击 **Install**。团队也可在 Dashboard → Plugins & MCPs → Team Marketplaces 导入本仓库，再由成员安装。本仓库尚未上架公共 Cursor Marketplace，需要先添加仓库来源或由团队分发。依据：[Cursor Plugins](https://cursor.com/docs/plugins)。
 
@@ -112,11 +109,13 @@ Hooks 需要 Bash、jq，guard 还需 Git、betterleaks（macOS 可用 `brew ins
 
 | 角色 | Claude Code | Cursor 默认配置 | 职责 |
 |---|---|---|---|
-| `cheap-reader` | `haiku` | `composer-2.5[fast=false]` | 只读搜索、分析，返回结论 |
-| `careful-writer` | `sonnet` | `grok-4.7[fast=false]` | 完成已授权修改并验证 |
+| `cheap-reader`（经济阅读） | `haiku` | `composer-2.5[fast=false]` | 只读搜索、分析，返回结论 |
+| `careful-writer`（可靠写入） | `sonnet` | `grok-4.7[fast=false]` | 完成已授权修改并验证 |
 | 主代理 | 当前会话模型，可由用户选择 Opus | 当前会话模型 | 编排、决策 |
 
-这里对齐的是角色，不保证模型能力相等。Composer / Grok 使用 Cursor 自有模型用量池，`fast=false` 显式选择标准速度档；并非声称一定比所有 Claude 型号便宜。模型与费用依据：[Composer](https://cursor.com/docs/models/cursor-composer-2-5)、[Grok](https://cursor.com/docs/models/grok-4-7)。
+按任务档位委派，表中的 ID 是当前 Cursor 默认配置。Claude 的[模型别名](https://code.claude.com/docs/en/model-config#model-aliases)会随提供商更新映射；Cursor 目前公开支持具体 ID 或 `inherit`，没有同等的自动追新类别别名。`inherit` 跟随主模型，无法保留独立费用档位。依据：[Cursor 模型配置](https://cursor.com/docs/subagents#model-configuration)。
+
+角色对应不保证能力相等或一定省钱。Composer / Grok 使用 Cursor 自有模型用量池，`fast=false` 选择标准速度；推理强度由独立的 `effort` 参数控制。模型与费用依据：[Composer](https://cursor.com/docs/models/cursor-composer-2-5)、[Grok](https://cursor.com/docs/models/grok-4-7)。
 
 Claude 读取 `agents/`，用 `/token-thrift:delegate` 加载策略；Cursor 读取 `agents-cursor/`，从选择器选择 `delegate`，用 `/cheap-reader`、`/careful-writer` 点名代理。Cursor reader 声明 `readonly: true`，不写 scratchpad。共用的委派策略按宿主选用实际工具接口。Codex / Pi 尚未提供 token-thrift 路由。
 

@@ -99,16 +99,13 @@ installed and signed in, add this repository's marketplace:
 
 ```sh
 cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
-cursor-agent
 ```
-
-Omitting `--git-ref` uses the repository default branch (`main` here), not the
-latest tag. Set it only when you need a specific branch, tag, or commit.
 
 Inside the CLI, enter `/plugin`, open Marketplace, select `chinayin`, and install
 `gox-code-rules`, `gox-guard`, and `token-thrift`, choosing user or project scope.
-Adding the marketplace makes plugins available; select and install each plugin
-in the manager. If your CLI executable is named `agent`, use that prefix instead.
+Installing loads the plugin; no separate enable command is needed. Adding a
+marketplace alone does not install its plugins. If your CLI executable is named
+`agent`, use that prefix instead.
 See [Cursor CLI slash commands](https://cursor.com/docs/cli/reference/slash-commands).
 
 In the IDE, open **Customize**, find the plugins in your available marketplace,
@@ -152,13 +149,20 @@ models, plan, startup overhead, and retries.
 
 | Role | Claude Code | Cursor default | Responsibility |
 |---|---|---|---|
-| `cheap-reader` | `haiku` | `composer-2.5[fast=false]` | Read-only searches and analysis; return findings |
-| `careful-writer` | `sonnet` | `grok-4.7[fast=false]` | Make authorized changes and verify them |
+| `cheap-reader` (economical reads) | `haiku` | `composer-2.5[fast=false]` | Read-only searches and analysis; return findings |
+| `careful-writer` (reliable writes) | `sonnet` | `grok-4.7[fast=false]` | Make authorized changes and verify them |
 | Main agent | Session model, including Opus if selected | Session model | Orchestration and decisions |
 
-These are corresponding roles, not model-capability equivalents. Composer and
-Grok use Cursor's own model pool; `fast=false` selects standard speed. This is not
-a claim that they are always cheaper than every Claude model. See the official
+Route by task tier; the IDs above are the current Cursor defaults. Claude's
+[model aliases](https://code.claude.com/docs/en/model-config#model-aliases) track
+provider-specific versions. Cursor currently documents concrete IDs or `inherit`,
+with no equivalent family alias that tracks new releases. `inherit` follows the
+parent model and does not preserve separate cost tiers. See
+[Cursor model configuration](https://cursor.com/docs/subagents#model-configuration).
+
+The roles do not imply equal model capability or guaranteed savings. Composer
+and Grok use Cursor's own model pool; `fast=false` selects standard speed. Speed
+and reasoning effort (`effort`) are separate settings. See the official
 [Composer](https://cursor.com/docs/models/cursor-composer-2-5) and
 [Grok](https://cursor.com/docs/models/grok-4-7) model pages.
 

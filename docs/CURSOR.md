@@ -12,16 +12,15 @@
 
 ```sh
 cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
-cursor-agent
 ```
-
-省略 `--git-ref` 时，Cursor 使用 Git 仓库的默认分支；本仓默认分支为 `main`。它不会自动选取最新 tag。需要固定其他分支、tag 或 commit 时，才显式传入 `--git-ref <ref>`。该默认行为已通过当前 CLI 的 `plugin marketplace add --help` 核对。
 
 进入交互会话后：
 
 1. 输入 `/plugin` 打开插件管理器。
 2. 在 Marketplace 中选择 `chinayin`，分别选装 `gox-code-rules`、`gox-guard`、`token-thrift`。
-3. 按需要选择 user 或 project 安装范围，安装后开启新会话。
+3. 按需要选择 user 或 project 安装范围。安装后即加载，无需额外启用。
+
+会话开始提醒使用 `sessionStart`，在下一次会话开始时触发。
 
 也可以完全在 CLI 会话内添加来源：
 
@@ -29,9 +28,9 @@ cursor-agent
 /plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
 ```
 
-该交互命令使用仓库默认分支（本仓为 main）。如果 CLI 可执行文件名是 `agent`，把终端示例里的 `cursor-agent` 换成 `agent`；会话内的 slash 命令不变。
+如果 CLI 可执行文件名是 `agent`，把终端示例里的 `cursor-agent` 换成 `agent`；会话内的 slash 命令不变。
 
-这里有两个步骤：`marketplace add` 登记并索引来源，`/plugin` 管理器完成具体插件安装。CLI `2026.11.05-86047df` 的终端子命令仅提供 marketplace 管理，没有独立的非交互 `plugin install`；不要照搬 Claude 的安装子命令。已核对该版本 `--help` 和随包交互命令实现；官方也列出了 [`/plugin` 管理入口](https://cursor.com/docs/cli/reference/slash-commands)。
+这里有两个步骤：`marketplace add` 登记并索引来源，`/plugin` 管理器完成具体插件安装。CLI `2026.11.05-86047df` 的终端子命令仅提供 marketplace 管理，没有独立的非交互 `plugin install` / `plugin enable`，交互 `/plugin` 也没有 `enable` 子命令。已核对该版本 `--help`、随包安装与重新加载逻辑；官方也列出了 [`/plugin` 管理入口](https://cursor.com/docs/cli/reference/slash-commands)。
 
 查看来源或重新索引主分支：
 
@@ -119,13 +118,17 @@ Cursor 的正常通过显式输出 `permission: allow`，失败输出 `deny`；`
 
 ## token-thrift 模型分档
 
+策略按经济阅读、可靠写入、主会话决策分档；具体模型由宿主配置选择。下面是当前 Cursor 默认值，不是自动追新别名。
+
 | 任务档位 | Claude Code | Cursor 默认值 | 权限 |
 |---|---|---|---|
 | 大量阅读 / 搜索 | Haiku | `composer-2.5[fast=false]` | `cheap-reader`，`readonly: true` |
 | 可靠写入 / 验证 | Sonnet | `grok-4.7[fast=false]` | `careful-writer`，允许写入，仍受任务授权约束 |
 | 主会话决策 | 用户当前模型，可选 Opus | 用户当前模型 | 主会话权限 |
 
-这是工作角色的对应关系，能力等价与成本收益尚未做基准测试。默认值考虑 Cursor 的模型用量池和任务复杂度；不是整个模型市场的最低价保证。明确设置 `fast=false` 避免采用费用更高的 Fast 档。模型依据：[Composer](https://cursor.com/docs/models/cursor-composer-2-5)、[Grok](https://cursor.com/docs/models/grok-4-7)。
+这是工作角色的对应关系，能力等价与成本收益尚未做基准测试。默认值考虑 Cursor 的模型用量池和任务复杂度；不是整个模型市场的最低价保证。`fast=false` 选择标准速度，`fast=true` 选择费用更高的 Fast 速度档；推理强度由独立的 `effort` 参数控制，关闭 Fast 不等于降低 effort。模型依据：[Composer](https://cursor.com/docs/models/cursor-composer-2-5)、[Grok](https://cursor.com/docs/models/grok-4-7)。
+
+Claude 的 `haiku` / `sonnet` 是[官方模型别名](https://code.claude.com/docs/en/model-config#model-aliases)，随客户端和提供商映射更新，并不保证所有提供商同时用上最新版本。Cursor 自定义子代理目前公开支持具体模型 ID 或 `inherit`；未提供同等的 Grok / Composer 家族追新别名。升级默认模型需要更新 `agents-cursor/` 中的 `model` 字段；委派策略和代理职责不依赖版本号。
 
 Cursor manifest 只指向 `agents-cursor/`，Claude 继续用 `agents/`。Cursor 代理不用 Claude 的 `haiku` / `sonnet` 别名或 `tools: Read, Bash, Skill` 白名单，也不假设存在 Claude 的 Skill 工具。只读代理不写 scratchpad，需要保存时由主代理处理。
 

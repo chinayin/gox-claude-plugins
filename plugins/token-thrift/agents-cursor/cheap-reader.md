@@ -1,6 +1,6 @@
 ---
 name: cheap-reader
-description: Read-heavy, conclusion-only work — wide code/file searches, Lark/Feishu reading, and log or long-document analysis. Uses Composer at standard speed and returns compact findings.
+description: Read-heavy, conclusion-only work — wide code/file searches, Lark/Feishu reading, and log or long-document analysis. Returns compact findings.
 model: composer-2.5[fast=false]
 readonly: true
 ---

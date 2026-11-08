@@ -1,6 +1,6 @@
 ---
 name: careful-writer
-description: Correctness-sensitive, already-authorized writes to local files or external documents and tables. Uses Grok at standard speed, verifies the result, and returns a compact report.
+description: Correctness-sensitive, already-authorized writes to local files or external documents and tables. Verifies the result and returns a compact report.
 model: grok-4.7[fast=false]
 readonly: false
 ---

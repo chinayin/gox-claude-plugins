@@ -20,7 +20,7 @@
     {
       "name": "token-thrift",
       "source": "plugins/token-thrift",
-      "description": "Context-saving subagents with native Cursor models: Composer for reads, Grok for writes"
+      "description": "Context-saving subagents for economical reads and reliable writes, with separate Cursor model configuration"
     }
   ]
 }

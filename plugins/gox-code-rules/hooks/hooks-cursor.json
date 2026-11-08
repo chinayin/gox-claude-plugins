@@ -3,12 +3,12 @@
   "hooks": {
     "sessionStart": [
       {
-        "command": "bash ./hooks/session-nudge.sh SessionStart"
+        "command": "bash ./hooks/cursor-session-nudge.sh SessionStart"
       }
     ],
     "subagentStart": [
       {
-        "command": "bash ./hooks/session-nudge.sh SubagentStart"
+        "command": "bash ./hooks/cursor-session-nudge.sh SubagentStart"
       }
     ]
   }

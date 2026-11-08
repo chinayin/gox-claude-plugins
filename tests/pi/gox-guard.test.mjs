@@ -106,6 +106,16 @@ test("lets a bash git push through when the scan is clean", async () => {
   assert.equal(result, undefined);
 });
 
+test("still blocks when Cursor and Claude plugin roots are inherited", async () => {
+  process.env.CURSOR_PLUGIN_ROOT = "/cursor";
+  process.env.CLAUDE_PLUGIN_ROOT = "/claude";
+  stubScanner(1, FINDING);
+  const { handlers, ctx } = load();
+  const result = await handlers.tool_call({ type: "tool_call", toolName: "bash", input: { command: "git push" } }, ctx);
+  assert.equal(result?.block, true);
+  assert.match(result.reason, /aws-access-key {2}config\.txt:3/);
+});
+
 test("ignores tools other than bash", async () => {
   stubScanner(1, FINDING);
   const { handlers, ctx } = load();

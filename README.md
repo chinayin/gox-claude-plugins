@@ -92,10 +92,14 @@ skipped) and install the three plugins from Customize. A Team marketplace
 import of the same Git repository uses the same manifest. Skills stay in
 `skills/`; Cursor reads `.cursor-plugin/plugin.json` and `hooks/hooks-cursor.json`.
 
-`gox-code-rules` injects the existing reminder on `sessionStart` and
-`subagentStart`. `gox-guard` matches the Shell tool and blocks `git push` when
-the pending commits fail the secret scan. Both scripts keep exit code 0 and
-switch JSON shape when `CURSOR_PLUGIN_ROOT` is set. `token-thrift` exposes its
+`gox-code-rules` runs its reminder wrapper on `sessionStart` and `subagentStart`.
+The latter returns the existing short reminder and skips `cheap-reader`;
+actual subagent context injection in Cursor still needs runtime verification.
+`gox-guard` matches the Shell tool and blocks `git push` when the pending commits
+fail the secret scan. Two Cursor wrappers adapt the existing scripts' Claude
+protocol without copying reminders or scan rules. All hooks keep exit code 0;
+the guard wrapper preserves denial when jq is missing or output conversion fails.
+The base scripts' output no longer depends on `CURSOR_PLUGIN_ROOT`. `token-thrift` exposes its
 skill and the `cheap-reader` / `careful-writer` agents. Cursor's agent files
 guarantee `name` and `description`; the `model` and `tools` frontmatter are not
 verified to route the way they do in Claude.

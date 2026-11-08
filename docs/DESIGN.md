@@ -53,9 +53,11 @@ docs/                                # 当前设计、兼容边界、第三方�
 `session-nudge.sh` 注册两个事件：
 
 - `SessionStart`：提示模型按任务选择技能、避免重复加载；派写入子代理时把适用规范放进任务说明。
-- `SubagentStart`：使用更短的提醒，优先遵循已有任务说明；对 `cheap-reader` 跳过注入。
+- Claude 的 `SubagentStart`：使用更短的提醒，优先遵循已有任务说明；对 `cheap-reader` 跳过注入。Cursor 的 `subagentStart` 已通过包装接入相同逻辑，客户端实际注入效果待实测。
 
 提醒脚本 fail-open：缺少 jq、事件未知等情况下静默退出，不阻断会话。提醒中仍有 Claude Skill 工具相关措辞，Codex 下的实际加载效果需另行验证，见 [CODEX](CODEX.md)。
+
+`session-nudge.sh` 固定输出 Claude 协议；Cursor 的 `cursor-session-nudge.sh` 将 `subagent_type` 转成 `agent_type`，复用原文并转换为 `additional_context`。入口决定输出协议，不依赖插件根目录环境变量。
 
 技能只提供软引导。格式化、lint、CI 和代码审查负责各自覆盖的检查；检查通过也不代表已经遵守全部团队规范。
 
@@ -64,7 +66,8 @@ docs/                                # 当前设计、兼容边界、第三方�
 `gox-guard/hooks/secrets.sh` 在 `SessionStart` 检查 jq、betterleaks；在 `PreToolUse` 的 Bash 调用中匹配 `git … push`，扫描待推送提交。
 
 - 默认扫描 `HEAD --not --remotes`，`--all` / `--mirror` 时扩展为 `--branches --not --remotes`。范围依据本地远端跟踪引用；脚本不执行 fetch。
-- 没有待扫描提交时不调用扫描器；有发现、扫描器缺失或执行失败时拒绝这次 push。Claude 的字段是 `permissionDecision: deny`；`CURSOR_PLUGIN_ROOT` 已设置时改为 `permission: deny`。阻断通过 JSON 表达，脚本退出码保持 0。
+- 没有待扫描提交时不调用扫描器；有发现、扫描器缺失或执行失败时拒绝这次 push。`secrets.sh` 固定输出 Claude 的 `permissionDecision: deny`；`cursor-secrets.sh` 将其转换为 `permission: deny`，原因同时传给用户和模型。阻断通过 JSON 表达，脚本退出码保持 0。
+- Cursor 包装兼容顶层 `command` 与原生 `tool_input.command`。缺 jq 时原始输入仍交给原脚本判断；需要拒绝但无法转换、子脚本非零退出或非空输出无效时，包装输出不依赖 jq 的固定拒绝。正常零输出仍表示放行。pi 继续直接调用 `secrets.sh`。
 - 始终启用 `--redact`，不启用扫描器的在线验证。扫描器不由插件安装。
 - `GOX_GUARD_BIN` 可指定扫描器；`GOX_GUARD_SKIP=1` 跳过 push 检查，仅在用户明确要求时使用。
 

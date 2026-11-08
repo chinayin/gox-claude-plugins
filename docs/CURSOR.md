@@ -1,4 +1,4 @@
-# Cursor 插件适配：调研结论与实施准备
+# Cursor 插件适配：格式、调用路径与验证范围
 
 文档整理于 2026-11-03，清单与 hook 脚本于同日落地。本文汇总 Cursor 对插件格式的支持方式、与 Claude / Agent Plugins 的关系，以及本仓的 Cursor Plugins 约定。Customize 里的安装界面、Cursor 会话内的真实 `git push` 拦截，以及 `token-thrift` 的模型别名是否生效，尚未在 Cursor 里点过。
 
@@ -8,6 +8,7 @@
 
 - [Plugins](https://cursor.com/docs/plugins.md)
 - [Plugins reference](https://cursor.com/docs/reference/plugins.md)
+- [Hooks](https://cursor.com/docs/hooks)
 - [Third-party hooks](https://cursor.com/docs/reference/third-party-hooks.md)
 - [Agent Plugins](https://agent-plugins.org)（开放标准）
 
@@ -82,20 +83,24 @@ MCP 路径变量：Cursor 扩展 `${CURSOR_PLUGIN_ROOT}`，也认 `${CLAUDE_PLUG
 
 - 来源：`.claude/settings.json`、`.claude/settings.local.json`、`~/.claude/settings.json`（以及已启用的 Claude 插件侧行为，视 Cursor 版本而定）。
 - 事件名映射：`SessionStart` → `sessionStart`，`PreToolUse` → `preToolUse` 等。
-- 响应：文档写明同时支持 Claude 嵌套 `hookSpecificOutput.additionalContext` 与 Cursor 扁平格式。
+- 响应：文档说明支持嵌套 `hookSpecificOutput`，并给出 `PreToolUse` 的嵌套与扁平格式映射。本仓原生插件通过包装脚本显式转换输出。
 - 限制：不是 Marketplace 安装；依赖用户开开关；与 Claude 安装状态耦合。
 
-### superpowers 双格式输出（推荐照抄）
+### 本仓通过入口适配协议
 
-`hooks/session-start` 按环境分支：
+提醒正文、扫描规则和业务文案仍各维护一份；原脚本固定使用 Claude 协议，Cursor 配置调用专用包装脚本。协议由入口决定，不根据 `CURSOR_PLUGIN_ROOT` 猜测运行平台。
 
-| 条件 | 输出字段 |
+| 入口 | 输出字段 |
 |---|---|
-| `CURSOR_PLUGIN_ROOT` 已设 | `{ "additional_context": "..." }` |
-| 仅 `CLAUDE_PLUGIN_ROOT`（Claude） | `hookSpecificOutput.additionalContext` |
-| 其他 | 依平台；勿对 Claude 同时打两套以免重复注入 |
+| `session-nudge.sh` / `secrets.sh` | Claude 的 `hookSpecificOutput`，即使同时设置两种插件根目录变量 |
+| `cursor-session-nudge.sh` | `additional_context`；承接 `SessionStart` / `SubagentStart` |
+| `cursor-secrets.sh` | 提醒为 `additional_context`；拒绝为 `permission: deny`，原因同时写入 `user_message` 和 `agent_message` |
 
-本仓 `gox-code-rules/hooks/session-nudge.sh`、`gox-guard/hooks/secrets.sh` 在 `CURSOR_PLUGIN_ROOT` 已设置时打 Cursor 扁平 JSON，否则打 Claude 的 `hookSpecificOutput`。一次只打一种。拒绝仍写在 JSON 里，脚本退出码保持 0：Cursor 文档把退出码 0 定义为采用 JSON 输出，退出码 2 是另一条等价的拒绝路径；团队 hook 脚本约定非零退出会干扰会话，所以不走退出码 2。
+`cursor-secrets.sh` 将旧的顶层 `command` 转成 `tool_input.command`；原生 `preToolUse` 的 `tool_input.command` 与 `cwd` 直接保留。缺 jq 时把原始输入交给 `secrets.sh` 的无 jq 分支：非 push 和显式绕过仍静默放行，命中 push 后由包装输出不依赖 jq 的固定拒绝。子脚本非零退出或非空输出转换失败时，`PreToolUse` 同样输出拒绝；`SessionStart` 只输出适配失败提醒。正常零输出仍表示无须提示或放行。
+
+所有入口保持退出码 0，拒绝写在 JSON 中。提醒包装遇到错误时静默退出。Claude 的 `hooks.json`、Codex 的复用路径和 pi 直接调用 `secrets.sh` 的路径不变。
+
+Cursor 已注册 `subagentStart`，便于更新插件后实测。包装将 `subagent_type` 转成 Claude 的 `agent_type`，复用原脚本的短提醒和 `cheap-reader` 跳过逻辑，再输出 `additional_context`。[当前官方输出表](https://cursor.com/docs/hooks#subagentstart) 未声明该字段，客户端实际注入效果仍待验证；主会话继续提醒派发时把规范写进 brief。Claude 的 `SubagentStart` 保持原样。
 
 ---
 
@@ -110,8 +115,8 @@ MCP 路径变量：Cursor 扩展 `${CURSOR_PLUGIN_ROOT}`，也认 `${CLAUDE_PLUG
 
 | 插件 | Cursor 组件 | 实施要点 | 优先级 |
 |---|---|---|---|
-| `gox-code-rules` | skills + hooks | `.cursor-plugin/plugin.json`；`sessionStart` / `subagentStart`；nudge 脚本双格式输出；skills 目录共用 | P0 |
-| `gox-guard` | hooks | 同上；`preToolUse` 映射 Bash→Shell 若 matcher 需调整；保持 fail-closed 与 `GOX_GUARD_SKIP` | P0 |
+| `gox-code-rules` | skills + hooks | `.cursor-plugin/plugin.json`；`sessionStart` / `subagentStart` 调用包装；子代理注入效果待实测；skills 目录共用 | P0 |
+| `gox-guard` | hooks | `sessionStart` / `preToolUse` 调用包装，matcher 为 `Shell`；保留拒绝和 `GOX_GUARD_SKIP` 语义 | P0 |
 | `token-thrift` | skills + agents | 声明 `agents/`；验证 Cursor Task / 模型别名是否等同 Claude；不足则文档标明降级 | P1 |
 | `diagram-design` | 第三方 | 不复制进 `plugins/`；上游若有 Cursor 清单则文档说明单独安装；本仓 marketplace 可选引用 | P2 |
 
@@ -122,12 +127,14 @@ MCP 路径变量：Cursor 扩展 `${CURSOR_PLUGIN_ROOT}`，也认 `${CLAUDE_PLUG
   marketplace.json                 # name/owner/plugins[]，source 指向 plugins/<name>
 plugins/gox-code-rules/
   .cursor-plugin/plugin.json       # name, skills, hooks
-  hooks/hooks-cursor.json          # 或统一 hooks.json 若两平台 schema 可共用
-  hooks/session-nudge.sh           # 增加 CURSOR_PLUGIN_ROOT 分支
+  hooks/hooks-cursor.json          # sessionStart / subagentStart 调用 Cursor 包装
+  hooks/session-nudge.sh           # 正文与 Claude 输出
+  hooks/cursor-session-nudge.sh    # 子代理输入与输出协议转换
 plugins/gox-guard/
   .cursor-plugin/plugin.json
   hooks/hooks-cursor.json
-  hooks/*.sh                       # 双格式 permission / additional_context
+  hooks/secrets.sh                 # 扫描规则与 Claude 输入输出
+  hooks/cursor-secrets.sh          # Cursor 输入输出适配，保留拒绝语义
 plugins/token-thrift/
   .cursor-plugin/plugin.json       # skills + agents
 ```
@@ -152,13 +159,14 @@ plugins/token-thrift/
 
 1. 仓库根有 `.cursor-plugin/marketplace.json`；三个本地插件各有 `.cursor-plugin/plugin.json`，版本与 Claude 清单一致。`diagram-design` 不在 Cursor marketplace。
 2. `hooks-cursor.json` 使用 camelCase 事件；`gox-guard` 的 matcher 是 `Shell`。Claude 的 `hooks/hooks.json` 仍匹配 `Bash`。
-3. `CURSOR_PLUGIN_ROOT` 下，提醒是 `additional_context`，拒绝是 `permission` / `user_message`；只有 `CLAUDE_PLUGIN_ROOT` 时仍是 Claude 形状。`subagent_type: cheap-reader` 同样跳过提醒。顶层 `command` 与 `tool_input.command` 都能触发 push 扫描。
-4. `make validate` 覆盖 Cursor JSON；`make test` 含 `tests/cursor-manifests.bats`。
+3. Cursor 包装输出扁平 JSON；原脚本保持 Claude 形状，均不受两种插件根目录变量影响。Cursor guard 的顶层 `command` 与 `tool_input.command` 都能触发 push 扫描；拒绝原因同时传给用户和模型。
+4. 缺 jq、子脚本非零退出或非空输出无效时，Cursor guard 不吞掉拒绝。正常扫描通过、非 push 和显式 `GOX_GUARD_SKIP=1` 仍静默放行。
+5. `make validate` 覆盖 Cursor JSON；`make test` 含清单、包装行为及 pi 继承 Cursor 环境变量后的拦截回归测试。Cursor 的 `subagentStart` 输出短提醒，对 `subagent_type: cheap-reader` 跳过；Claude 的子代理提醒不变。脚本输出测试不代表客户端已完成注入。
 
 尚未在 Cursor 界面里做：
 
 1. `~/.cursor/plugins/local` 或 Team marketplace 导入后，Customize 能看到 skills 和 token-thrift agents。
-2. 新 Cursor Agent 会话里，提醒来自正式插件 hook。
+2. 新 Cursor Agent 会话里，提醒来自正式插件 hook；派发写入子代理，确认其实际收到短提醒，`cheap-reader` 则跳过。
 3. 临时仓库里，Cursor 的 Shell `git push` 被伪造 secret 拦住。需要记下当次 Cursor 版本与插件版本。
 4. `token-thrift` 的 `model` / `tools` 是否被 Cursor 当成 Claude 的模型别名和工具白名单。对不上就保持文档里的降级说明。
 
@@ -174,7 +182,7 @@ plugins/token-thrift/
 ## 还没在 Cursor 里点过的检查
 
 1. 确认本机允许 Local Plugin Imports。把仓库复制进 `~/.cursor/plugins/local/`（指向仓库外的 symlink 会被跳过），从 Customize 安装三个插件。
-2. 新开 Agent 会话，确认 `gox-code-rules` 提醒来自插件 hook。
+2. 新开 Agent 会话，确认 `gox-code-rules` 提醒来自插件 hook；派发写入子代理，检查短提醒是否实际注入，并确认 `cheap-reader` 跳过。记录当次 Cursor 与插件版本。
 3. 临时仓库加伪造 secret，确认 Shell `git push` 被 `gox-guard` 拦住，并记下 Cursor 版本与插件版本。
 4. 试着调用 `cheap-reader` / `careful-writer`。若模型档或工具白名单不生效，把降级写进 README，不要改成「与 Claude 等价」。
 
@@ -183,5 +191,5 @@ plugins/token-thrift/
 ## 调研来源摘要
 
 - Cursor 文档对 Agent Plugins vs Cursor Plugins 的定义与组件表（2026-11 查阅）。
-- 本机已装：`superpowers@claude-plugins-official`（含 Cursor 适配）、`gox-*@chinayin`（仅 Claude 清单）；Cursor `~/.cursor/plugins/cache` 为独立生态。
-- 实测会话曾同时出现 superpowers bootstrap 与 `[gox-code-rules]` nudge，说明 Third-Party / 兼容路径已部分工作；正式分发仍缺 `.cursor-plugin`。
+- 初始调研时本机已装：`superpowers@claude-plugins-official`（含 Cursor 适配）、`gox-*@chinayin`（当时仅 Claude 清单）；Cursor `~/.cursor/plugins/cache` 为独立生态。
+- 初始调研会话曾同时出现 superpowers bootstrap 与 `[gox-code-rules]` nudge，说明 Third-Party / 兼容路径已部分工作。随后本仓已补齐 `.cursor-plugin`；原生安装与会话内行为仍需按上文实测。

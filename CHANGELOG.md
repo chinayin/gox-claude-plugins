@@ -4,6 +4,8 @@
 
 ## 仓库维护（未发布）
 
+- Cursor hooks 改用 `cursor-session-nudge.sh` / `cursor-secrets.sh` 薄包装，原脚本固定使用 Claude 协议，避免环境变量影响 pi 拦截。guard 包装保留缺 jq 和转换失败时的拒绝，原因同时传给用户和模型；Cursor 的 `sessionStart` / `subagentStart` 共用提醒包装，转换子代理类型并跳过 `cheap-reader`，客户端注入效果待实测。同步测试及文档，插件版本未变。
+- 修复 guard 无 jq 兜底匹配漏过 JSON 字符串末尾裸 `git push` 的问题；仍复用原 push 正则。
 - 修正 Claude 项目模板的 `enabledPlugins`：由数组改为插件 ID 到布尔值的对象；同步安装示例，并增加格式与启用值校验。
 - 将设计文档整理为当前架构，标注历史实验的适用范围；新增 Codex 兼容说明，统一安装发现与运行验证的边界。插件实现及版本未变。
 - Cursor 使用并列的 `.cursor-plugin/marketplace.json`，只收三个本地插件。`diagram-design` 仍只在 Claude marketplace。安装界面和 Cursor 内的真实 push 尚未验证，见 `docs/CURSOR.md`。

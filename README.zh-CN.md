@@ -75,35 +75,25 @@ guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，
 
 ## 安装到 Cursor
 
-使用 Cursor 原生插件管理器。先安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录，然后添加本仓库的 marketplace：
+先用与 Cursor IDE 相同的账号登录 [Cursor CLI](https://cursor.com/docs/cli/installation)，再添加本仓库的 marketplace：
 
 ```sh
 cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins
 ```
 
-然后在**目标项目目录**执行以下命令，将三个插件合并到项目配置中（需要 `jq`，保留已有 JSON 配置）：
+然后在 **Cursor IDE 的 Agent 聊天窗口**中，逐条执行：
 
-```sh
-(
-  set -e
-  mkdir -p .cursor
-  [ -e .cursor/settings.json ] || printf '{}\n' > .cursor/settings.json
-  cursor_settings_tmp="$(mktemp .cursor/settings.json.XXXXXX)"
-  trap 'rm -f "$cursor_settings_tmp"' EXIT
-  jq -e '
-    .plugins["chinayin/gox-code-rules"].enabled = true |
-    .plugins["chinayin/gox-guard"].enabled = true |
-    .plugins["chinayin/token-thrift"].enabled = true
-  ' .cursor/settings.json > "$cursor_settings_tmp"
-  mv "$cursor_settings_tmp" .cursor/settings.json
-)
+```text
+/add-plugin gox-code-rules
+/add-plugin gox-guard
+/add-plugin token-thrift
 ```
 
-Cursor CLI 在该项目启动时加载这些插件；这与交互安装选择 project 范围写入的 `.cursor/settings.json` 一致。已有文件若使用 JSONC 注释或尾逗号，请手工合并这三个条目；命令遇到无效 JSON 会停止，不替换原文件。
+在打开的安装界面选择来自 `chinayin` 的插件，点击 **Install**，按需要选择 user 或 project 范围。也可以在 **Customize** 中搜索并安装这三个插件。仅添加 marketplace 不会安装其中的插件。依据：[`/add-plugin` 发布说明](https://cursor.com/changelog/2-5)、[插件安装文档](https://cursor.com/docs/plugins#installing-plugins)。
 
-需要账号范围安装时，在 CLI 中输入 `/plugin`，打开 Marketplace → `chinayin`，选装插件并选择 user 范围。当前 CLI 没有 `plugin install` 子命令，也没有账号范围的无交互安装命令。依据：[项目配置方式说明](https://forum.cursor.com/t/feature-request-support-non-interactive-marketplace-plugin-installation-via-cursor-cli/176666)。如果本机 CLI 名为 `agent`，替换命令前缀即可。
+只使用 CLI 时，输入 `/plugin`，打开 Marketplace → `chinayin`，选装这三个插件；上面的 `/add-plugin` 属于 IDE 聊天入口。如果本机 CLI 名为 `agent`，替换终端命令前缀即可。
 
-使用 IDE 时，从 **Customize** 中找到可见 marketplace 的插件并点击 **Install**。团队也可在 Dashboard → Plugins & MCPs → Team Marketplaces 导入本仓库，再由成员安装。本仓库尚未上架公共 Cursor Marketplace，需要先添加仓库来源或由团队分发。依据：[Cursor Plugins](https://cursor.com/docs/plugins)。
+本仓库尚未上架公共 Cursor Marketplace。看不到插件时，检查账号是否一致、Customize 中是否能看到已添加的来源；团队也可通过 Dashboard → Plugins & MCPs → Team Marketplaces 分发。
 
 Hooks 需要 Bash、jq，guard 还需 Git、betterleaks（macOS 可用 `brew install jq betterleaks`）。原生安装、刷新命令、Linux 依赖及可选的本地开发方式见 [Cursor 安装说明](docs/CURSOR.md#安装)。clone / 复制文件仅用于本地开发调试。
 

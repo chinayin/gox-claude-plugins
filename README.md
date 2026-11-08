@@ -94,48 +94,34 @@ no reminder); configure `subagents.defaultSubagentOnlyExtensions` as described i
 
 ## Install in Cursor
 
-Use Cursor's plugin manager. With [Cursor CLI](https://cursor.com/docs/cli/installation)
-installed and signed in, add this repository's marketplace:
+Sign in to [Cursor CLI](https://cursor.com/docs/cli/installation) with the same
+account as the Cursor IDE, then add this repository's marketplace:
 
 ```sh
 cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins
 ```
 
-Then enable the three plugins for the current project. Run this in the target
-project directory; it requires `jq` and merges into existing JSON settings:
+In **Cursor IDE Agent chat**, run each command separately:
 
-```sh
-(
-  set -e
-  mkdir -p .cursor
-  [ -e .cursor/settings.json ] || printf '{}\n' > .cursor/settings.json
-  cursor_settings_tmp="$(mktemp .cursor/settings.json.XXXXXX)"
-  trap 'rm -f "$cursor_settings_tmp"' EXIT
-  jq -e '
-    .plugins["chinayin/gox-code-rules"].enabled = true |
-    .plugins["chinayin/gox-guard"].enabled = true |
-    .plugins["chinayin/token-thrift"].enabled = true
-  ' .cursor/settings.json > "$cursor_settings_tmp"
-  mv "$cursor_settings_tmp" .cursor/settings.json
-)
+```text
+/add-plugin gox-code-rules
+/add-plugin gox-guard
+/add-plugin token-thrift
 ```
 
-Cursor CLI loads these declared plugins when it starts in this project. This
-uses the same `.cursor/settings.json` entries as interactive project-scope
-installation. If the file uses JSONC comments or trailing commas, merge the
-three entries manually; the command stops without replacing invalid JSON.
+In the installation view, select the plugin from `chinayin`, choose **Install**,
+and select user or project scope. You can also find the plugins in **Customize**.
+Adding the marketplace alone does not install its plugins. See
+[Cursor's `/add-plugin` announcement](https://cursor.com/changelog/2-5) and
+[plugin installation](https://cursor.com/docs/plugins#installing-plugins).
 
-For account-wide installation, enter `/plugin`, open Marketplace → `chinayin`,
-select the plugins, and choose user scope. The current CLI has no
-`plugin install` subcommand or non-interactive user-scope install command.
-See the [project configuration explanation](https://forum.cursor.com/t/feature-request-support-non-interactive-marketplace-plugin-installation-via-cursor-cli/176666).
+For CLI-only use, enter `/plugin`, open Marketplace → `chinayin`, and select and
+install the three plugins there. `/add-plugin` above is the IDE chat entry point.
 If your CLI executable is named `agent`, use that prefix instead.
 
-In the IDE, open **Customize**, find the plugins in your available marketplace,
-and choose **Install**. Teams can import this repository through Dashboard →
-Plugins & MCPs → Team Marketplaces and distribute the plugins there. This repo
-has not been submitted to the public Cursor Marketplace, so first add its
-marketplace or have your team distribute it. See [Cursor Plugins](https://cursor.com/docs/plugins).
+This repo is not listed on the public Cursor Marketplace. If it is not visible,
+check the account and marketplace registration in Customize. Teams can also
+distribute it through Dashboard → Plugins & MCPs → Team Marketplaces.
 
 Hooks require Bash and jq; the guard also requires Git and betterleaks
 (`brew install jq betterleaks` on macOS). Native installation, refresh commands,

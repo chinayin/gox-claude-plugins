@@ -67,6 +67,78 @@ assert_denied() {
   jq -e '(.hookSpecificOutput.permissionDecision // .permission) == "deny"' <<<"$output"
 }
 
+@test "detection: literal Git executable paths scan pending commits" {
+  commit_fixture REVIEW_SECRET
+  mkdir -p "$REPO/bin with spaces"
+  ln -s "$(command -v git)" "$REPO/bin with spaces/git"
+  for hook in "$HOOK" "$CURSOR_HOOK"; do
+    for executable in "$(command -v git)" "'$REPO/bin with spaces/git'" "'./bin with spaces/git'"; do
+      : > "$SCAN_LOG"
+      check_push "$executable push origin main" "$REPO" "$hook"
+      assert_denied
+      [ -s "$SCAN_LOG" ]
+    done
+  done
+}
+
+@test "detection: a clean push through an absolute Git path is allowed after scanning" {
+  commit_fixture clean
+  for hook in "$HOOK" "$CURSOR_HOOK"; do
+    : > "$SCAN_LOG"
+    check_push "'$(command -v git)' push origin main" "$REPO" "$hook"
+    if [ "$hook" = "$HOOK" ]; then [ -z "$output" ];
+    else jq -e '.permission == "allow"' <<<"$output"; fi
+    [ -s "$SCAN_LOG" ]
+  done
+}
+
+@test "detection: command-like text in arguments and literal heredocs does not trigger scanning" {
+  commit_fixture REVIEW_SECRET
+  for hook in "$HOOK" "$CURSOR_HOOK"; do
+    for command in \
+      "rg -n 'git push|PreToolUse' README.md" \
+      "printf '%s\\n' 'git push origin main'" \
+      "printf 'example: %-20s %% done\\n' 'git push origin main'" \
+      'echo git push origin main' \
+      "grep -n 'git push origin' README.md" \
+      $'cat <<\'DOC\'\ngit push origin main\n$(git push origin main)\nDOC' \
+      $'cat <<-"DOC"\n\tgit push origin main\n\tDOC\n'; do
+      : > "$SCAN_LOG"
+      check_push "$command" "$REPO" "$hook"
+      if [ "$hook" = "$HOOK" ]; then [ -z "$output" ];
+      else jq -e '.permission == "allow"' <<<"$output"; fi
+      [ ! -s "$SCAN_LOG" ]
+    done
+  done
+}
+
+@test "detection: actual pushes after text arguments or inside substitutions remain denied" {
+  commit_fixture REVIEW_SECRET
+  for hook in "$HOOK" "$CURSOR_HOOK"; do
+    for command in \
+      "printf '%s' 'git push example' && $(command -v git) push origin main" \
+      'printf "%s" "$(git push origin main)"' \
+      'printf "%s" "`git push`"' \
+      "printf -v 'a[\$(git push)]' '%s' value" \
+      "printf -v'a[\$(git push)]' '%s' value" \
+      "printf '%n' 'a[\$(git push)]'" \
+      "bash -c 'git push origin main'" \
+      "eval 'git push origin main'" \
+      'env git push origin main' \
+      'command git push origin main' \
+      "rg --pre 'git push origin main' pattern" \
+      "rg --pre='git push origin main' pattern" \
+      "rg --hostname-bin='git push origin main' pattern" \
+      $'cat <<DOC\n$(git push origin main)\nDOC' \
+      $'cat <<\'DOC\'\ngit push example\nDOC\ngit push origin main' \
+      $'cat <<\'DOC\'\ntext\nDOC\ngit push origin main\nDOC' \
+      $'cat <<\'DOC\' <<\'OTHER\'\ngit push example\nDOC\ngit push origin main\nOTHER'; do
+      check_push "$command" "$REPO" "$hook"
+      assert_denied
+    done
+  done
+}
+
 @test "scope: quoted git -C scans the target repository from outside it" {
   commit_fixture REVIEW_SECRET
   check_push "git -C '$REPO' push" "$BATS_TEST_TMPDIR"

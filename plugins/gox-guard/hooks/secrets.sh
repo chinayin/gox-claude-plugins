@@ -32,7 +32,9 @@ MAX_FINDINGS=10
 # `git [全局选项...] push`：git 与 push 之间只允许 - 开头的选项及其取值（-C dir、-c k=v），
 # 所以 `git stash push`、`git log | grep push` 都不算；段由 ; & | 分隔，链式命令任一段命中即可。
 SHELL_PART="(\"[^\"]*\"|'[^']*'|[^[:space:];&|\"'])"
-PUSH_RE="(^|[^[:alnum:]_./-])git([[:space:]]+-${SHELL_PART}*([[:space:]]+${SHELL_PART}+)?)*[[:space:]]+push([[:space:]]|$|[;&|)])"
+# 同时覆盖直接路径及带引号的程序词；是否可扫描仍由范围解析决定。
+GIT_WORD="(git|[^[:space:];&|\"']*/git|\"[^\"]*/git\"|'[^']*/git'|\"git\"|'git')"
+PUSH_RE="(^|[^[:alnum:]_./-])${GIT_WORD}([[:space:]]+-${SHELL_PART}*([[:space:]]+${SHELL_PART}+)?)*[[:space:]]+push([[:space:]]|$|[;&|)\"'\`])"
 
 # ---------- 输出 ----------
 # 固定文案不含双引号与反斜杠，可以不经 jq 直接拼 JSON；含动态内容的 deny 交给 jq 转义。
@@ -80,8 +82,9 @@ INPUT="$(cat 2>/dev/null || true)"
 
 # 没有 jq 解析不了输入：对原始 JSON 跑同一条正则，命中即拦并要求装 jq
 if [ "$HAVE_JQ" -eq 0 ]; then
-  # 将 JSON 双引号视为分隔符，避免漏过字符串末尾的裸 git push。
-  printf '%s' "${INPUT//\"/ }" | grep -Eq "$PUSH_RE" || exit 0
+  # 还原 JSON 中的转义双引号，保留路径里的空格；正则也接受字符串结束引号。
+  RAW="${INPUT//\\\"/\"}"
+  printf '%s' "$RAW" | grep -Eq "$PUSH_RE" || exit 0
   emit_deny_plain "pending commits cannot be checked. $MSG_NO_JQ $MSG_BYPASS"
 fi
 
@@ -93,6 +96,11 @@ printf '%s' "$CMD" | grep -Eq "$PUSH_RE" || exit 0
 CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
 [ -n "$CWD" ] || CWD="$PWD"
 GUARD_LIB_DIR="$(cd "$(dirname "$0")/../lib" 2>/dev/null && pwd)" || emit_deny "push scope helper is missing. Reinstall gox-guard."
+# 搜索/打印参数中的 git push 不代表执行；只有完整确认的文本命令可跳过。
+# 分词失败或 helper 缺失继续走原来的保守拒绝路径。
+if printf '%s' "$CMD" | jq -Rse --arg mode text -f "$GUARD_LIB_DIR/literal-args.jq" >/dev/null 2>&1; then
+  exit 0
+fi
 # shellcheck source=../lib/push-scope.sh
 source "$GUARD_LIB_DIR/push-scope.sh" || emit_deny "push scope helper could not be loaded."
 resolve_push_scope "$CMD" "$CWD" || emit_deny "${SCOPE_ERROR:-the push repository or source commits could not be determined safely. Run git push as a separate command with literal paths and explicit source refs; avoid shell expansions and unsupported options.}"

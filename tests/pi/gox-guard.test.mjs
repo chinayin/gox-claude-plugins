@@ -188,6 +188,28 @@ test("installed pi package scans a non-HEAD source via git -C and allows a clean
   assert.equal(await push("main"), undefined);
 });
 
+test("installed pi package checks an absolute Git executable path", async () => {
+  stubScanner(1, FINDING);
+  const executable = execFileSync("bash", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+  const { extension } = await installedGuard();
+  const { handlers, ctx } = load(extension);
+  const result = await handlers.tool_call({
+    type: "tool_call", toolName: "bash", input: { command: `'${executable}' push origin main` },
+  }, ctx);
+  assert.equal(result?.block, true);
+  assert.match(result.reason, /aws-access-key {2}config\.txt:3/);
+});
+
+test("installed pi package allows command-like text in a search argument", async () => {
+  stubScanner(1, FINDING);
+  const { extension } = await installedGuard();
+  const { handlers, ctx } = load(extension);
+  const result = await handlers.tool_call({
+    type: "tool_call", toolName: "bash", input: { command: "rg -n 'git push|PreToolUse' README.md" },
+  }, ctx);
+  assert.equal(result, undefined);
+});
+
 test("installed pi package denies when its scope helper is missing", async () => {
   stubScanner(0);
   const { installed, extension } = await installedGuard();

@@ -22,9 +22,9 @@
 | Claude Code | `.claude-plugin/marketplace.json` → 各插件 `.claude-plugin/plugin.json` | `hooks/hooks.json`，匹配 `Bash` | `agents/`，Haiku/Sonnet |
 | Codex | 复用 Claude 格式 marketplace 和插件清单 | 同一份 hooks，需在 Codex 单独信任 | 未适配 |
 | Pi | 根 `package.json` → `.pi/extensions/` 与共享 skills | `tool_call` 的 `bash` → 共享 guard 脚本 | 未适配 |
-| Cursor | `.cursor-plugin/marketplace.json` → 各插件 `.cursor-plugin/plugin.json`；也可本地复制 | `hooks/hooks-cursor.json`，匹配 `Shell` | `agents-cursor/`，Composer/Grok |
+| Cursor | `.cursor-plugin/marketplace.json` → 各插件 `.cursor-plugin/plugin.json` | `hooks/hooks-cursor.json`，匹配 `Shell` | `agents-cursor/`，Composer/Grok |
 
-每个平台都有入口，但不要求每个平台都复制一套文件。下面的 `/plugin` 命令和 `templates/project-settings.json` **仅用于 Claude Code**。`tests/` 是维护者运行的自动化测试，agent 不会把它当作技能或规则加载。
+每个平台都有入口，但不要求每个平台都复制一套文件。`templates/project-settings.json` **仅用于 Claude Code**；安装命令按各平台小节使用，Cursor CLI 也有自己的 `/plugin` 界面。`tests/` 是维护者运行的自动化测试，agent 不会把它当作技能或规则加载。
 
 ## 安装到 Claude Code
 
@@ -75,27 +75,22 @@ guard 需要 Bash、jq、Git 和 betterleaks。`token-thrift` 尚未适配 pi，
 
 ## 在 Cursor 中使用
 
-macOS/Linux 本地安装：先准备 Bash、Git、jq、betterleaks（macOS 可用 `brew install jq betterleaks`，Linux 见[安装说明](docs/CURSOR.md#安装)）。然后克隆 `main`，把**每个完整插件目录**分别复制到本地插件目录：
+使用 Cursor 原生插件管理器。先安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录，然后添加本仓库主分支的 marketplace：
 
 ```sh
-git clone --branch main https://github.com/chinayin/gox-claude-plugins.git
-cd gox-claude-plugins
-for plugin in gox-code-rules gox-guard token-thrift; do
-  target="$HOME/.cursor/plugins/local/$plugin"
-  mkdir -p "$target"
-  cp -R "plugins/$plugin/." "$target/"
-done
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git --git-ref main
+cursor-agent
 ```
 
-目标应直接包含 `~/.cursor/plugins/local/<插件名>/.cursor-plugin/plugin.json`。完整复制会保留隐藏清单、hooks 和 `lib/`，只复制脚本会缺依赖。
+进入 CLI 后输入 `/plugin`，打开 Marketplace，选择 `chinayin`，分别安装 `gox-code-rules`、`gox-guard`、`token-thrift`，按需要选择 user 或 project 范围。添加 marketplace 是登记插件来源，还需要在管理器中选装插件。如果本机 CLI 名为 `agent`，替换命令前缀即可。依据：[Cursor CLI 命令](https://cursor.com/docs/cli/reference/slash-commands)。
 
-在 Cursor 执行 **Developer: Reload Window**，打开 Customize 检查三个插件及其 skills/agents。本地插件在允许导入时自动发现；Enterprise 组织可能需要管理员开启 **Allow Local Plugin Imports**。这是组织管理项，不是所有个人用户都要找的开关。依据：[Cursor 安装文档](https://cursor.com/docs/plugins)。
+使用 IDE 时，从 **Customize** 中找到可见 marketplace 的插件并点击 **Install**。团队也可在 Dashboard → Plugins & MCPs → Team Marketplaces 导入本仓库，再由成员安装。本仓库尚未上架公共 Cursor Marketplace，需要先添加仓库来源或由团队分发。依据：[Cursor Plugins](https://cursor.com/docs/plugins)。
 
-Team marketplace、升级与排障见 [Cursor 安装说明](docs/CURSOR.md#安装)。本仓库未提交到公共 Cursor Marketplace。升级时在源码目录执行 `git pull --ff-only`，重新复制并 Reload；复制会覆盖这些文件的本地修改。
+Hooks 需要 Bash、jq，guard 还需 Git、betterleaks（macOS 可用 `brew install jq betterleaks`）。原生安装、刷新命令、Linux 依赖及可选的本地开发方式见 [Cursor 安装说明](docs/CURSOR.md#安装)。clone / 复制文件仅用于本地开发调试。
 
-技能从选择器里选择已安装插件的 `go`、`shell`、`engineering`、`delegate`；子代理使用 `/cheap-reader`、`/careful-writer`。Claude 的 `/plugin` 和 `.claude/settings.json` 不配置 Cursor。Cursor hook 负责会话提醒和 `allow` / `deny` 转换，guard 启用 `failClosed`，扫描与范围计算仍调用共享库。
+技能从选择器选择 `go`、`shell`、`engineering`、`delegate`；子代理使用 `/cheap-reader`、`/careful-writer`。Cursor hooks 转换共享扫描器的裁定并启用 `failClosed`；`.claude/settings.json` 不配置 Cursor。
 
-自动化已覆盖清单、协议、完整安装副本的扫描。Cursor 界面发现、实际模型路由、只读权限和客户端 hook 执行仍需完成[客户端验收](docs/CURSOR.md#验证边界)。
+已核对 CLI `2026.11.05-86047df` 的命令入口；账户侧实际安装、模型路由和客户端 hook / 权限执行仍需[客户端验收](docs/CURSOR.md#验证边界)。
 
 ## gox-code-rules
 
@@ -123,7 +118,7 @@ Team marketplace、升级与排障见 [Cursor 安装说明](docs/CURSOR.md#安�
 
 Claude 读取 `agents/`，用 `/token-thrift:delegate` 加载策略；Cursor 读取 `agents-cursor/`，从选择器选择 `delegate`，用 `/cheap-reader`、`/careful-writer` 点名代理。Cursor reader 声明 `readonly: true`，不写 scratchpad。共用的委派策略按宿主选用实际工具接口。Codex / Pi 尚未提供 token-thrift 路由。
 
-本地 Cursor 自定义模型：修改已安装的 `token-thrift/agents-cursor/*.md` 中的 `model`，填入 Cursor 支持的具体 ID，然后 Reload。套餐或管理员限制可能导致模型回退，须在子任务卡片确认实际运行模型；重新复制安装会覆盖本地修改。依据：[Cursor 子代理配置](https://cursor.com/docs/subagents)。
+本地开发副本的模型定制：修改 `token-thrift/agents-cursor/*.md` 中的 `model`，填入 Cursor 支持的具体 ID，然后 Reload。套餐或管理员限制可能导致模型回退，须在子任务卡片确认实际运行模型；重新复制安装会覆盖本地修改。依据：[Cursor 子代理配置](https://cursor.com/docs/subagents)。
 
 经验起点是约 3k token 的一次性材料才委派；小任务、主会话后续仍需原文的任务留在当前会话。agent 与技能正文用英文，README 面向使用者。
 

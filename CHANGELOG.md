@@ -4,10 +4,10 @@
 
 ## 仓库维护（未发布）
 
-- 安装文档面向 main，统一克隆 / 拉取主分支后复制插件并 Reload；移除 PR 引用和评审步骤。DESIGN 补回 `hooks/<闸名>.sh` 约定，说明平台包装和辅助库的命名。delegate 保留原三档、升降档与 3k 阈值，仅增加 Cursor 路由和只读输出约束；未据此宣称委派效果提升。
+- 安装文档面向 main，使用 Cursor CLI 添加 marketplace，再通过 `/plugin` 或 IDE Customize 安装；克隆 / 复制归入本地开发调试，CLI 可用 `--plugin-dir`。移除 PR 引用和评审步骤。DESIGN 补回 `hooks/<闸名>.sh` 约定，说明平台包装和辅助库的命名。delegate 保留原三档、升降档与 3k 阈值，仅增加 Cursor 路由和只读输出约束；未据此宣称委派效果提升。
 
 - Cursor 自定义文件统一 `-cursor` 后缀；token-thrift 用独立 `agents-cursor/` 配置 Composer / Grok 标准速度档及原生只读权限，Claude 代理继续使用原有别名。共用策略区分宿主调用方式，修正只读代理写 scratchpad 的矛盾。
-- 双语 README 明确 Claude / Codex / Pi / Cursor 入口和使用方式，补充 Cursor 逐插件完整复制、Reload、Team marketplace、模型替换及验证边界；测试文件不作为模型规则加载。
+- 双语 README 明确 Claude / Codex / Pi / Cursor 入口和使用方式，补充 Cursor 原生安装、marketplace 刷新、Team marketplace、本地调试、模型替换及验证边界；测试文件不作为模型规则加载。
 - 增加从完整安装副本调用共享 guard / Cursor hooks / Pi 扩展的范围解析回归；修复 Pi 测试在 Node 26 替换 process.env 后子进程继承旧环境的问题。
 
 - Cursor 审计修复：移除不支持上下文注入的 `subagentStart` 提醒；guard 启用 `failClosed` 并对正常通过显式输出 `permission: allow`，空输入拒绝；`cheap-reader` 声明 `readonly: true`。同步协议回归测试和支持边界文档，客户端验收仍待完成。

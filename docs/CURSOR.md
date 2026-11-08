@@ -4,45 +4,85 @@
 
 ## 安装
 
-### 本地安装（macOS / Linux）
+正式使用通过 Cursor 原生插件管理器安装。CLI 和 IDE 的入口如下；本地目录加载放在后面的开发调试部分。
 
-1. 从主分支获取源码：
+### Cursor CLI
 
-   ```sh
-   git clone --branch main https://github.com/chinayin/gox-claude-plugins.git
-   cd gox-claude-plugins
-   ```
+安装 [Cursor CLI](https://cursor.com/docs/cli/installation) 并登录账号后，在终端添加本仓库的 marketplace，指定主分支：
 
-2. 确认运行 Cursor 的环境能找到 Bash、Git、jq、betterleaks。macOS 可执行 `brew install jq betterleaks`；Linux 用系统包管理器安装 Bash / Git / jq，再用 `go install github.com/betterleaks/betterleaks@latest` 或官方发布的二进制安装扫描器。扫描器不在 PATH 时，可在启动 Cursor 的环境中设置绝对路径 `GOX_GUARD_BIN`。
+```sh
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git --git-ref main
+cursor-agent
+```
 
-3. 在源码根目录复制三个**完整插件**，包括隐藏清单和 `lib/`：
+进入交互会话后：
 
-   ```sh
-   for plugin in gox-code-rules gox-guard token-thrift; do
-     target="$HOME/.cursor/plugins/local/$plugin"
-     mkdir -p "$target"
-     cp -R "plugins/$plugin/." "$target/"
-   done
-   ```
+1. 输入 `/plugin` 打开插件管理器。
+2. 在 Marketplace 中选择 `chinayin`，分别选装 `gox-code-rules`、`gox-guard`、`token-thrift`。
+3. 按需要选择 user 或 project 安装范围，安装后开启新会话。
 
-   结果应为 `~/.cursor/plugins/local/gox-guard/.cursor-plugin/plugin.json` 等。`gox-guard/lib/push-scope.sh` 和 `literal-args.jq` 必须一并存在。
+也可以完全在 CLI 会话内添加来源：
 
-4. 在 Cursor 执行 **Developer: Reload Window**，再到 Customize 查看插件及其组件，开启新的 Agent 会话。
+```text
+/plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git
+```
 
-本地目录直接发现插件；Team marketplace 是另一种安装方式。本仓库未上架公共 Cursor Marketplace。Enterprise 管理员可在 Dashboard → Settings → Security & Identity → Marketplace and Plugins 管理 **Allow Local Plugin Imports**。外部符号链接可能被跳过；同名 marketplace 安装会优先于本地副本。依据：[Cursor Plugins](https://cursor.com/docs/plugins)。
+该交互命令使用仓库默认分支（本仓为 main）。如果 CLI 可执行文件名是 `agent`，把终端示例里的 `cursor-agent` 换成 `agent`；会话内的 slash 命令不变。
 
-升级时，在最初克隆的源码目录执行 `git pull --ff-only` 更新 main，再重复第 3 步复制和第 4 步 Reload。安装副本不是源码目录的实时链接；复制会覆盖本地模型修改，升级前先保存需要保留的定制。
+这里有两个步骤：`marketplace add` 登记并索引来源，`/plugin` 管理器完成具体插件安装。CLI `2026.11.05-86047df` 的终端子命令仅提供 marketplace 管理，没有独立的非交互 `plugin install`；不要照搬 Claude 的安装子命令。已核对该版本 `--help` 和随包交互命令实现；官方也列出了 [`/plugin` 管理入口](https://cursor.com/docs/cli/reference/slash-commands)。
 
-### Team marketplace
+查看来源或重新索引主分支：
 
-Teams / Enterprise 在 Dashboard → Plugins & MCPs → Team Marketplaces 导入本仓库 URL，审查目录并发布访问范围，成员再从 Customize 安装相应插件。该流程读取根 `.cursor-plugin/marketplace.json` 中的三个 `source`。导入仓库主分支，后续更新按 Team marketplace 的刷新设置生效。具体管理选项见 [Team marketplaces](https://cursor.com/docs/plugins#team-marketplaces)。
+```sh
+cursor-agent plugin marketplace list
+cursor-agent plugin marketplace update chinayin
+```
+
+重新索引后，到 `/plugin` 管理器检查安装 / 更新状态，再开启新会话。`marketplace update` 的职责是重新索引，不把它描述为已更新所有运行中的插件实例。
+
+### Cursor IDE 与团队分发
+
+已有可见 marketplace 时，在 **Customize** 中选插件、点击 **Install**，选择项目或用户范围。IDE 也提供 `/add-plugin` 安装入口。本仓库未上架公共 Cursor Marketplace，需先通过上面的 CLI 添加仓库来源，或由团队分发。[安装文档](https://cursor.com/docs/plugins)、[`/add-plugin` 发布说明](https://cursor.com/changelog/2-5)。
+
+Teams / Enterprise 可在 Dashboard → Plugins & MCPs → Team Marketplaces 导入本仓库 URL，审查插件并设置访问范围。成员从 Customize 安装。来源使用主分支；管理员按需要设置自动刷新或手动 Refresh。该流程读取根 `.cursor-plugin/marketplace.json` 中的三个 `source`。[Team marketplaces](https://cursor.com/docs/plugins#team-marketplaces)。
+
+### 运行依赖
+
+安装插件后，运行 Cursor 的环境需能找到 Bash、jq；guard 还需要 Git、betterleaks。macOS 可执行 `brew install jq betterleaks`；Linux 用系统包管理器安装 Bash / Git / jq，再用 `go install github.com/betterleaks/betterleaks@latest` 或官方发布的二进制安装扫描器。扫描器不在 PATH 时，可在启动 Cursor 的环境中设置绝对路径 `GOX_GUARD_BIN`。插件不会代装扫描器。
+
+### 本地开发调试（可选）
+
+修改插件源码时才需要克隆仓库：
+
+```sh
+git clone --branch main https://github.com/chinayin/gox-claude-plugins.git
+cd gox-claude-plugins
+```
+
+CLI 可用 `--plugin-dir` 在当前会话直接加载每个本地插件目录，无需复制：
+
+```sh
+cursor-agent --plugin-dir ./plugins/gox-code-rules --plugin-dir ./plugins/gox-guard --plugin-dir ./plugins/token-thrift
+```
+
+IDE 本地调试可按[官方本地测试流程](https://cursor.com/docs/plugins#test-plugins-locally)，复制完整插件后执行 **Developer: Reload Window**：
+
+```sh
+for plugin in gox-code-rules gox-guard token-thrift; do
+  target="$HOME/.cursor/plugins/local/$plugin"
+  mkdir -p "$target"
+  cp -R "plugins/$plugin/." "$target/"
+done
+```
+
+每个目录直接包含 `.cursor-plugin/plugin.json`；完整复制会保留 hooks 和 `lib/`。Enterprise 组织可能限制本地导入；同名 marketplace 安装优先于 IDE 本地副本。调试源码更新后重新加载；复制会覆盖本地修改。这不是正式安装或更新的必需步骤。
 
 ### 使用与排障
 
-- 从技能选择器选择插件的 `go`、`shell`、`engineering`、`delegate`；显式子代理使用 `/cheap-reader` 或 `/careful-writer`。Claude 的 `/plugin` 与 `.claude/settings.json` 不配置 Cursor。
-- Customize 找不到组件时，先检查每个本地目录直属的 `.cursor-plugin/plugin.json`，再检查组织导入权限与同名 marketplace 副本，最后 Reload。
-- guard 报缺依赖时，检查 **Cursor 进程**的 PATH；终端能运行扫描器不保证 GUI 启动的进程能找到它。
-- 修改源码却仍运行旧逻辑时，重新复制完整插件并 Reload；不要只更新一个 hook，遗漏其相对路径依赖。
+- 从技能选择器选择 `go`、`shell`、`engineering`、`delegate`；显式子代理使用 `/cheap-reader` 或 `/careful-writer`。
+- 插件不可见时，先确认 marketplace 已添加 / 刷新、账号及组织访问范围正确，再检查是否已安装。只有本地开发副本才检查 `~/.cursor/plugins/local/`。
+- guard 报缺依赖时，检查 Cursor 进程的 PATH；终端能运行扫描器不保证 GUI 启动的进程能找到它。
+- `.claude/settings.json` 属于 Claude 配置。Cursor CLI 的 `/plugin` 是 Cursor 自己的管理器，不能因此推导其支持全部 Claude 子命令。
 
 ## 入口、命名与规范
 
@@ -103,7 +143,7 @@ Cursor manifest 只指向 `agents-cursor/`，Claude 继续用 `agents/`。Cursor
 
 这些检查证明脚本和入口合约，不能证明四个客户端都已完整验收。Codex 既有安装发现记录见 [CODEX](CODEX.md)，Pi 历史主会话 / 子代理实测见 [PI](PI.md)，不能替代本次新范围解析的真实客户端验收。
 
-Cursor 待验收项：本机尚未安装 Cursor，无法完成以下检查。
+本轮核对了 Cursor CLI `2026.11.05-86047df` 的 `--version`、`plugin --help`、`plugin marketplace --help`、`add --help`、`update --help` 和交互 `/plugin` 的随包实现；未执行账户侧添加 / 安装，也未完成 IDE 验收。待验证：
 
 1. 记录 Cursor / 插件版本；按上面的安装步骤确认 Customize 中的组件。
 2. 新开 Agent 会话确认规则提醒；子代理能启动并从 brief 获得规则。

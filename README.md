@@ -22,10 +22,10 @@ Centralising standards here avoids the usual cost of copying them into every rep
 | Claude Code | `.claude-plugin/marketplace.json` → each `.claude-plugin/plugin.json` | `hooks/hooks.json`, `Bash` | `agents/`, Haiku/Sonnet |
 | Codex | Reuses the Claude-format marketplace and manifests | Same hooks; explicitly trust them in Codex | Not adapted |
 | Pi | Root `package.json` → `.pi/extensions/` and shared skills | `tool_call` for `bash` → shared guard script | Not adapted |
-| Cursor | `.cursor-plugin/marketplace.json` → each `.cursor-plugin/plugin.json`; or local plugin copies | `hooks/hooks-cursor.json`, `Shell` | `agents-cursor/`, Composer/Grok |
+| Cursor | `.cursor-plugin/marketplace.json` → each `.cursor-plugin/plugin.json` | `hooks/hooks-cursor.json`, `Shell` | `agents-cursor/`, Composer/Grok |
 
 Each host has an entry point, but not necessarily a separate copy of every file.
-`templates/project-settings.json` and the `/plugin` commands below are **Claude Code only**.
+`templates/project-settings.json` is **Claude Code only**. Use the installation commands in the section for your host; Cursor CLI also has its own `/plugin` interface.
 `tests/` contains maintainer checks; no host loads these tests as skills or rules.
 
 ## Install in Claude Code
@@ -94,41 +94,40 @@ no reminder); configure `subagents.defaultSubagentOnlyExtensions` as described i
 
 ## Use with Cursor
 
-For a local installation on macOS/Linux, install Bash, Git, jq, and betterleaks
-first (`brew install jq betterleaks` on macOS; see [Linux setup](docs/CURSOR.md#安装)).
-Then clone `main` and copy **each complete plugin** into its own local directory:
+Use Cursor's plugin manager. With [Cursor CLI](https://cursor.com/docs/cli/installation)
+installed and signed in, add this repository's marketplace from `main`:
 
 ```sh
-git clone --branch main https://github.com/chinayin/gox-claude-plugins.git
-cd gox-claude-plugins
-for plugin in gox-code-rules gox-guard token-thrift; do
-  target="$HOME/.cursor/plugins/local/$plugin"
-  mkdir -p "$target"
-  cp -R "plugins/$plugin/." "$target/"
-done
+cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugins.git --git-ref main
+cursor-agent
 ```
 
-Each target must directly contain `.cursor-plugin/plugin.json`. The copy includes
-hidden manifests, hooks, and `lib/`; copying only the scripts is insufficient.
-Run **Developer: Reload Window** in Cursor, then check Customize for the three
-plugins and their skills/agents. Local copies are discovered automatically when
-allowed. Enterprise admins may need to enable **Allow Local Plugin Imports**;
-this is an organization setting. See [Cursor's installation documentation](https://cursor.com/docs/plugins).
+Inside the CLI, enter `/plugin`, open Marketplace, select `chinayin`, and install
+`gox-code-rules`, `gox-guard`, and `token-thrift`, choosing user or project scope.
+Adding the marketplace makes plugins available; select and install each plugin
+in the manager. If your CLI executable is named `agent`, use that prefix instead.
+See [Cursor CLI slash commands](https://cursor.com/docs/cli/reference/slash-commands).
 
-For Team marketplace installation, updates, and troubleshooting, see
-[Cursor setup](docs/CURSOR.md#安装). This repository has not been submitted to the
-public Cursor Marketplace. To upgrade, run `git pull --ff-only`
-in the source checkout, repeat the copy, and reload; copying replaces local edits to these files.
+In the IDE, open **Customize**, find the plugins in your available marketplace,
+and choose **Install**. Teams can import this repository through Dashboard →
+Plugins & MCPs → Team Marketplaces and distribute the plugins there. This repo
+has not been submitted to the public Cursor Marketplace, so first add its
+marketplace or have your team distribute it. See [Cursor Plugins](https://cursor.com/docs/plugins).
 
-Use the skill picker to select `go`, `shell`, `engineering`, or `delegate` from
-the installed plugin; use `/cheap-reader` or `/careful-writer` for its custom
-subagents. Claude's `/plugin` commands and `.claude/settings.json` do not configure
-Cursor. The hook adapter supplies session guidance and enforces `allow` / `deny`
-with `failClosed`; scanning and range selection use the shared guard library.
+Hooks require Bash and jq; the guard also requires Git and betterleaks
+(`brew install jq betterleaks` on macOS). Native installation, refresh commands,
+Linux dependencies, and optional local development are covered in
+[Cursor setup](docs/CURSOR.md#安装). Cloning and copying files is only the local
+development workflow.
 
-Automated tests cover manifests, protocol decisions, and installed-copy scanning.
-Cursor UI discovery, actual model selection, readonly enforcement, and hook
-execution inside the client still require [client acceptance](docs/CURSOR.md#验证边界).
+Use the skill picker for `go`, `shell`, `engineering`, or `delegate`, and
+`/cheap-reader` / `/careful-writer` for custom subagents. Cursor's hooks adapt the
+shared scanner's decisions and enable `failClosed`; `.claude/settings.json` does
+not configure Cursor.
+
+The CLI command surface was checked with version `2026.11.05-86047df`.
+Account-side installation, actual model selection, and client hook/permission
+execution still require [client acceptance](docs/CURSOR.md#验证边界).
 
 ## gox-code-rules
 
@@ -166,7 +165,7 @@ Cursor's reader declares `readonly: true`; it never writes scratchpads.
 The shared delegation policy does not assume the hosts have the same tool API.
 Codex and Pi have no supported token-thrift routing yet.
 
-For local Cursor model changes, edit the `model` field in the installed
+For a local development copy, edit the `model` field in
 `token-thrift/agents-cursor/*.md`, then reload. Choose a concrete available model
 ID from Cursor, and check the task card for the model that actually ran; plan or
 admin restrictions may cause fallback. Reinstallation can overwrite local edits.

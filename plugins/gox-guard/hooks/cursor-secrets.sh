@@ -30,6 +30,11 @@ if [ "$EVENT" = "PreToolUse" ]; then
   if command -v jq >/dev/null 2>&1; then
     INPUT="$(printf '%s' "$INPUT" | jq -c '
       .tool_input.command = (.tool_input.command // .command)
+      | if (.tool_input.working_directory // "") != "" then
+          .cwd = (if (.tool_input.working_directory | startswith("/")) then
+            .tool_input.working_directory
+          else (.cwd // env.PWD) + "/" + .tool_input.working_directory end)
+        else . end
     ' 2>/dev/null)" || adapter_error
   fi
 fi

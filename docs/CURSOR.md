@@ -96,7 +96,7 @@ MCP 路径变量：Cursor 扩展 `${CURSOR_PLUGIN_ROOT}`，也认 `${CLAUDE_PLUG
 | `cursor-session-nudge.sh` | `additional_context`；承接 `SessionStart` / `SubagentStart` |
 | `cursor-secrets.sh` | 提醒为 `additional_context`；拒绝为 `permission: deny`，原因同时写入 `user_message` 和 `agent_message` |
 
-`cursor-secrets.sh` 将旧的顶层 `command` 转成 `tool_input.command`；原生 `preToolUse` 的 `tool_input.command` 与 `cwd` 直接保留。缺 jq 时把原始输入交给 `secrets.sh` 的无 jq 分支：非 push 和显式绕过仍静默放行，命中 push 后由包装输出不依赖 jq 的固定拒绝。子脚本非零退出或非空输出转换失败时，`PreToolUse` 同样输出拒绝；`SessionStart` 只输出适配失败提醒。正常零输出仍表示无须提示或放行。
+`cursor-secrets.sh` 将旧的顶层 `command` 转成 `tool_input.command`；原生 Shell 的 `tool_input.working_directory` 优先于 hook 的 `cwd`，相对目录以该 `cwd` 为基准。共用扫描逻辑再解析 `git -C`、字面量 `cd ... && git push` 和实际推送源引用。其他命令链、shell 展开或无法确定的仓库/引用会被拒绝，提示拆开执行。缺 jq 时把原始输入交给 `secrets.sh` 的无 jq 分支：非 push 和显式绕过仍静默放行，命中 push 后由包装输出不依赖 jq 的固定拒绝。子脚本非零退出或非空输出转换失败时，`PreToolUse` 同样输出拒绝；`SessionStart` 只输出适配失败提醒。正常零输出仍表示无须提示或放行。
 
 所有入口保持退出码 0，拒绝写在 JSON 中。提醒包装遇到错误时静默退出。Claude 的 `hooks.json`、Codex 的复用路径和 pi 直接调用 `secrets.sh` 的路径不变。
 

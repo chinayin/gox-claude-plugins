@@ -72,7 +72,7 @@ FINDING='[{"RuleID":"aws-access-key","Description":"AWS Access Key","File":"conf
 @test "push command variants all trigger the scan" {
   stub_betterleaks 0
   add_ahead_commit
-  for cmd in "git push" "git push origin main" "git push -u origin HEAD" "git -C \"$REPO\" push" "git --no-pager push" "git -c push.default=current push" "git add -A && git commit -m x && git push" "cd \"$REPO\" && git push --force-with-lease" "git stash push -m wip && git push"; do
+  for cmd in "git push" "git push origin main" "git push -u origin HEAD" "git -C \"$REPO\" push" "git --no-pager push" "git -c push.default=current push" "cd \"$REPO\" && git push --force-with-lease"; do
     : > "$STUB_LOG"
     run_pre "$cmd"
     [ "$status" -eq 0 ] || { echo "cmd=$cmd status=$status"; false; }
@@ -91,13 +91,13 @@ EOF
   [ ! -s "$STUB_LOG" ]
 }
 
-@test "cwd outside any git repo passes through (git itself will fail the push)" {
+@test "cwd outside any git repo denies an unresolved push without invoking the scanner" {
   stub_betterleaks 1 "$FINDING"
   run env PATH="$STUB_DIR:/usr/bin:/bin" bash "$HOOK" PreToolUse <<EOF
 {"tool_name":"Bash","cwd":"$BATS_TEST_TMPDIR","tool_input":{"command":"git push"}}
 EOF
   [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  jq -e '.hookSpecificOutput.permissionDecision == "deny"' <<<"$output"
   [ ! -s "$STUB_LOG" ]
 }
 
@@ -125,7 +125,8 @@ EOF
   run_pre "git push"
   args="$(cat "$STUB_LOG")"
   [[ "$args" == *"git "* ]]
-  [[ "$args" == *"--log-opts="*"HEAD --not --remotes"* ]] || { echo "args=$args"; false; }
+  head="$(git -C "$REPO" rev-parse HEAD)"
+  [[ "$args" == *"--log-opts=$head --not --remotes"* ]] || { echo "args=$args"; false; }
   [[ "$args" == *"--redact"* ]]
   [[ "$args" != *"--validation"* ]]
   [[ "$args" == *"--no-banner"* ]]

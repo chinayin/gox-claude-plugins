@@ -4,6 +4,7 @@
 
 ## 仓库维护（未发布）
 
+- guard 按实际目录和推送源引用计算扫描范围，覆盖 `git -C`、字面量 `cd ... && git push`、Cursor `working_directory`、指定分支/refspec、tag 与 mirror；读取默认 push 配置。无法确定范围的复杂命令拒绝并提示拆分，避免组合 commit/push 扫到旧提交；纯删除引用免扫描。新增真实 Git 提交图回归用例，插件版本未变。
 - Cursor hooks 改用 `cursor-session-nudge.sh` / `cursor-secrets.sh` 薄包装，原脚本固定使用 Claude 协议，避免环境变量影响 pi 拦截。guard 包装保留缺 jq 和转换失败时的拒绝，原因同时传给用户和模型；Cursor 的 `sessionStart` / `subagentStart` 共用提醒包装，转换子代理类型并跳过 `cheap-reader`，客户端注入效果待实测。同步测试及文档，插件版本未变。
 - 修复 guard 无 jq 兜底匹配漏过 JSON 字符串末尾裸 `git push` 的问题；仍复用原 push 正则。
 - 修正 Claude 项目模板的 `enabledPlugins`：由数组改为插件 ID 到布尔值的对象；同步安装示例，并增加格式与启用值校验。

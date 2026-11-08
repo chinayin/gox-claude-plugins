@@ -148,7 +148,7 @@ Sits at the one moment a leaked credential becomes irreversible: the push. Every
 | Event | What happens |
 |---|---|
 | Session start | Checks that `betterleaks` is on `PATH`. Present: silent. Missing: one line telling the model to ask you to install it. |
-| Claude runs a Bash command containing `git … push` | Scans the commits on `HEAD` that are not on any remote (`--all` / `--mirror` widen this to every local branch). Nothing pending: allowed without scanning. Clean: allowed silently. Findings: the push is **denied**; the model gets one line per finding (rule, file:line, commit, fingerprint; capped at 10) and a two-sentence verdict rule. |
+| Claude runs a Bash command containing `git … push` | Resolves the repository and push source refs, then scans commits not on any local remote-tracking ref. Explicit branches/refspecs, tags, `--all`, `--mirror`, and configured push mappings are covered. Nothing pending: allowed without scanning. Clean: allowed silently. Findings: the push is **denied**; the model gets one line per finding (rule, file:line, commit, fingerprint; capped at 10) and a two-sentence verdict rule. |
 | Scanner (or `jq`) missing, or scanner failing | The push is denied with the reason, not silently allowed. A gate that fails open is no gate. |
 
 The block message is deliberately short because it lands in the main agent's context, and it carries no manual: the model already knows git. What it tells the model:
@@ -159,7 +159,9 @@ The block message is deliberately short because it lands in the main agent's con
 
 Design choices worth knowing:
 
-- **Push, not commit.** Commits are local and cheap to redo; gating them makes every edit-commit loop heavier and still misses `git add … && git commit …` in one command (a pre-commit scan sees the index before the add). At push time the range is fully determined.
+- **Separate push from mutations.** Standalone commits are not gated. Run `git add` / `git commit` first, then invoke `git push` separately so the scan sees the final commits. A literal `cd '<repo>' && git push` prefix and repeated `git -C` are supported; other command chains, shell expansions, remote groups, multi-colon revision expressions, and unsupported options are denied with a request to split or simplify the command. No command text is evaluated by the hook.
+- **Submodules.** Recursive submodule pushes are denied, including recursion enabled by Git configuration. Push each submodule separately, then push the parent with `--recurse-submodules=no` so each repository gets its own scan.
+- **Local range calculation.** Explicit source refs are resolved to commit IDs. `--all` selects local branches, `--tags` selects tags, and `--mirror` selects all refs. Matching pushes conservatively scan all local branches. The exclusion still uses all local remote-tracking refs; the hook does not fetch or query a server.
 - **No config required.** Without a config the scanner's built-in rules apply. A repo adds `.betterleaks.toml` / `.betterleaksignore` only when it first needs an allowlist; the plugin never writes them.
 - **No version pinning.** Only the pending range is scanned, so a newer rule set can never turn old commits red. Use whatever `brew` gives you.
 - **Always redacted, never validated.** `--redact` is always on (findings enter the model's context and transcript); the scanner's online validation feature is never enabled (it would send suspected secrets to vendor APIs).

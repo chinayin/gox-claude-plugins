@@ -31,7 +31,8 @@ MAX_FINDINGS=10
 
 # `git [全局选项...] push`：git 与 push 之间只允许 - 开头的选项及其取值（-C dir、-c k=v），
 # 所以 `git stash push`、`git log | grep push` 都不算；段由 ; & | 分隔，链式命令任一段命中即可。
-PUSH_RE='(^|[^[:alnum:]_./-])git([[:space:]]+-[^[:space:];&|]*([[:space:]]+[^-[:space:];&|][^[:space:];&|]*)?)*[[:space:]]+push([[:space:]]|$|[;&|)])'
+SHELL_PART="(\"[^\"]*\"|'[^']*'|[^[:space:];&|\"'])"
+PUSH_RE="(^|[^[:alnum:]_./-])git([[:space:]]+-${SHELL_PART}*([[:space:]]+${SHELL_PART}+)?)*[[:space:]]+push([[:space:]]|$|[;&|)])"
 
 # ---------- 输出 ----------
 # 固定文案不含双引号与反斜杠，可以不经 jq 直接拼 JSON；含动态内容的 deny 交给 jq 转义。
@@ -90,25 +91,23 @@ CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null |
 printf '%s' "$CMD" | grep -Eq "$PUSH_RE" || exit 0
 
 CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
-[ -n "$CWD" ] && [ -d "$CWD" ] || CWD="$PWD"
-REPO="$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null || true)"
-[ -n "$REPO" ] || exit 0                 # 不在 git 仓库里，让 git 自己报错
-
-# 待推送区间：HEAD 上不在任何远端的提交；--all / --mirror 时扩到所有本地分支
-RANGE="HEAD --not --remotes"
-case "$CMD" in *--all*|*--mirror*) RANGE="--branches --not --remotes" ;; esac
-
-# shellcheck disable=SC2086
-AHEAD="$(git -C "$REPO" rev-list --count $RANGE 2>/dev/null || echo 0)"
-[ "${AHEAD:-0}" -gt 0 ] 2>/dev/null || exit 0   # 没有待推送提交，不必扫
+[ -n "$CWD" ] || CWD="$PWD"
+GUARD_LIB_DIR="$(cd "$(dirname "$0")/../lib" 2>/dev/null && pwd)" || emit_deny "push scope helper is missing. Reinstall gox-guard."
+# shellcheck source=../lib/push-scope.sh
+source "$GUARD_LIB_DIR/push-scope.sh" || emit_deny "push scope helper could not be loaded."
+resolve_push_scope "$CMD" "$CWD" || emit_deny "${SCOPE_ERROR:-the push repository or source commits could not be determined safely. Run git push as a separate command with literal paths and explicit source refs; avoid shell expansions and unsupported options.}"
+[ "${#RANGE[@]}" -gt 0 ] || exit 0
+RANGE+=(--not --remotes)
+AHEAD="$(git -C "$REPO" rev-list --count "${RANGE[@]}" 2>/dev/null)" || emit_deny "pending commits could not be enumerated. Check the repository and push source refs."
+[ "$AHEAD" -gt 0 ] || exit 0   # 没有待推送提交，不必扫。
 
 SCANNER="$(find_scanner || true)"
 [ -n "$SCANNER" ] || emit_deny "$AHEAD pending commit(s) cannot be checked. $MSG_NO_SCANNER $MSG_BYPASS"
 
-# 在仓库根运行，betterleaks 会在那里解析 .betterleaks.toml / .betterleaksignore。
+# 在仓库根运行，使相对配置路径与 ignore 文件对应目标仓库。
 # --redact 必须常开（发现会进模型上下文与 transcript）；绝不开 validation（会把疑似密钥发往厂商 API）。
 STDERR_FILE="$(mktemp 2>/dev/null || echo /tmp/gox-guard.$$)"
-REPORT="$(cd "$REPO" && "$SCANNER" git . --log-opts="$RANGE" --redact --no-banner --no-color \
+REPORT="$(cd "$REPO" && "$SCANNER" git . --log-opts="${RANGE[*]}" --redact --no-banner --no-color \
   --timeout 60 -r - -f json --log-level error 2>"$STDERR_FILE")"
 RC=$?
 ERR="$(tail -n 5 "$STDERR_FILE" 2>/dev/null || true)"

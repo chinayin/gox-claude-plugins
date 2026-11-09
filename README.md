@@ -9,7 +9,7 @@ Team coding skills, subagents, and pre-push secret checks for Claude Code, Codex
 | Plugin | Purpose |
 |---|---|
 | `gox-code-rules` | Go, Shell, skill authoring, and general engineering standards. |
-| `token-thrift` | Delegate large reads and reliable writes to subagents, keeping the main context lean. Available for Claude Code and Cursor. |
+| `token-thrift` | Delegate large reads and reliable writes to subagents, keeping the main context lean. Supports Claude Code, Cursor, and Codex with selectable subagent models. |
 | `gox-guard` | Scan commits before supported agent push operations and block pushes that contain secrets. |
 | `diagram-design` | Optional third-party diagram plugin. See [details](docs/THIRD_PARTY.md). |
 
@@ -45,10 +45,11 @@ For project configuration and skill commands, see the [usage guide](USAGE.md).
 codex plugin marketplace add chinayin/gox-claude-plugins
 codex plugin add gox-code-rules@chinayin
 codex plugin add gox-guard@chinayin
+codex plugin add token-thrift@chinayin
 ```
 
 Open `/hooks` to review and trust the hooks, then start a new session.
-`token-thrift` is not adapted for Codex. See [Codex setup](docs/CODEX.md).
+`token-thrift` uses available cheaper subagent models; otherwise it keeps work in the main session. See [Codex setup](docs/CODEX.md).
 
 ## Install in Pi
 

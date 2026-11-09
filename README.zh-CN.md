@@ -9,7 +9,7 @@
 | 插件 | 用途 |
 |---|---|
 | `gox-code-rules` | Go、Shell、技能编写及通用工程规范。 |
-| `token-thrift` | 将大量阅读和可靠写入交给子代理，减少主会话上下文占用。支持 Claude Code、Cursor。 |
+| `token-thrift` | 将大量阅读和可靠写入交给子代理，减少主会话上下文占用。支持 Claude Code、Cursor，以及可选择子代理模型的 Codex。 |
 | `gox-guard` | 在受支持的 Agent 推送操作前扫描提交，发现密钥时阻止推送。 |
 | `diagram-design` | 可选的第三方图表插件，见[详细说明](docs/THIRD_PARTY.md)。 |
 
@@ -44,9 +44,10 @@ Linux 见[依赖安装说明](docs/CURSOR.md#运行依赖)。缺少依赖时，g
 codex plugin marketplace add chinayin/gox-claude-plugins
 codex plugin add gox-code-rules@chinayin
 codex plugin add gox-guard@chinayin
+codex plugin add token-thrift@chinayin
 ```
 
-在 `/hooks` 中审查并信任 hooks，再开启新会话。`token-thrift` 尚未适配 Codex，详见 [Codex 说明](docs/CODEX.md)。
+在 `/hooks` 中审查并信任 hooks，再开启新会话。`token-thrift` 使用可用的低价子代理模型；无法选择时由主会话处理。详见 [Codex 说明](docs/CODEX.md)。
 
 ## 安装到 Pi
 

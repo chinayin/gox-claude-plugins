@@ -1,6 +1,6 @@
 # Codex 兼容范围与待验证事项
 
-文档整理于 2026-10-09。下表汇总仓库在 Codex CLI 0.155.1 上的已有验证记录；本次整理没有重新运行安装或模型会话测试，不代表其他版本已获同等验证。
+更新于 2026-11-09。安装发现记录来自 Codex CLI 0.155.1；token-thrift 的原生调度策略已补充，验证范围单列于下文。不同层面的验证不能相互替代。
 
 ## 直接复用
 
@@ -13,7 +13,7 @@ Codex 的 marketplace 与启用配置独立于 Claude。`templates/project-setti
 | `gox-code-rules` | 可直接安装，能发现五个技能和 SessionStart / SubagentStart hooks | 受信任会话中的提醒执行、技能触发和规则采纳未完成端到端验证；frontend 仍是占位内容 |
 | `gox-guard` | 可直接安装，能发现依赖检查与 PreToolUse hooks | 真实 Codex 会话中的 push 阻断未完成端到端验证；脚本测试不等同于运行时拦截验证 |
 | `diagram-design` | 通过完整 Git URL 可安装 | 生成、导入、导出等运行效果未完整验证；上游审计对应特定提交，见 [第三方登记](THIRD_PARTY.md) |
-| `token-thrift` | 只读 `plugin/read` 能发现 delegate 技能 | 尚未完成适配；技能发现不证明 Claude 代理已注册、可调用或能选择低成本模型 |
+| `token-thrift` | 只读 `plugin/read` 能发现 delegate 技能；0.1.3 在共享技能中增加原生子代理与模型选择规则 | 需要客户端暴露子代理与模型选择能力；不依赖 Claude 代理注册；安装发现不证明模型路由已执行 |
 
 ## Hooks 与技能边界
 
@@ -23,19 +23,25 @@ Codex 的 marketplace 与启用配置独立于 Claude。`templates/project-setti
 
 guard 只检查匹配到的工具调用。不要将安装成功或一次阻断成功描述为覆盖所有 shell 执行方式；间接脚本、别名和后续交互输入等还需单独考虑。仓库 CI 继续负责其自身的检查。
 
-## token-thrift：尚未实施的适配方向
+## token-thrift：原生子代理调度
 
-当前 delegate 技能区分 Claude / Cursor 的调用方式；Claude 的 `agents/*.md` 使用 Haiku / Sonnet 别名和工具列表，Cursor 的 `agents-cursor/*.md` 使用具体模型 ID 与原生权限字段。两者都不能直接视为 Codex 的模型路由和权限配置，Codex 路径明确保持未适配。
+安装同一个 `token-thrift` 插件后，Codex 读取共享 `delegate` 技能，使用原生子代理接口并显式选择模型。Claude 的 `agents/*.md` 和 Cursor 的 `agents-cursor/*.md` 仍分别服务各自平台；Codex 的角色通过任务说明传递，不新增代理文件或打包入口。
 
-若后续适配，优先修改同一个 delegate 技能：保留 Claude 路径，按 Codex 当时可用的代理接口传递任务与摘要要求；仅在能明确选择低成本模型时宣称低成本路由。代理不可用、模型不可选或任务过小时应有明确处理方式，不新增独立打包系统。
+模型选择先尊重用户对委派任务的指定，否则按经济读取 / 可靠写入的任务档位，从当前工具或客户端暴露的模型中选择足够胜任且价格较低的模型。Luna / Sol 是类别示例，不是 Haiku / Sonnet 的能力等价物，也不是可直接传入的别名；技能不维护固定模型 ID 或自动升级“最新版本”的映射表。
 
-“只返回结论、减少主上下文重复读取”仍有复用价值，但不保证总 token 或费用下降。文字上的只读要求不等于只读沙箱；现有 cheap-reader 允许 Bash，也不能仅凭未列出 Write/Edit 就声称不能写盘。只有需要强制角色权限时，再评估客户端的代理配置能力。
+原生调用按实际 schema 传递模型参数；支持 `fork_turns` 的工具使用 `"none"` 和独立任务说明，避免复制整个主会话，也满足该接口的模型覆盖条件。任务说明包含源文件、工作目录、规范位置、权限边界和返回要求；没有 Skill 工具时直接读取相关 SKILL.md。未指定模型可能继承父模型，因此“成功创建子代理”不等于“使用低价模型”。接口不可用、无合适低价模型或模型请求被拒绝时退回主线程，不写用户配置、不另起 CLI。
+
+模型最终选择与配置优先级参见 [OpenAI 子代理文档](https://learn.chatgpt.com/docs/agent-configuration/subagents)，当前模型定位参见[模型选择](https://learn.chatgpt.com/docs/model-selection)。实际模型以宿主元数据为准，无法观测时应说明，不能用代理自报代替。订阅额度与 API 费用也不能直接换算，见[用量说明](https://learn.chatgpt.com/docs/pricing)。
+
+“只返回结论、减少主上下文重复读取”不保证总 token 或费用下降。文字上的只读要求不等于只读沙箱；Codex 的权限来自宿主，现有 Claude cheap-reader 的 Bash 也不能仅凭未列出 Write/Edit 就声称不能写盘。
+
+场景评估见 [delegate-eval](../plugins/token-thrift/tests/delegate-eval.md)，与 Bats 结构检查分开记录。尚需在从 marketplace 安装的干净客户端中验证自动触发与完整模型路由，并测量真实任务的质量和费用。
 
 ## 下一次验收
 
 1. 记录目标 Codex 版本、插件版本及源提交，确认安装副本中的技能和 hooks 可发现。
 2. 在已审阅信任的主会话与子代理会话中，验证提醒注入、技能读取和 references 加载。
 3. 在临时 Git 仓库与本地 remote 上验证 guard：干净提交、模拟扫描命中、依赖缺失与扫描器报错；确认目标 push 是否实际发生，无需向外部仓库推送。
-4. 若适配 token-thrift，验证实际代理、模型、权限及摘要返回；记录费用与质量后再评估收益。
+4. 对 token-thrift 验证安装副本的技能触发、实际模型、权限及摘要返回；记录费用与质量后再评估收益。
 
 原兼容评估中的 YAML 和缺失 Python 技能声明问题已由 `gox-code-rules` 0.8.1 修复，见 [CHANGELOG](../CHANGELOG.md)。独立打包 [#12](https://github.com/chinayin/gox-claude-plugins/pull/12) 与关闭规则 hooks 的覆盖清单 [#13](https://github.com/chinayin/gox-claude-plugins/pull/13) 已于 2026-10-09 关闭，不属于待合入方案。

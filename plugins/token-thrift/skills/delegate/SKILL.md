@@ -31,5 +31,17 @@ If the task is tiny, or the main thread will need the raw material again, keep i
 
 - Claude Code: use the Task/Agent tool with `subagent_type` set to `cheap-reader` or `careful-writer`.
 - Cursor: select the same named custom agent through its native delegation tool; use the model and permissions from its Cursor agent definition.
+- Codex: use the native subagent tool with the model selection and role brief below. The role names describe responsibilities; they do not require registered Claude agents.
 
 Have it return only a compact conclusion. If the result is large, an agent with write permission may save it to an authorized scratchpad and return the path. A read-only agent returns a compact source index instead; the parent can decide what to retrieve or save. Keep the main context lean.
+
+### Codex model selection and brief
+
+When offloading is worthwhile, this skill requests native subagent delegation with an explicit model selection:
+
+1. Use the model choices exposed by the current tool/client. Honor an explicit user choice for delegated work; otherwise select the cheapest available model adequate for the task. Prefer an economical tier for clear reads/searches/extraction and a more capable tier for correctness-sensitive writes or ambiguous reads. Luna and Sol are examples of these categories, not capability equivalents to Haiku/Sonnet. Resolve to an actual supported model ID; never pass a Claude alias, a guessed family alias, or an assumed latest version.
+2. Pass that ID through the native spawn tool's model option. Omitting it can inherit the parent's expensive model. Follow the active tool schema: when `fork_turns` is exposed, use `"none"` with a self-contained brief so model overrides are allowed and the full parent conversation is not copied. Honor user reasoning settings; otherwise use a supported effort proportionate to the task. Do not enable a premium speed mode for thrift.
+3. Include the role, objective, working directory, source locations, applicable skill/rule paths, constraints, and expected compact result in the brief. A `cheap-reader` may read and report source locations, but must not modify files or external state. A `careful-writer` may change only the authorized targets and must verify the result. Without a Skill tool, read the relevant SKILL.md and references. These are task constraints; permissions and sandboxing remain those supplied by Codex.
+4. If native delegation or model selection is unavailable, no suitable cheaper model is available, or the selected model is rejected, keep the work inline and briefly state the limitation. Do not silently use an unknown or more expensive model, create agent/config files, or launch a separate CLI session as a workaround. An explicit user model choice takes precedence, but same-model delegation is context isolation, not a cheaper model tier.
+
+Check the actual model in host-provided metadata when exposed; a requested model or the subagent's self-report alone does not prove which model ran. If unobservable, report that limit. A lower-priced model and compact output do not by themselves prove lower total tokens, cost, or subscription usage.

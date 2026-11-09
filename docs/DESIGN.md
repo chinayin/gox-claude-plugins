@@ -1,6 +1,6 @@
 # 当前架构与维护约定
 
-本文描述仓库当前实现，更新于 2026-11-08（Cursor 清单见 [CURSOR](CURSOR.md)）。安装见 [README](../README.zh-CN.md)，Claude 使用细节见 [USAGE](../USAGE.md)，Codex 支持范围见 [CODEX](CODEX.md)，pi 见 [PI](PI.md)。历史实验见 [MVP_FINDINGS](MVP_FINDINGS.md)，版本变化见 [CHANGELOG](../CHANGELOG.md)。
+本文描述仓库当前实现，更新于 2026-11-09（Cursor 清单见 [CURSOR](CURSOR.md)）。安装见 [README](../README.zh-CN.md)，Claude 使用细节见 [USAGE](../USAGE.md)，Codex 支持范围见 [CODEX](CODEX.md)，pi 见 [PI](PI.md)。历史实验见 [MVP_FINDINGS](MVP_FINDINGS.md)，版本变化见 [CHANGELOG](../CHANGELOG.md)。
 
 ## 分发与目录
 
@@ -57,10 +57,18 @@ docs/                                # 当前设计、兼容边界、第三方�
 | 组件 | 当前行为 | 边界 |
 |---|---|---|
 | `gox-code-rules` | 五个技能入口；Go 细则按 `references/` 索引读取；会话和子代理收到轻量提醒 | 软引导，不能保证模型加载或遵守；frontend 仍是占位内容，未提供 Python 技能 |
-| `token-thrift` | Claude 的读任务委派给 Haiku，可靠写任务委派给 Sonnet，主模型接收结论。Cursor 共用委派策略，独立 agents-cursor 用 Composer/Grok 标准档 | Cursor 声明原生模型 ID 和 readonly；实际模型、权限与成本需客户端实测；Codex / Pi 尚未适配 |
+| `token-thrift` | Claude 使用 Haiku / Sonnet，Cursor 使用 agents-cursor 中的 Composer / Grok 标准档；Codex 在共享 delegate 中按任务档位选择当前可用模型，通过原生子代理接口传递任务 | Codex 无合适低价模型时退回主线程；文字只读约束不等于沙箱隔离；实际费用需测量；Pi 尚未适配 |
 | `gox-guard` | 对匹配的工具调用执行外部扫描器，并通过 hook 输出拒绝 push | 仅覆盖受支持且实际触发 hook 的调用；不能替代仓库 CI |
 
 规范正文维护在各技能的 `SKILL.md` 和 `references/` 中，不复制进用户仓库。hooks 只提供提醒或执行检查，不向用户仓库写配置。用户仍需主动安装插件、配置启用范围；任务产生的代码或图表由对应任务决定。
+
+### token-thrift 的上下文成本
+
+目标是减少高价主模型处理低级任务的用量。`delegate` 只供主代理做调度；它在读取大段原文前传递源位置与简短任务说明，执行子代理只加载必要业务技能，不再加载或转发调度策略，也不继续委派，除非任务明确要求。关联输入尽量合并到一次委派；相似任务复用已确认的模型选择，任务要求或可用性变化时再判断。
+
+共享技能保留执行所需规则；模型能力比较、计费解释与验证方法放在文档中。正文变短只证明文本开销降低，不证明实际调用更省。Codex 默认先暴露技能元数据，按需加载正文；新建上下文也仍有宿主指令、工具和技能列表开销，见[技能加载说明](https://learn.chatgpt.com/docs/build-skills)。不能假定每个子代理都会读全文，也不能假定它没有固定开销。
+
+收益验收应在相同原始输入、预期结果和质量标准下比较直接处理与委派：分别记录主模型的输入、缓存输入及输出 token，子代理用量，以及工具调用和返工。主模型处理量是否下降是首要指标，总费用或订阅额度是否下降另行判断；相同模型的上下文隔离也不能算作低价模型路由。约 3,000 token 仅是经验起点。现有测试不提供完整的宿主用量数据，因此尚不能证明净节省比例。
 
 ## 技能加载与提醒
 

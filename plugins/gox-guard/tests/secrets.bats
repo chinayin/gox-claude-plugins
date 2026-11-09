@@ -267,6 +267,17 @@ nojq_path() {
   echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
 }
 
+@test "jq missing still denies an absolute Git executable path" {
+  P="$(nojq_path)"
+  for input in '{"tool_input":{"command":"/usr/bin/git push origin main"}}' \
+    '{"tool_input":{"command":"\"/usr/bin/git\" push origin main"}}' \
+    '{"tool_input":{"command":"\"/usr/bin/git\" -C \"/repo with spaces\" push"}}'; do
+    run env PATH="$P" bash "$HOOK" PreToolUse <<<"$input"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
+  done
+}
+
 @test "jq missing + non-push or GOX_GUARD_SKIP: exit 0, no output" {
   P="$(nojq_path)"
   run env PATH="$P" bash "$HOOK" PreToolUse <<<'{"tool_input":{"command":"git status"}}'

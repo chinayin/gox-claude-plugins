@@ -26,7 +26,7 @@ resolve_push_scope() {
   fi
   # 先检查剩余所有 token，避免 tag / 选项值消费掉控制操作符。
   for token in "$@"; do [ "$token" != '&&' ] || return 1; done
-  [ "${1:-}" = git ] || return 1
+  case "${1:-}" in git|*/git) ;; *) return 1 ;; esac
   shift
   while [ "$#" -gt 0 ] && [ "$1" != push ]; do
     case "$1" in

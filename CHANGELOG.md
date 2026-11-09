@@ -45,6 +45,12 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ## gox-guard
 
+### 0.1.2 — 2026-11-09
+
+- 修复直接使用绝对 / 相对 Git 可执行文件路径时漏过扫描的问题；带引号及空格的路径仍按实际目录与源引用扫描，缺 jq 时也保守拒绝命中的 push。
+- 搜索、打印参数中的 `git push` 文本不再误触发拦截；仅放行可确认的完整字面量命令及单个引用 `cat` heredoc。执行型选项、命令替换、heredoc 后续命令和其他无法确认的形式仍保守拒绝。
+- 补充共享 hook、Cursor 入口和 Pi 安装副本回归；继续复用 Claude / Codex 共用入口，无新增平台专用实现。
+
 ### 0.1.1 — 2026-11-03
 
 - 增加 `.cursor-plugin/plugin.json` 与 `hooks/hooks-cursor.json`。Cursor 的 `preToolUse` 匹配 `Shell`；Claude 的 `hooks.json` 仍匹配 `Bash`。

@@ -83,6 +83,7 @@ docs/                                # 当前设计、兼容边界、第三方�
 
 `gox-guard/hooks/secrets.sh` 在 `SessionStart` 检查 jq、betterleaks；在 `PreToolUse` 的 Bash 调用中匹配 `git … push`，扫描待推送提交。
 
+- 直接 Git 调用支持裸 `git` 和末段为 `git` 的字面量路径，包括带空格的引用路径。预筛命中后，`literal-args.jq` 仅为完整的 `echo` / `cat` / `grep` / `rg` 字面量参数、`printf` 的普通文字与 `%s` / `%%` 输出，以及单个 `cat <<'DELIM'` 引用 heredoc 确认文本放行。`printf -v` / `%n`、`rg --pre` / `--hostname-bin` 等可能执行或求值的形式不在此范围。未知程序、组合命令和 shell 展开继续保守检查，不执行输入命令。
 - `lib/literal-args.jq` 只分词字面量参数；`lib/push-scope.sh` 解析 `cd '<repo>' &&`、重复 `-C`、显式源引用和默认 push 配置。源引用解析成提交 ID；`--all`、`--tags`、`--mirror` 分别选分支、tag、全部引用。matching 保守选全部本地分支。最终统一追加 `--not --remotes`，仍按本地远端跟踪引用排除已推送提交，不执行 fetch。
 - 组合修改命令、多行命令、shell 展开、远端组、多冒号 revision 表达式、未知选项及无法解析的仓库/引用均拒绝，并提示把 push 拆开执行；不通过 eval 或 shell 执行用户命令。删除引用不发送新提交，单纯删除直接放行。递归子模块 push（包括配置隐式启用）也拒绝：先逐个推送子模块，再以 `--recurse-submodules=no` 推送父仓库。
 - 没有待扫描提交时不调用扫描器；有发现、扫描器缺失或执行失败时拒绝这次 push。`secrets.sh` 固定输出 Claude 的 `permissionDecision: deny`；`secrets-cursor.sh` 将其转换为 `permission: deny`，原因同时传给用户和模型。阻断通过 JSON 表达，脚本退出码保持 0。

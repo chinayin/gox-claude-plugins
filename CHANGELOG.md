@@ -77,6 +77,15 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ## gox-code-rules
 
+### 0.9.0 — 2026-11-18
+
+- 新增 `bashly` 技能：仅在项目含 `bashly.yml` 或用户明确要求时使用，模型不自行选型。内容为 `settings.yml`、生成产物入库、命令文件与 lib 分工、子命令共用 flag、静态检查和 bats 测试；输出、状态前缀等通用约定按章节名引用 `shell` 技能，不复制。规则经 bashly 2.0.0 试点实测，见 `docs/SHELL_BASHLY_PROPOSAL.md`。
+- `bashly` 技能按一个真实的双 CLI 项目复盘后调整：框架报错经 `bashly-strings.yml` 统一加 `Error:` 前缀；共用 flag 可用 YAML 锚点或 `import:`；目录结构是默认值，项目可用 `source_dir` 等另行布局；项目固定了 bashly 版本的按项目的版本生成并保留 CI 比对，没固定的用最新版；测试默认不用断言库，项目已在用 bats-assert 的沿用；生产版由 `settings.yml` 的 `env: production` 指定，不再靠命令行参数。
+- `shell` 技能加一行指向 `bashly`；`test.sh` 仍是手写脚本的测试方式。
+- `shell` 技能五处补充：直接使用当前 bash 特性，不为旧版本做兼容；标准 flag 按需添加，不是清单；需要 `test.sh` 的范围定为"带参数，或会写入、删除东西"；补上前置条件不满足时退出码 2 的写法；写完或改完脚本跑 `shellcheck`。
+- SessionStart / SubagentStart 提醒及 pi 扩展的提醒各加一条 bashly 路由。
+- 新增 `tests/evals/`：`shell` 与 `bashly` 的手动评估，按技能分目录，每个用例一份提示词和一份 bats 判分；真实模型运行不进 `make test`，两个运行脚本由 `tests/evals.bats` 用桩模型覆盖。首轮结果见各技能目录的 README（Sonnet，单次样本）。
+
 ### 0.8.2 — 2026-11-03
 
 - 增加 `.cursor-plugin/plugin.json` 与 `hooks/hooks-cursor.json`（仅 `sessionStart`；子代理规范通过 brief 传递）。技能目录不复制。

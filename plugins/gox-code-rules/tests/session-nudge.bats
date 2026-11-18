@@ -36,6 +36,7 @@ setup() {
   ctx="$(echo "$output" | jq -er '.hookSpecificOutput.additionalContext')"
   grep -q "gox-code-rules:go" <<<"$ctx"
   grep -q "gox-code-rules:shell" <<<"$ctx"
+  grep -q "gox-code-rules:bashly" <<<"$ctx"
   grep -q "gox-code-rules:skill\`" <<<"$ctx"
   grep -q "gox-code-rules:engineering" <<<"$ctx"
   grep -q "usually exactly one" <<<"$ctx"
@@ -56,6 +57,7 @@ setup() {
   grep -q "only if the brief names none" <<<"$ctx"
   grep -q "gox-code-rules:go" <<<"$ctx"
   grep -q "gox-code-rules:shell" <<<"$ctx"
+  grep -q "gox-code-rules:bashly" <<<"$ctx"
   grep -q "gox-code-rules:skill\`" <<<"$ctx"
   grep -q "Do not invoke \`gox-code-rules:engineering\`" <<<"$ctx"
   # 子代理版必须明显短于主会话版

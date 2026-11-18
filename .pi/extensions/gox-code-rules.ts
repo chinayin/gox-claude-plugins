@@ -12,6 +12,7 @@ const SECTION = "gox-code-rules";
 const REMINDER = `[gox-code-rules] This repo follows team engineering standards, delivered as skills (listed among your available skills; the rules live inside them, not here). To use a skill, read its \`SKILL.md\`, then read only the \`references/\` files it points you to. Before writing or designing code — including small changes — load the skill for the kind of file you will touch (usually exactly one):
 - Go code; CLI flags; configuration, environment variables, or secrets; DB migrations; project scaffolding -> the \`go\` skill.
 - Shell/bash scripts (.sh/.bash files, CLI/helper/CI scripts, flag parsing, stdout/stderr, exit codes) -> the \`shell\` skill.
+- A bashly CLI (the project has a \`bashly.yml\`, or the user asks for bashly) -> the \`bashly\` skill; do not pick bashly on your own.
 - Agent skills (a SKILL.md, its frontmatter, references/ or scripts/) -> the \`skill\` skill.
 - \`engineering\` (think before coding, simplicity first, surgical changes) only when planning a multi-file change, a refactor, or a design — not for a one-file edit.
 Do not load skills for files you are not touching, and do not re-read a skill already loaded in this session.

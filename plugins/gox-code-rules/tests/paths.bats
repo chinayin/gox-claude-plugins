@@ -6,8 +6,8 @@
 
 SK="$BATS_TEST_DIRNAME/../skills"
 
-@test "file-bound skills (go, frontend, shell, skill) declare a non-empty paths glob" {
-  for name in go frontend shell skill; do
+@test "file-bound skills (go, frontend, shell, bashly, skill) declare a non-empty paths glob" {
+  for name in go frontend shell bashly skill; do
     grep -qE '^paths:[[:space:]]*\S' "$SK/$name/SKILL.md" \
       || { echo "missing paths: $name"; false; }
   done

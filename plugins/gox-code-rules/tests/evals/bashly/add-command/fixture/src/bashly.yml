@@ -1,0 +1,33 @@
+name: pilot
+help: Manage items
+version: 0.1.0
+
+commands:
+- name: list
+  help: List items
+  flags:
+  - &json
+    long: --json
+    help: Machine-readable output
+  - long: --limit
+    arg: n
+    help: Max items
+
+- name: show
+  help: Show one item
+  args:
+  - name: target
+    required: true
+  flags:
+  - *json
+
+- name: remove
+  help: Remove an item
+  args:
+  - name: target
+    required: true
+  flags:
+  - long: --dry-run
+    help: Print the plan only
+  - long: --force
+    help: Actually remove

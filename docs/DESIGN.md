@@ -13,7 +13,7 @@ plugins/
   gox-code-rules/
     .claude-plugin/plugin.json
     .cursor-plugin/plugin.json
-    skills/                           # engineering、go、frontend、shell、skill
+    skills/                           # engineering、go、frontend、shell、bashly、skill
     hooks/                            # Claude hooks.json + Cursor hooks-cursor.json
     tests/
   token-thrift/

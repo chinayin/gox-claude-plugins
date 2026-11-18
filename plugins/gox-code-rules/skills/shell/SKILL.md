@@ -12,9 +12,14 @@ Conventions for writing shell scripts in this repo, distilled from mature high-s
 **Reply and write code comments in Chinese; everything a script prints is English (see
 "Status output").**
 
+A project that has a `bashly.yml`, or that the user asked to build with bashly, follows the `bashly`
+skill for its `src/` files; do not pick bashly on your own.
+
 ## Core rules
 
 - Start every script with `#!/usr/bin/env bash` and `set -euo pipefail`.
+- Use current bash features freely (associative arrays, `mapfile`, `${var,,}`); do not add
+  workarounds for old bash versions.
 - Exception — a **Claude Code hook script** must fail open: `set -u` only (no `-e`/`pipefail`),
   and exit 0 on every path; a hook's non-zero exit disrupts the session.
 - Exception — a **test harness** (`test.sh`) uses `set -uo pipefail` without `-e`: a failing
@@ -31,7 +36,10 @@ Conventions for writing shell scripts in this repo, distilled from mature high-s
 - Handle secrets/credentials with least privilege — e.g. a generated private key gets `chmod 600`.
 - Give destructive actions a guard: refuse by default, require an explicit `--force` (or similar).
 - Document exit codes and keep their meaning stable (see below).
-- Ship a `test.sh` next to any non-trivial script.
+- Ship a `test.sh` next to any script that takes arguments or writes/deletes anything. A short
+  linear glue script needs none.
+- Run `shellcheck` on each script you write or change and resolve what it reports; if it is not
+  installed, say so rather than skipping it silently.
 
 ## Output: stdout vs stderr
 
@@ -70,6 +78,9 @@ echo "processed ${count} items in ${elapsed}s"
 
 ## Standard flags
 
+This is not a checklist: give a script only the flags it needs — a short helper with no options
+needs none of them. When it does offer one of these behaviours, use this name and meaning.
+
 | Flag | Meaning |
 |---|---|
 | `--json` | Machine-readable output; **pure** JSON on stdout, nothing else. |
@@ -96,6 +107,12 @@ Give exit codes documented, stable meaning and list them in the help text. A com
 - `1` usage error / runtime failure / target already exists
 - `2` precondition not met (a required tool or input is absent)
 
+`die` above always exits 1, so a precondition check exits 2 itself:
+
+```bash
+command -v jq >/dev/null 2>&1 || { echo "Error: jq not found" >&2; exit 2; }
+```
+
 Let the underlying tool's own non-zero code surface when it is the thing that failed.
 
 Note: this table deliberately differs from the common getopts/bash convention (which uses 2 for
@@ -103,7 +120,7 @@ usage errors); within team repos this table is authoritative.
 
 ## Test harness (`test.sh`)
 
-Ship a hermetic, self-cleaning self-test beside any non-trivial script:
+The self-test that Core rules call for is hermetic and self-cleaning:
 
 ```bash
 #!/usr/bin/env bash

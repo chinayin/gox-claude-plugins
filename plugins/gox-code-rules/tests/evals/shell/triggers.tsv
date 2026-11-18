@@ -1,0 +1,6 @@
+shell	-	写个脚本，把 ./dist 目录打成 tar.gz，文件名带上当前日期
+shell	-	帮我写一个检查磁盘使用率的 bash 脚本，超过 80% 就报错退出
+shell	-	CI 里需要一个 entrypoint.sh：先等数据库端口可用，再启动服务
+shell	-	我想做一个管理数据库备份的命令行工具，有 create、list、restore、prune 四个子命令，用 bash 写
+none	-	解释一下 bash 里 set -euo pipefail 三个选项各自的作用
+none	-	写一个 Python 脚本，把 CSV 文件转成 JSON

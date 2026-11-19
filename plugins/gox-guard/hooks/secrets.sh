@@ -26,6 +26,7 @@ MAX_FINDINGS=10
   MSG_NO_JQ='jq is not installed, so gox-guard cannot read hook input. Ask the user to run `brew install jq` (do not install it yourself).'
   MSG_NO_SCANNER='betterleaks is not installed. Ask the user to run `brew install betterleaks` (do not install it yourself).'
   MSG_BYPASS='Bypass only if the user explicitly asks: GOX_GUARD_SKIP=1.'
+  MSG_EMPTY_CONFIG='`.betterleaks.toml` has neither `[[rules]]` nor `[extend]`, so the scan would check nothing. It needs `[extend]` with `useDefault = true`; ask the user before changing scanner config.'
   MSG_TRIAGE='Real secret: remove it from the commit(s), then tell the user to rotate it. False positive: a `betterleaks:allow` comment on that line in the commit that adds it, or its fp in `.betterleaksignore` at the repo root when the line is already committed. Never allowlist a real secret. Steps: skill `secret-triage`.'
 }
 
@@ -112,10 +113,20 @@ AHEAD="$(git -C "$REPO" rev-list --count "${RANGE[@]}" 2>/dev/null)" || emit_den
 SCANNER="$(find_scanner || true)"
 [ -n "$SCANNER" ] || emit_deny "$AHEAD pending commit(s) cannot be checked. $MSG_NO_SCANNER $MSG_BYPASS"
 
+# 配置由调用方显式选择：betterleaks 1.10 起不再自动发现仓库内的 TOML。环境变量已指定时不干预；
+# 否则用仓库根的 .betterleaks.toml（与 ignore 文件一样取自工作树）。既无规则也不继承默认规则的
+# 配置会让扫描什么都不查，按闸门失效拒绝。
+CONFIG=""
+if [ -z "${BETTERLEAKS_CONFIG:-}${BETTERLEAKS_CONFIG_TOML:-}${GITLEAKS_CONFIG:-}${GITLEAKS_CONFIG_TOML:-}" ] \
+  && [ -f "$REPO/.betterleaks.toml" ]; then
+  grep -Eq '^[[:space:]]*\[(extend\]|\[rules\]\])' "$REPO/.betterleaks.toml" || emit_deny "$MSG_EMPTY_CONFIG"
+  CONFIG=.betterleaks.toml
+fi
+
 # 在仓库根运行，使相对配置路径与 ignore 文件对应目标仓库。
 # --redact 必须常开（发现会进模型上下文与 transcript）；绝不开 validation（会把疑似密钥发往厂商 API）。
 STDERR_FILE="$(mktemp 2>/dev/null || echo /tmp/gox-guard.$$)"
-REPORT="$(cd "$REPO" && "$SCANNER" git . --log-opts="${RANGE[*]}" --redact --no-banner --no-color \
+REPORT="$(cd "$REPO" && "$SCANNER" git . ${CONFIG:+-c "$CONFIG"} --log-opts="${RANGE[*]}" --redact --no-banner --no-color \
   --timeout 60 -r - -f json --log-level error 2>"$STDERR_FILE")"
 RC=$?
 ERR="$(tail -n 5 "$STDERR_FILE" 2>/dev/null || true)"
@@ -139,7 +150,7 @@ LIST="$(printf '%s' "$REPORT" | jq -r --argjson n "$MAX_FINDINGS" \
 MORE=""
 [ "$COUNT" != "?" ] && [ "$COUNT" -gt "$MAX_FINDINGS" ] 2>/dev/null && MORE="
 ... and $((COUNT - MAX_FINDINGS)) more. Full list (read-only):
-$(printf 'cd %q && %q' "$REPO" "$SCANNER") git . --log-opts=\"${RANGE[*]}\" --redact --no-banner --no-color --log-level error -r - -f json | jq -r '.[] | $LINE_FMT'"
+$(printf 'cd %q && %q' "$REPO" "$SCANNER") git . ${CONFIG:+-c $CONFIG }--log-opts=\"${RANGE[*]}\" --redact --no-banner --no-color --log-level error -r - -f json | jq -r '.[] | $LINE_FMT'"
 
 emit_deny "$COUNT potential secret(s) in $AHEAD pending commit(s).
 $LIST$MORE

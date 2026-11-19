@@ -104,11 +104,21 @@ docs/                                # 当前设计、兼容边界、第三方�
 
 ### 扫描器配置与误报处理
 
-没有自定义配置时使用 betterleaks 的内置规则。betterleaks 1.10 的 TOML 配置需显式指定，例如在 agent 进程环境中设置 `BETTERLEAKS_CONFIG=/绝对路径/.betterleaks.toml`；仅创建文件不会启用它。`.betterleaksignore` 从扫描目录读取。扫描器不在 PATH 时，可用 `GOX_GUARD_BIN` 指定绝对路径。
+betterleaks 1.10 起不再自动发现仓库内的 TOML，由调用方显式选择配置，闸门按以下顺序选择：
+
+1. 环境变量 `BETTERLEAKS_CONFIG` / `BETTERLEAKS_CONFIG_TOML`（及 `GITLEAKS_*` 旧名）已设置时，闸门不干预，由扫描器读取。
+2. 否则仓库根存在 `.betterleaks.toml` 时，以 `-c` 传给扫描器。文件取自工作树，与 `.betterleaksignore` 一致。
+3. 否则使用内置规则。
+
+配置之间是替换而非合并。既无 `[[rules]]` 也无 `[extend]` 的仓库配置会让扫描不检查任何内容，闸门直接拒绝。`.betterleaksignore` 从扫描目录读取，与配置叠加生效：发现被配置、行内注释或忽略文件任一排除即不上报。扫描器不在 PATH 时，可用 `GOX_GUARD_BIN` 指定绝对路径。
+
+分工：`.betterleaks.toml` 是团队策略（约定的 mock 写法、自定义规则），改动由用户决定；`.betterleaksignore` 记录逐条核实过的例外。同一条发现只在一处处理。
+
+betterleaks v2（2026-11-17 为 rc.9，尚未进入 Homebrew）改动了本闸门依赖的接口：报告参数与 JSON 结构、`.betterleaksignore` 改为密钥值的 SHA-256 且不再接受位置指纹。当前脚本只在 1.10.1 上验证，未适配 v2；v2 稳定版发布后闸门会因扫描器报错而拒绝 push，需先适配或用 `GOX_GUARD_BIN` 指向 v1。
 
 拦截结果只返回脱敏后的规则、文件位置、提交与 fingerprint，最多十条；超出时附同一区间的只读重扫命令。裁定与处理步骤只维护在技能 `gox-guard/skills/secret-triage/SKILL.md`，拦截文案保留两句裁定规则并点名该技能；忽略文件与白名单的变更应随代码评审。
 
-插件不携带默认白名单：闸门始终使用 betterleaks 的内置规则，或用户显式指定的配置。占位符、格式动词这类确定性误报由各仓库按上述技能处理，规则缺口应向 betterleaks 上游反馈，避免闸门与仓库 CI 的结果分叉。
+插件不携带默认白名单：策略属于各仓库的 `.betterleaks.toml`，CI 以 `-c .betterleaks.toml` 使用同一份文件，闸门与 CI 的结果才一致。规则缺口应向 betterleaks 上游反馈。
 
 执行 `git add` / `git commit` 后，再单独执行 `git push`，让扫描器看到最终提交。子模块逐个推送后，父仓库使用 `--recurse-submodules=no`。扫描范围与保守拒绝的命令形式见上文。
 

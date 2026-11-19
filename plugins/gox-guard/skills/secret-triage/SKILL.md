@@ -58,7 +58,9 @@ The path is not evidence. Real secrets get pasted into tests and READMEs; judge 
 |---|---|
 | The line is added by a commit you are still writing or will amend | Rewrite the fixture to a form the scanner ignores (below), or put a `betterleaks:allow` comment on that line |
 | The line is in an earlier pending commit, even if a later commit changed or deleted it | Append its fingerprint to `.betterleaksignore` |
-| The same pattern keeps recurring across commits | Raise a config allowlist with the user (below); do not set it up on your own |
+| The same pattern keeps recurring across commits | Propose a value allowlist in `.betterleaks.toml` to the user (below); do not edit scanner config on your own |
+
+One finding, one place: a finding the config already clears needs no ignore entry.
 
 **`.betterleaksignore`** lives at the repo root: one fingerprint per line, copied exactly from
 `fp=`; lines starting with `#` are comments — use one to say what was verified, in words: a
@@ -73,11 +75,16 @@ passwords written as `<password>`, `${PASSWORD}`, or `your-password`; credential
 under `example.com` / `example.org` / `example.net`. Still reported: `REPLACE`, `CHANGEME`,
 `replace-me`, and hosts under `.invalid` or `.test`.
 
-**Config allowlist**: a `.betterleaks.toml` clears a pattern, in future commits too — and can
-just as easily switch detection off, so betterleaks 1.10 does not load it from the repo by itself.
-It takes effect only when `BETTERLEAKS_CONFIG` points at it in the agent's environment. The file
-must start with `[extend]` / `useDefault = true`, and an allowlist should match the value
-(`regexTarget = "secret"`), not a path.
+**`.betterleaks.toml`** is team policy, not a per-finding fix. An allowlist there clears a pattern
+in every future commit, and a careless one switches detection off — hence the user's decision.
+
+- The gate passes the repo-root file to the scanner, read from the working tree like the ignore
+  file. `BETTERLEAKS_CONFIG` in the environment replaces it; the two are not merged.
+- Keep `[extend]` / `useDefault = true`: without it the built-in rules are gone. The gate refuses a
+  file that has neither rules nor `[extend]`.
+- Match the value (`regexTarget = "secret"`), not a path.
+- Outside the gate, betterleaks 1.10 does not pick the file up by itself: CI and terminal runs
+  need `-c .betterleaks.toml`.
 
 ## 5. Push again
 

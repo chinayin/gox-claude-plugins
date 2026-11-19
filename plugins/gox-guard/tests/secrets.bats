@@ -189,6 +189,68 @@ EOF
   [ "$(grep -c '^generic-api-key  f[0-9]*\.txt:1  @abcdef01  fp=' <<<"$output")" -eq 14 ] || { echo "output=$output"; false; }
 }
 
+# ---------- 仓库内的 .betterleaks.toml ----------
+
+@test "repo .betterleaks.toml is passed to the scanner explicitly, and to the printed full-list command" {
+  many="$(jq -nc '[range(0;11) | {RuleID:"generic-api-key",File:"f\(.).txt",StartLine:1,Commit:"abcdef0123456789",Fingerprint:"abcdef01:f\(.).txt:generic-api-key:1"}]')"
+  stub_betterleaks 1 "$many"
+  add_ahead_commit
+  printf '[extend]\nuseDefault = true\n' > "$REPO/.betterleaks.toml"
+  run_pre "git push"
+  [[ "$(cat "$STUB_LOG")" == *" -c .betterleaks.toml "* ]] || { cat "$STUB_LOG"; false; }
+  reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
+  grep -- '--log-opts=' <<<"$reason" | grep -q -- ' -c .betterleaks.toml '
+}
+
+@test "no repo config, or a config chosen through the environment: the hook adds no -c" {
+  stub_betterleaks 0
+  add_ahead_commit
+  run_pre "git push"
+  [[ "$(cat "$STUB_LOG")" != *" -c "* ]] || { cat "$STUB_LOG"; false; }
+  printf '[extend]\nuseDefault = true\n' > "$REPO/.betterleaks.toml"
+  : > "$STUB_LOG"
+  run env BETTERLEAKS_CONFIG=/elsewhere.toml PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$HOOK" PreToolUse <<EOF
+{"tool_name":"Bash","cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ -s "$STUB_LOG" ]
+  [[ "$(cat "$STUB_LOG")" != *" -c "* ]] || { cat "$STUB_LOG"; false; }
+}
+
+@test "repo config with neither rules nor [extend] would scan nothing: deny without invoking the scanner" {
+  stub_betterleaks 0
+  add_ahead_commit
+  printf '[[allowlists]]\ndescription = "mock"\nregexes = ["^mock-"]\n' > "$REPO/.betterleaks.toml"
+  run_pre "git push"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
+  echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason' | grep -q "useDefault = true"
+  [ ! -s "$STUB_LOG" ]
+}
+
+@test "real scanner: a value allowlist in the repo config clears the mock fixture and nothing else" {
+  command -v betterleaks >/dev/null 2>&1 || skip "betterleaks is not installed on this machine"
+  # betterleaks:allow 只作用于本文件这两行；生成的 a_test.go 不带注释，仍会被扫到
+  printf 'package x\n\nvar a = cfg{Password: "mock-fixture-pw"}\n' > "$REPO/a_test.go"  # betterleaks:allow
+  printf 'var b = cfg{Password: "other-fixture-pw"}\n' >> "$REPO/a_test.go"  # betterleaks:allow
+  cat > "$REPO/.betterleaks.toml" <<'EOF'
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "team mock convention"
+regexTarget = "secret"
+regexes = ['''^mock-[a-z0-9-]+$''']
+EOF
+  git -C "$REPO" add a_test.go .betterleaks.toml
+  git -C "$REPO" commit -qm fixture
+  run env PATH="/usr/bin:/bin:/opt/homebrew/bin:$(dirname "$(command -v betterleaks)")" bash "$HOOK" PreToolUse <<EOF
+{"tool_name":"Bash","cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
+  grep -q "Push blocked: 1 potential secret" <<<"$reason" || { echo "reason=$reason"; false; }
+  grep -q "a_test.go:4 " <<<"$reason"
+}
+
 @test "real scanner: a fingerprint in the working-tree .betterleaksignore clears a finding in an older pending commit" {
   command -v betterleaks >/dev/null 2>&1 || skip "betterleaks is not installed on this machine"
   printf 'package x\n\nvar c = cfg{Password: "fixture-password"}\n' > "$REPO/a_test.go"  # betterleaks:allow

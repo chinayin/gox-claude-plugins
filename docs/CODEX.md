@@ -10,7 +10,7 @@ Codex 的 marketplace 与启用配置独立于 Claude。`templates/project-setti
 
 | 插件 | 已有验证 | 未完成的验证 / 限制 |
 |---|---|---|
-| `gox-code-rules` | 可直接安装，能发现五个技能和 SessionStart / SubagentStart hooks | 受信任会话中的提醒执行、技能触发和规则采纳未完成端到端验证；frontend 仍是占位内容 |
+| `gox-code-rules` | 可直接安装，能发现六个技能和 SessionStart / SubagentStart hooks | 受信任会话中的提醒执行、技能触发和规则采纳未完成端到端验证；frontend 仍是占位内容 |
 | `gox-guard` | 可直接安装，能发现依赖检查与 PreToolUse hooks | 真实 Codex 会话中的 push 阻断未完成端到端验证；脚本测试不等同于运行时拦截验证 |
 | `diagram-design` | 通过完整 Git URL 可安装 | 生成、导入、导出等运行效果未完整验证；上游审计对应特定提交，见 [第三方登记](THIRD_PARTY.md) |
 | `token-thrift` | 只读 `plugin/read` 能发现 delegate 技能；0.1.3 在共享技能中增加原生子代理与模型选择规则 | 需要客户端暴露子代理与模型选择能力；不依赖 Claude 代理注册；安装发现不证明模型路由已执行 |

@@ -26,7 +26,8 @@ MAX_FINDINGS=10
   MSG_NO_JQ='jq is not installed, so gox-guard cannot read hook input. Ask the user to run `brew install jq` (do not install it yourself).'
   MSG_NO_SCANNER='betterleaks is not installed. Ask the user to run `brew install betterleaks` (do not install it yourself).'
   MSG_BYPASS='Bypass only if the user explicitly asks: GOX_GUARD_SKIP=1.'
-  MSG_TRIAGE='Real secret: remove it from the commit(s), then tell the user to rotate it. False positive: `# betterleaks:allow` on that line, append its fp to `.betterleaksignore`, or for a recurring pattern add an allowlist to `.betterleaks.toml`. Never allowlist a real secret.'
+  MSG_EMPTY_CONFIG='`.betterleaks.toml` has neither `[[rules]]` nor `[extend]`, so the scan would check nothing. It needs `[extend]` with `useDefault = true`; ask the user before changing scanner config.'
+  MSG_TRIAGE='Real secret: remove it from the commit(s), then tell the user to rotate it. False positive: a `betterleaks:allow` comment on that line in the commit that adds it, or its fp in `.betterleaksignore` at the repo root when the line is already committed. Never allowlist a real secret. Steps: skill `secret-triage`.'
 }
 
 # `git [全局选项...] push`：git 与 push 之间只允许 - 开头的选项及其取值（-C dir、-c k=v），
@@ -112,31 +113,49 @@ AHEAD="$(git -C "$REPO" rev-list --count "${RANGE[@]}" 2>/dev/null)" || emit_den
 SCANNER="$(find_scanner || true)"
 [ -n "$SCANNER" ] || emit_deny "$AHEAD pending commit(s) cannot be checked. $MSG_NO_SCANNER $MSG_BYPASS"
 
+# 配置由调用方显式选择：betterleaks 1.10 起不再自动发现仓库内的 TOML。环境变量已指定时不干预；
+# 否则用仓库根的 .betterleaks.toml（与 ignore 文件一样取自工作树）；仓库也没有时用插件自带的
+# lib/betterleaks.toml（内置规则 + 放行 mock- 开头的值）。既无规则也不继承默认规则的仓库配置
+# 会让扫描什么都不查，按闸门失效拒绝。
+CONFIG=""
+if [ -z "${BETTERLEAKS_CONFIG:-}${BETTERLEAKS_CONFIG_TOML:-}${GITLEAKS_CONFIG:-}${GITLEAKS_CONFIG_TOML:-}" ]; then
+  if [ -f "$REPO/.betterleaks.toml" ]; then
+    grep -Eq '^[[:space:]]*\[(extend\]|\[rules\]\])' "$REPO/.betterleaks.toml" || emit_deny "$MSG_EMPTY_CONFIG"
+    CONFIG=.betterleaks.toml
+  else
+    CONFIG="$GUARD_LIB_DIR/betterleaks.toml"
+  fi
+fi
+
 # 在仓库根运行，使相对配置路径与 ignore 文件对应目标仓库。
 # --redact 必须常开（发现会进模型上下文与 transcript）；绝不开 validation（会把疑似密钥发往厂商 API）。
 STDERR_FILE="$(mktemp 2>/dev/null || echo /tmp/gox-guard.$$)"
-REPORT="$(cd "$REPO" && "$SCANNER" git . --log-opts="${RANGE[*]}" --redact --no-banner --no-color \
+REPORT="$(cd "$REPO" && "$SCANNER" git . ${CONFIG:+-c "$CONFIG"} --log-opts="${RANGE[*]}" --redact --no-banner --no-color \
   --timeout 60 -r - -f json --log-level error 2>"$STDERR_FILE")"
 RC=$?
-ERR="$(tail -n 5 "$STDERR_FILE" 2>/dev/null || true)"
+ERR="$(tail -n 5 "$STDERR_FILE" 2>/dev/null | sed $'s/\x1b\\[[0-9;]*m//g' || true)"
 rm -f "$STDERR_FILE"
 
-case "$RC" in
-  0) exit 0 ;;                           # 干净
-  1) ;;                                  # 有发现
-  *) emit_deny "the scanner failed (exit $RC), so $AHEAD pending commit(s) could not be checked.
+[ "$RC" -eq 0 ] && exit 0                # 干净
+# 退出码 1 既是"有发现"，也是配置无法加载等致命错误（此时没有报告）；拿到非空数组才算有发现。
+COUNT="$(printf '%s' "$REPORT" | jq -r 'if type == "array" then length else 0 end' 2>/dev/null || true)"
+case "$COUNT" in ''|0|*[!0-9]*) RC_FAILED=1 ;; *) RC_FAILED=0 ;; esac
+if [ "$RC" -ne 1 ] || [ "$RC_FAILED" -eq 1 ]; then
+  emit_deny "the scanner failed (exit $RC), so $AHEAD pending commit(s) could not be checked.
 $ERR
-Fix that (or ask the user to), then retry. $MSG_BYPASS" ;;
-esac
+Fix that (or ask the user to), then retry. $MSG_BYPASS"
+fi
 
-# 报告干净时是 null，有发现时是数组。一行一条：规则 文件:行 @提交 fp=指纹；超过上限只报数量。
+# 一行一条：规则 文件:行 @提交 fp=指纹；超过上限报数量，并附同一区间、同样脱敏的只读重扫命令。
 # 只取定位字段，不回显 Secret / Match。
-COUNT="$(printf '%s' "$REPORT" | jq -r '(. // []) | length' 2>/dev/null || echo "?")"
+# shellcheck disable=SC2016
+LINE_FMT='"\(.RuleID)  \(.File):\(.StartLine)  @\(.Commit[0:8])  fp=\(.Fingerprint)"'
 LIST="$(printf '%s' "$REPORT" | jq -r --argjson n "$MAX_FINDINGS" \
-  '(. // []) | .[:$n][] | "\(.RuleID)  \(.File):\(.StartLine)  @\(.Commit[0:8])  fp=\(.Fingerprint)"' 2>/dev/null || true)"
+  ".[:\$n][] | $LINE_FMT" 2>/dev/null || true)"
 MORE=""
-[ "$COUNT" != "?" ] && [ "$COUNT" -gt "$MAX_FINDINGS" ] 2>/dev/null && MORE="
-... and $((COUNT - MAX_FINDINGS)) more (run the scanner yourself for the full list)."
+[ "$COUNT" -gt "$MAX_FINDINGS" ] && MORE="
+... and $((COUNT - MAX_FINDINGS)) more. Full list (read-only):
+$(printf 'cd %q && %q' "$REPO" "$SCANNER") git . ${CONFIG:+-c $(printf '%q' "$CONFIG") }--log-opts=\"${RANGE[*]}\" --redact --no-banner --no-color --log-level error -r - -f json | jq -r '.[] | $LINE_FMT'"
 
 emit_deny "$COUNT potential secret(s) in $AHEAD pending commit(s).
 $LIST$MORE

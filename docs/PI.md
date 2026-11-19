@@ -14,7 +14,7 @@ tests/pi/*.test.mjs               # node --test，make test 在 bats 之后一�
 ```
 
 - `plugins/` 下没有任何 pi 文件。Claude / Codex 安装时把整个插件目录复制进各自的缓存，根目录的 `.pi/` 不在其中；它只出现在 marketplace 的仓库克隆里，与 README、docs 一样不被加载。
-- 共享只有两处，且都是 pi 单向读取、插件侧不感知 pi：`gox-code-rules` 的 `skills/`（Agent Skills 规范，原样复用），`gox-guard` 的 `hooks/secrets.sh`（按 Claude hook 的输入输出约定调用）。插件侧改动若破坏了约定或删改了被点名的技能，`tests/pi/` 会失败。
+- 共享只有两类，且都是 pi 单向读取、插件侧不感知 pi：`gox-code-rules` 与 `gox-guard` 的 `skills/`（Agent Skills 规范，原样复用），`gox-guard` 的 `hooks/secrets.sh`（按 Claude hook 的输入输出约定调用）。插件侧改动若破坏了约定或删改了被点名的技能，`tests/pi/` 会失败。
 - 在本仓库目录里运行 pi 并信任项目时，pi 会把 `.pi/extensions/` 当作项目扩展自动加载；若同时全局安装了本包，同一扩展会加载两次（guard 扫两遍、提醒段写同一个键），不影响结果。
 
 ```bash

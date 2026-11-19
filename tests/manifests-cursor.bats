@@ -34,16 +34,18 @@ MKT="$ROOT/.cursor-plugin/marketplace.json"
   done
 }
 
-@test "hook plugins point at hooks-cursor.json and token-thrift declares skills plus agents" {
+@test "hook plugins point at hooks-cursor.json; skill plugins declare skills, token-thrift also agents" {
   for name in gox-code-rules gox-guard; do
     pj="$ROOT/plugins/$name/.cursor-plugin/plugin.json"
     run jq -er '.hooks' "$pj"
     [ "$output" = "./hooks/hooks-cursor.json" ]
     [ -f "$ROOT/plugins/$name/hooks/hooks-cursor.json" ]
   done
-  pj="$ROOT/plugins/token-thrift/.cursor-plugin/plugin.json"
-  run jq -er '.skills' "$pj"
-  [ "$output" = "./skills/" ]
+  for name in gox-guard token-thrift; do
+    pj="$ROOT/plugins/$name/.cursor-plugin/plugin.json"
+    run jq -er '.skills' "$pj"
+    [ "$output" = "./skills/" ]
+  done
   run jq -er '.agents' "$pj"
   [ "$output" = "./agents-cursor/" ]
   run jq -e 'has("hooks") | not' "$pj"

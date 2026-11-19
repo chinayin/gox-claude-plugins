@@ -37,6 +37,7 @@ if [ "$EVENT" = "SessionStart" ]; then
 - A bashly CLI (the project has a `bashly.yml`, or the user asks for bashly) -> the `gox-code-rules:bashly` skill; do not pick bashly on your own.
 - Agent Skills (a SKILL.md, its frontmatter, references/ or scripts/) -> the `gox-code-rules:skill` skill.
 - `gox-code-rules:engineering` (think before coding, simplicity first, surgical changes) only when planning a multi-file change, a refactor, or a design — not for a one-file edit.
+- Also: write every fake password, token or key, in any file, with a `mock-` prefix (`mock-password`, `mock-token-1`) so the secret scan before push passes it; if the value must keep a real format, add a `betterleaks:allow` comment on that line instead.
 Do not invoke skills for files you are not touching, and do not re-invoke a skill already loaded in this session.
 When dispatching a subagent to write or modify code, put the applicable rules (or the skill name) in its brief so it does not have to rediscover them.
 golangci-lint/CI enforce only a subset of these rules; passing lint does NOT replace consulting the skill.
@@ -45,7 +46,7 @@ EOF
 )
 else
   MSG=$(cat <<'EOF'
-[gox-code-rules] This repo follows team engineering standards, delivered as Agent Skills. Your brief should already state the standards that apply — follow it. Invoke a skill only if the brief names none and you will write code: Go code, configuration, or DB migrations -> the `gox-code-rules:go` skill; shell/bash scripts -> the `gox-code-rules:shell` skill; a project with a `bashly.yml` -> the `gox-code-rules:bashly` skill; a SKILL.md -> the `gox-code-rules:skill` skill. Do not invoke `gox-code-rules:engineering` or any skill for files you are not touching. If the Skill tool is unavailable, read the relevant installed SKILL.md and needed references; use its bare name when the host omits the plugin prefix. If skills are unavailable, follow your brief.
+[gox-code-rules] This repo follows team engineering standards, delivered as Agent Skills. Your brief should already state the standards that apply — follow it. Invoke a skill only if the brief names none and you will write code: Go code, configuration, or DB migrations -> the `gox-code-rules:go` skill; shell/bash scripts -> the `gox-code-rules:shell` skill; a project with a `bashly.yml` -> the `gox-code-rules:bashly` skill; a SKILL.md -> the `gox-code-rules:skill` skill. Write every fake password, token or key with a `mock-` prefix (`mock-password`). Do not invoke `gox-code-rules:engineering` or any skill for files you are not touching. If the Skill tool is unavailable, read the relevant installed SKILL.md and needed references; use its bare name when the host omits the plugin prefix. If skills are unavailable, follow your brief.
 EOF
 )
 fi

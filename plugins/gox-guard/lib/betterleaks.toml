@@ -1,0 +1,7 @@
+# gox-guard 的默认扫描配置：仓库根没有 .betterleaks.toml、环境变量也没有指定配置时，
+# 由 hooks/secrets.sh 以 -c 传给扫描器。内容 = 内置规则 + gox 的 mock 约定（值以 mock- 开头的
+# 发现不上报）。filter 必须写在 [extend] 之前，否则 betterleaks 1.x 会静默忽略它。
+filter = 'matchesAny(finding["secret"], [`^mock-`])'
+
+[extend]
+useDefault = true

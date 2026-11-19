@@ -39,6 +39,11 @@ setup() {
   grep -q "gox-code-rules:bashly" <<<"$ctx"
   grep -q "gox-code-rules:skill\`" <<<"$ctx"
   grep -q "gox-code-rules:engineering" <<<"$ctx"
+  # mock 密钥的写法是固定约定，直接写在提醒里：mock- 前缀，与 gox-guard 的默认扫描配置对应
+  grep -qF 'with a `mock-` prefix' <<<"$ctx"
+  grep -q "betterleaks:allow" <<<"$ctx"
+  # 写代码时不读扫描器配置
+  ! grep -q "betterleaks.toml" <<<"$ctx"
   grep -q "usually exactly one" <<<"$ctx"
   grep -q "not for a one-file edit" <<<"$ctx"
   grep -q "do not re-invoke" <<<"$ctx"
@@ -59,6 +64,7 @@ setup() {
   grep -q "gox-code-rules:shell" <<<"$ctx"
   grep -q "gox-code-rules:bashly" <<<"$ctx"
   grep -q "gox-code-rules:skill\`" <<<"$ctx"
+  grep -qF 'with a `mock-` prefix' <<<"$ctx"
   grep -q "Do not invoke \`gox-code-rules:engineering\`" <<<"$ctx"
   # 子代理版必须明显短于主会话版
   run bash "$HOOK" SessionStart

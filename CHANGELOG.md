@@ -47,7 +47,7 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ### 0.1.3 — 2026-11-19
 
-- 新增技能 `secret-triage`：拦截后的裁定流程——取完整清单、查看被标记的行、真密钥与误报各自的处理、`.betterleaksignore` 的格式与读取位置、扫描器按设计忽略的夹具写法。一条命令批量查看全部被标记的行；发现较多时把逐条判断交给便宜的子代理，取舍仍由主代理决定。Cursor 清单与 Pi 包同步声明 `skills/`；Pi 包版本未变。
+- 新增技能 `secret-triage`：拦截后的裁定流程——取完整清单、查看被标记的行、真密钥与误报各自的处理、`.betterleaksignore` 的格式与读取位置、`.betterleaks.toml` 中 mock 约定的写法（顶层 `filter`，须在 `[extend]` 之前）。一条命令批量查看全部被标记的行；发现较多时把逐条判断交给便宜的子代理，取舍仍由主代理决定。Cursor 清单与 Pi 包同步声明 `skills/`；Pi 包版本未变。
 - 仓库根的 `.betterleaks.toml` 现在生效：betterleaks 1.10 起不自动发现它，闸门改为以 `-c` 显式传入；环境变量指定的配置优先。既无规则也无 `[extend]` 的配置会让扫描失效，直接拒绝。此前仅创建该文件不起作用。
 - 拦截文案：发现超过十条时附可直接复制的只读重扫命令（同一区间、同一配置、保持脱敏）。误报出口不再列 `.betterleaks.toml`——它是团队策略，由用户决定；改为说明行内注释只对引入该行的提交有效，已提交的行用 fingerprint。
 - 不携带默认白名单，理由见 DESIGN「扫描器配置与误报处理」。
@@ -85,6 +85,12 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
   marketplace。
 
 ## gox-code-rules
+
+### 0.10.0 — 2026-11-19
+
+- 新增 `secret-mock` 技能：写凭证字面量（测试、文档、示例配置）之前，先读仓库根 `.betterleaks.toml` 的 mock 约定并按它生成；没有约定时用扫描器按设计忽略的写法；必须用真实格式时在同一提交的该行加 `betterleaks:allow`。不自行创建或修改扫描器配置。忽略写法经 betterleaks 1.10.1 实测。
+- SessionStart / SubagentStart 提醒及 pi 扩展的提醒各加一条 `secret-mock` 路由，它与按文件类型选择的技能叠加。
+- 技能触发率未做模型评估。
 
 ### 0.9.0 — 2026-11-18
 

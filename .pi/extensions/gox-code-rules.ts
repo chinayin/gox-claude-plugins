@@ -15,6 +15,7 @@ const REMINDER = `[gox-code-rules] This repo follows team engineering standards,
 - A bashly CLI (the project has a \`bashly.yml\`, or the user asks for bashly) -> the \`bashly\` skill; do not pick bashly on your own.
 - Agent skills (a SKILL.md, its frontmatter, references/ or scripts/) -> the \`skill\` skill.
 - \`engineering\` (think before coding, simplicity first, surgical changes) only when planning a multi-file change, a refactor, or a design — not for a one-file edit.
+- In addition, before writing a password, token, API key or credential URL as a literal in any file (tests, docs, sample configs) -> the \`secret-mock\` skill.
 Do not load skills for files you are not touching, and do not re-read a skill already loaded in this session.
 When dispatching a subagent to write or modify code, put the applicable rules (or the skill's SKILL.md path) in its brief so it does not have to rediscover them.
 golangci-lint/CI enforce only a subset of these rules; passing lint does NOT replace consulting the skill.`;

@@ -38,7 +38,7 @@ pi -e ./                                                       # 本地调试：
 
 - 技能：pi 实现 Agent Skills 规范，`skills/` 原样加载，SKILL.md 与 `references/` 不做 pi 专用改写。
 - 提醒：扩展在 `before_agent_start` 把文案写入 `systemPromptOptions.sections["gox-code-rules"]`。不用 superpowers 那种 `context` 事件插 user 消息：`context` 的改动只对单次请求生效，pi 随后会还原；system prompt 段跨轮次、跨压缩保留，文案不变时 pi 不重发。
-- 文案只属于 pi，与插件的 `hooks/session-nudge.sh`（Claude / Codex 共用）互不引用。pi 的技能没有插件命名空间，也没有 Skill 工具，所以用裸名（`go` / `shell` / `bashly` / `skill` / `engineering`），加载方式写作"读 `SKILL.md`，再只读它指向的 `references/`"。改提醒的路由规则时，Claude 版与 pi 版需各改一处。
+- 文案只属于 pi，与插件的 `hooks/session-nudge.sh`（Claude / Codex 共用）互不引用。pi 的技能没有插件命名空间，也没有 Skill 工具，所以用裸名（`go` / `shell` / `bashly` / `skill` / `engineering` / `secret-mock`），加载方式写作"读 `SKILL.md`，再只读它指向的 `references/`"。改提醒的路由规则时，Claude 版与 pi 版需各改一处。
 
 ## gox-guard
 

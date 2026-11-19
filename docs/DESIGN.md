@@ -13,7 +13,7 @@ plugins/
   gox-code-rules/
     .claude-plugin/plugin.json
     .cursor-plugin/plugin.json
-    skills/                           # engineering、go、frontend、shell、bashly、skill
+    skills/                           # engineering、go、frontend、shell、bashly、skill、secret-mock
     hooks/                            # Claude hooks.json + Cursor hooks-cursor.json
     tests/
   token-thrift/
@@ -57,7 +57,7 @@ docs/                                # 当前设计、兼容边界、第三方�
 
 | 组件 | 当前行为 | 边界 |
 |---|---|---|
-| `gox-code-rules` | 五个技能入口；Go 细则按 `references/` 索引读取；会话和子代理收到轻量提醒 | 软引导，不能保证模型加载或遵守；frontend 仍是占位内容，未提供 Python 技能 |
+| `gox-code-rules` | 七个技能入口；Go 细则按 `references/` 索引读取；会话和子代理收到轻量提醒 | 软引导，不能保证模型加载或遵守；frontend 仍是占位内容，未提供 Python 技能 |
 | `token-thrift` | Claude 使用 Haiku / Sonnet，Cursor 使用 agents-cursor 中的 Composer / Grok 标准档；Codex 在共享 delegate 中按任务档位选择当前可用模型，通过原生子代理接口传递任务 | Codex 无合适低价模型时退回主线程；文字只读约束不等于沙箱隔离；实际费用需测量；Pi 尚未适配 |
 | `gox-guard` | 对匹配的工具调用执行外部扫描器，并通过 hook 输出拒绝 push | 仅覆盖受支持且实际触发 hook 的调用；不能替代仓库 CI |
 
@@ -113,6 +113,8 @@ betterleaks 1.10 起不再自动发现仓库内的 TOML，由调用方显式选�
 配置之间是替换而非合并。既无 `[[rules]]` 也无 `[extend]` 的仓库配置会让扫描不检查任何内容，闸门直接拒绝。`.betterleaksignore` 从扫描目录读取，与配置叠加生效：发现被配置、行内注释或忽略文件任一排除即不上报。扫描器不在 PATH 时，可用 `GOX_GUARD_BIN` 指定绝对路径。
 
 分工：`.betterleaks.toml` 是团队策略（约定的 mock 写法、自定义规则），改动由用户决定；`.betterleaksignore` 记录逐条核实过的例外。同一条发现只在一处处理。
+
+同一份 `.betterleaks.toml` 有两个读者：扫描器据此放行，写代码的 agent 据此生成。`gox-code-rules` 的 `secret-mock` 技能要求写凭证字面量之前先读其中的 mock 约定并按它生成，误报在产生之前消除；`secret-triage` 只处理漏网的发现。约定用顶层 `filter` 表达式书写，1.10.1 实测可用，也是 v2 保留的写法；`[[allowlists]]` 仅 1.x 支持。
 
 betterleaks v2（2026-11-17 为 rc.9，尚未进入 Homebrew）改动了本闸门依赖的接口：报告参数与 JSON 结构、`.betterleaksignore` 改为密钥值的 SHA-256 且不再接受位置指纹。当前脚本只在 1.10.1 上验证，未适配 v2；v2 稳定版发布后闸门会因扫描器报错而拒绝 push，需先适配或用 `GOX_GUARD_BIN` 指向 v1。
 

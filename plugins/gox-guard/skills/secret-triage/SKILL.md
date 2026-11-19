@@ -56,7 +56,7 @@ The path is not evidence. Real secrets get pasted into tests and READMEs; judge 
 
 | Situation | Fix |
 |---|---|
-| The line is added by a commit you are still writing or will amend | Rewrite the fixture to a form the scanner ignores (below), or put a `betterleaks:allow` comment on that line |
+| The line is added by a commit you are still writing or will amend | Rewrite the value the way the `secret-mock` skill (gox-code-rules) prescribes, or put a `betterleaks:allow` comment on that line |
 | The line is in an earlier pending commit, even if a later commit changed or deleted it | Append its fingerprint to `.betterleaksignore` |
 | The same pattern keeps recurring across commits | Propose a value allowlist in `.betterleaks.toml` to the user (below); do not edit scanner config on your own |
 
@@ -70,11 +70,6 @@ commits — push from a checkout that contains it. Commit it so teammates and CI
 result. A fingerprint embeds the commit ID: finish any amend or rebase before collecting
 fingerprints. An entry clears exactly one finding; the same value in a new commit is flagged again.
 
-**Forms ignored by design** (checked against betterleaks 1.10.1; re-check after an upgrade):
-passwords written as `<password>`, `${PASSWORD}`, or `your-password`; credential URLs whose host is
-under `example.com` / `example.org` / `example.net`. Still reported: `REPLACE`, `CHANGEME`,
-`replace-me`, and hosts under `.invalid` or `.test`.
-
 **`.betterleaks.toml`** is team policy, not a per-finding fix. An allowlist there clears a pattern
 in every future commit, and a careless one switches detection off — hence the user's decision.
 
@@ -82,9 +77,25 @@ in every future commit, and a careless one switches detection off — hence the 
   file. `BETTERLEAKS_CONFIG` in the environment replaces it; the two are not merged.
 - Keep `[extend]` / `useDefault = true`: without it the built-in rules are gone. The gate refuses a
   file that has neither rules nor `[extend]`.
-- Match the value (`regexTarget = "secret"`), not a path.
 - Outside the gate, betterleaks 1.10 does not pick the file up by itself: CI and terminal runs
   need `-c .betterleaks.toml`.
+- Write a mock convention as a top-level `filter` on the value, never on a path. It must sit above
+  `[extend]`: a key below a `[table]` line belongs to that table, and betterleaks 1.x then ignores
+  it without an error.
+
+```toml
+filter = '''
+matchesAny(finding["secret"], [`^mock-[a-z0-9-]+$`])
+'''
+
+[extend]
+useDefault = true
+```
+
+This form is checked on betterleaks 1.10.1 and is the one v2 keeps. `[[allowlists]]` works on 1.x
+only; v2 refuses to load it per its migration guide, so move an existing one to `filter` before
+upgrading. After any change run `betterleaks config check .betterleaks.toml`, then rescan: a value
+that matches must disappear and one that does not must stay.
 
 ## 5. Push again
 

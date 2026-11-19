@@ -39,6 +39,8 @@ setup() {
   grep -q "gox-code-rules:bashly" <<<"$ctx"
   grep -q "gox-code-rules:skill\`" <<<"$ctx"
   grep -q "gox-code-rules:engineering" <<<"$ctx"
+  # 跨文件类型的规则：写凭证字面量之前额外加载 secret-mock
+  grep -q "In addition, before writing a password.*gox-code-rules:secret-mock" <<<"$ctx"
   grep -q "usually exactly one" <<<"$ctx"
   grep -q "not for a one-file edit" <<<"$ctx"
   grep -q "do not re-invoke" <<<"$ctx"
@@ -59,6 +61,7 @@ setup() {
   grep -q "gox-code-rules:shell" <<<"$ctx"
   grep -q "gox-code-rules:bashly" <<<"$ctx"
   grep -q "gox-code-rules:skill\`" <<<"$ctx"
+  grep -q "gox-code-rules:secret-mock" <<<"$ctx"
   grep -q "Do not invoke \`gox-code-rules:engineering\`" <<<"$ctx"
   # 子代理版必须明显短于主会话版
   run bash "$HOOK" SessionStart

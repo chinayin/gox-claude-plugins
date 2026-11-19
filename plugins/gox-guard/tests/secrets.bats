@@ -232,14 +232,14 @@ EOF
   # betterleaks:allow 只作用于本文件这两行；生成的 a_test.go 不带注释，仍会被扫到
   printf 'package x\n\nvar a = cfg{Password: "mock-fixture-pw"}\n' > "$REPO/a_test.go"  # betterleaks:allow
   printf 'var b = cfg{Password: "other-fixture-pw"}\n' >> "$REPO/a_test.go"  # betterleaks:allow
+  # 与 secret-triage 技能给出的写法一致：顶层 filter 必须在 [extend] 之前
   cat > "$REPO/.betterleaks.toml" <<'EOF'
+filter = '''
+matchesAny(finding["secret"], [`^mock-[a-z0-9-]+$`])
+'''
+
 [extend]
 useDefault = true
-
-[[allowlists]]
-description = "team mock convention"
-regexTarget = "secret"
-regexes = ['''^mock-[a-z0-9-]+$''']
 EOF
   git -C "$REPO" add a_test.go .betterleaks.toml
   git -C "$REPO" commit -qm fixture

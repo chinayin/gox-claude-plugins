@@ -56,7 +56,7 @@ The path is not evidence. Real secrets get pasted into tests and READMEs; judge 
 
 | Situation | Fix |
 |---|---|
-| The line is added by a commit you are still writing or will amend | Rewrite the value the way the `secret-mock` skill (gox-code-rules) prescribes, or put a `betterleaks:allow` comment on that line |
+| The line is added by a commit you are still writing or will amend | Rewrite the value to the repo's mock pattern (the `filter` in `.betterleaks.toml`), or as `<password>` / `${PASSWORD}`; or put a `betterleaks:allow` comment on that line |
 | The line is in an earlier pending commit, even if a later commit changed or deleted it | Append its fingerprint to `.betterleaksignore` |
 | The same pattern keeps recurring across commits | Propose a value allowlist in `.betterleaks.toml` to the user (below); do not edit scanner config on your own |
 

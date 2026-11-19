@@ -87,11 +87,10 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ## gox-code-rules
 
-### 0.10.0 — 2026-11-19
+### 0.9.1 — 2026-11-19
 
-- 新增 `secret-mock` 技能：写凭证字面量（测试、文档、示例配置）之前，先读仓库根 `.betterleaks.toml` 的 mock 约定并按它生成；没有约定时用扫描器按设计忽略的写法；必须用真实格式时在同一提交的该行加 `betterleaks:allow`。不自行创建或修改扫描器配置。忽略写法经 betterleaks 1.10.1 实测。
-- SessionStart / SubagentStart 提醒及 pi 扩展的提醒各加一条 `secret-mock` 路由，它与按文件类型选择的技能叠加。
-- 技能触发率未做模型评估。
+- SessionStart / SubagentStart 提醒及 pi 扩展的提醒各加一条 mock 密钥规则：假的密码、token、key 按仓库根 `.betterleaks.toml` 的 `filter` 约定写（只 grep 那一行，不读整个文件），没有约定时写 `<password>` 或 `${PASSWORD}`；必须用真实格式时在该行加 `betterleaks:allow`；不自行修改扫描器配置。写法经 betterleaks 1.10.1 实测。
+- 规则直接写在提醒里，不做成技能，理由见 DESIGN「扫描器配置与误报处理」。模型是否照做未做评估。
 
 ### 0.9.0 — 2026-11-18
 

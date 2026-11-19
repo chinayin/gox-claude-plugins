@@ -1,7 +1,7 @@
 {
   "name": "gox-code-rules",
-  "version": "0.10.0",
-  "description": "Team coding-standards skills: Go (architecture/HTTP-gin/CLI/config/migrations/scaffold) + frontend (React/Vue/TS) + shell (bash/CLI scripts) + bashly (generated bash CLIs) + skill authoring (naming/description/layout of SKILL.md) + mock secrets (scanner-safe fake credentials) + general engineering guidelines, auto-activated while you code.",
+  "version": "0.9.1",
+  "description": "Team coding-standards skills: Go (architecture/HTTP-gin/CLI/config/migrations/scaffold) + frontend (React/Vue/TS) + shell (bash/CLI scripts) + bashly (generated bash CLIs) + skill authoring (naming/description/layout of SKILL.md) + general engineering guidelines, auto-activated while you code.",
   "author": { "name": "chinayin" },
   "skills": "./skills/",
   "hooks": "./hooks/hooks-cursor.json"

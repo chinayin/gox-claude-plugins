@@ -14,7 +14,7 @@ the scanner clears by rule.
 
 1. **The repo's convention.** Read `.betterleaks.toml` at the repo root. A top-level `filter` — or
    `[[allowlists]]` in an older file — that matches on the secret value defines what a mock looks
-   like here. If its pattern is `^mock-[a-z0-9-]+$`, write `mock-db-password`.
+   like here. If its pattern is `^mock-`, write `mock-db-password`.
 2. **No such file or rule.** Use a form the scanner ignores by design: a password written as
    `<password>`, `${PASSWORD}` or `your-password`; a credential URL on an `example.com`,
    `example.org` or `example.net` host. Still reported: `REPLACE`, `CHANGEME`, `replace-me`, and

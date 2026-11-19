@@ -84,18 +84,18 @@ in every future commit, and a careless one switches detection off — hence the 
   it without an error.
 
 ```toml
-filter = '''
-matchesAny(finding["secret"], [`^mock-[a-z0-9-]+$`])
-'''
+filter = 'matchesAny(finding["secret"], [`^mock-`])'
 
 [extend]
 useDefault = true
 ```
 
-This form is checked on betterleaks 1.10.1 and is the one v2 keeps. `[[allowlists]]` works on 1.x
-only; v2 refuses to load it per its migration guide, so move an existing one to `filter` before
-upgrading. After any change run `betterleaks config check .betterleaks.toml`, then rescan: a value
-that matches must disappear and one that does not must stay.
+This reads "drop a finding whose value starts with `mock-`". It is checked on betterleaks 1.10.1
+and is the form v2 keeps. `[[allowlists]]` works on 1.x only; v2 refuses to load it per its
+migration guide, so move an existing one to `filter` before upgrading. After any change run
+`betterleaks config check .betterleaks.toml`, then rescan: a value that matches must disappear and
+one that does not must stay. The check matters: betterleaks 1.10.1 scans on without a `filter`
+that fails to compile and says nothing, so the mock values simply stay flagged.
 
 ## 5. Push again
 

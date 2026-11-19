@@ -129,26 +129,27 @@ STDERR_FILE="$(mktemp 2>/dev/null || echo /tmp/gox-guard.$$)"
 REPORT="$(cd "$REPO" && "$SCANNER" git . ${CONFIG:+-c "$CONFIG"} --log-opts="${RANGE[*]}" --redact --no-banner --no-color \
   --timeout 60 -r - -f json --log-level error 2>"$STDERR_FILE")"
 RC=$?
-ERR="$(tail -n 5 "$STDERR_FILE" 2>/dev/null || true)"
+ERR="$(tail -n 5 "$STDERR_FILE" 2>/dev/null | sed $'s/\x1b\\[[0-9;]*m//g' || true)"
 rm -f "$STDERR_FILE"
 
-case "$RC" in
-  0) exit 0 ;;                           # 干净
-  1) ;;                                  # 有发现
-  *) emit_deny "the scanner failed (exit $RC), so $AHEAD pending commit(s) could not be checked.
+[ "$RC" -eq 0 ] && exit 0                # 干净
+# 退出码 1 既是"有发现"，也是配置无法加载等致命错误（此时没有报告）；拿到非空数组才算有发现。
+COUNT="$(printf '%s' "$REPORT" | jq -r 'if type == "array" then length else 0 end' 2>/dev/null || true)"
+case "$COUNT" in ''|0|*[!0-9]*) RC_FAILED=1 ;; *) RC_FAILED=0 ;; esac
+if [ "$RC" -ne 1 ] || [ "$RC_FAILED" -eq 1 ]; then
+  emit_deny "the scanner failed (exit $RC), so $AHEAD pending commit(s) could not be checked.
 $ERR
-Fix that (or ask the user to), then retry. $MSG_BYPASS" ;;
-esac
+Fix that (or ask the user to), then retry. $MSG_BYPASS"
+fi
 
-# 报告干净时是 null，有发现时是数组。一行一条：规则 文件:行 @提交 fp=指纹；超过上限报数量，
-# 并附同一区间、同样脱敏的只读重扫命令。只取定位字段，不回显 Secret / Match。
+# 一行一条：规则 文件:行 @提交 fp=指纹；超过上限报数量，并附同一区间、同样脱敏的只读重扫命令。
+# 只取定位字段，不回显 Secret / Match。
 # shellcheck disable=SC2016
 LINE_FMT='"\(.RuleID)  \(.File):\(.StartLine)  @\(.Commit[0:8])  fp=\(.Fingerprint)"'
-COUNT="$(printf '%s' "$REPORT" | jq -r '(. // []) | length' 2>/dev/null || echo "?")"
 LIST="$(printf '%s' "$REPORT" | jq -r --argjson n "$MAX_FINDINGS" \
-  "(. // []) | .[:\$n][] | $LINE_FMT" 2>/dev/null || true)"
+  ".[:\$n][] | $LINE_FMT" 2>/dev/null || true)"
 MORE=""
-[ "$COUNT" != "?" ] && [ "$COUNT" -gt "$MAX_FINDINGS" ] 2>/dev/null && MORE="
+[ "$COUNT" -gt "$MAX_FINDINGS" ] && MORE="
 ... and $((COUNT - MAX_FINDINGS)) more. Full list (read-only):
 $(printf 'cd %q && %q' "$REPO" "$SCANNER") git . ${CONFIG:+-c $CONFIG }--log-opts=\"${RANGE[*]}\" --redact --no-banner --no-color --log-level error -r - -f json | jq -r '.[] | $LINE_FMT'"
 

@@ -234,9 +234,7 @@ EOF
   printf 'var b = cfg{Password: "other-fixture-pw"}\n' >> "$REPO/a_test.go"  # betterleaks:allow
   # 与 secret-triage 技能给出的写法一致：顶层 filter 必须在 [extend] 之前
   cat > "$REPO/.betterleaks.toml" <<'EOF'
-filter = '''
-matchesAny(finding["secret"], [`^mock-[a-z0-9-]+$`])
-'''
+filter = 'matchesAny(finding["secret"], [`^mock-`])'
 
 [extend]
 useDefault = true
@@ -249,6 +247,20 @@ EOF
   reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
   grep -q "Push blocked: 1 potential secret" <<<"$reason" || { echo "reason=$reason"; false; }
   grep -q "a_test.go:4 " <<<"$reason"
+}
+
+@test "real scanner: a repo config that cannot load denies with the scanner's error" {
+  command -v betterleaks >/dev/null 2>&1 || skip "betterleaks is not installed on this machine"
+  add_ahead_commit
+  # 1.10.1 加载失败时退出码同样是 1，但没有报告；规则正则写错是其中一种
+  printf '[extend]\nuseDefault = true\n\n[[rules]]\nid = "broken"\nregex = "("\n' > "$REPO/.betterleaks.toml"
+  run env PATH="/usr/bin:/bin:/opt/homebrew/bin:$(dirname "$(command -v betterleaks)")" bash "$HOOK" PreToolUse <<EOF
+{"tool_name":"Bash","cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
+  grep -q "the scanner failed" <<<"$reason" || { echo "reason=$reason"; false; }
+  grep -q "unable to load config" <<<"$reason"
+  ! grep -q "potential secret" <<<"$reason"
 }
 
 @test "real scanner: a fingerprint in the working-tree .betterleaksignore clears a finding in an older pending commit" {
@@ -288,6 +300,23 @@ EOF
   reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
   grep -q "something broke" <<<"$reason"
   grep -q "GOX_GUARD_SKIP=1" <<<"$reason"
+}
+
+@test "exit 1 without a report is a scanner failure (e.g. config that cannot load), not findings" {
+  cat > "$STUB_DIR/betterleaks" <<'EOF'
+#!/usr/bin/env bash
+echo "FTL compiling global filter: unknown name" >&2
+exit 1
+EOF
+  chmod +x "$STUB_DIR/betterleaks"
+  add_ahead_commit
+  run_pre "git push"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
+  reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
+  grep -q "the scanner failed (exit 1)" <<<"$reason"
+  grep -q "compiling global filter" <<<"$reason"
+  ! grep -q "potential secret" <<<"$reason"
 }
 
 # ---------- 缺 betterleaks ----------

@@ -114,13 +114,17 @@ SCANNER="$(find_scanner || true)"
 [ -n "$SCANNER" ] || emit_deny "$AHEAD pending commit(s) cannot be checked. $MSG_NO_SCANNER $MSG_BYPASS"
 
 # 配置由调用方显式选择：betterleaks 1.10 起不再自动发现仓库内的 TOML。环境变量已指定时不干预；
-# 否则用仓库根的 .betterleaks.toml（与 ignore 文件一样取自工作树）。既无规则也不继承默认规则的
-# 配置会让扫描什么都不查，按闸门失效拒绝。
+# 否则用仓库根的 .betterleaks.toml（与 ignore 文件一样取自工作树）；仓库也没有时用插件自带的
+# lib/betterleaks.toml（内置规则 + 放行 mock- 开头的值）。既无规则也不继承默认规则的仓库配置
+# 会让扫描什么都不查，按闸门失效拒绝。
 CONFIG=""
-if [ -z "${BETTERLEAKS_CONFIG:-}${BETTERLEAKS_CONFIG_TOML:-}${GITLEAKS_CONFIG:-}${GITLEAKS_CONFIG_TOML:-}" ] \
-  && [ -f "$REPO/.betterleaks.toml" ]; then
-  grep -Eq '^[[:space:]]*\[(extend\]|\[rules\]\])' "$REPO/.betterleaks.toml" || emit_deny "$MSG_EMPTY_CONFIG"
-  CONFIG=.betterleaks.toml
+if [ -z "${BETTERLEAKS_CONFIG:-}${BETTERLEAKS_CONFIG_TOML:-}${GITLEAKS_CONFIG:-}${GITLEAKS_CONFIG_TOML:-}" ]; then
+  if [ -f "$REPO/.betterleaks.toml" ]; then
+    grep -Eq '^[[:space:]]*\[(extend\]|\[rules\]\])' "$REPO/.betterleaks.toml" || emit_deny "$MSG_EMPTY_CONFIG"
+    CONFIG=.betterleaks.toml
+  else
+    CONFIG="$GUARD_LIB_DIR/betterleaks.toml"
+  fi
 fi
 
 # 在仓库根运行，使相对配置路径与 ignore 文件对应目标仓库。
@@ -151,7 +155,7 @@ LIST="$(printf '%s' "$REPORT" | jq -r --argjson n "$MAX_FINDINGS" \
 MORE=""
 [ "$COUNT" -gt "$MAX_FINDINGS" ] && MORE="
 ... and $((COUNT - MAX_FINDINGS)) more. Full list (read-only):
-$(printf 'cd %q && %q' "$REPO" "$SCANNER") git . ${CONFIG:+-c $CONFIG }--log-opts=\"${RANGE[*]}\" --redact --no-banner --no-color --log-level error -r - -f json | jq -r '.[] | $LINE_FMT'"
+$(printf 'cd %q && %q' "$REPO" "$SCANNER") git . ${CONFIG:+-c $(printf '%q' "$CONFIG") }--log-opts=\"${RANGE[*]}\" --redact --no-banner --no-color --log-level error -r - -f json | jq -r '.[] | $LINE_FMT'"
 
 emit_deny "$COUNT potential secret(s) in $AHEAD pending commit(s).
 $LIST$MORE

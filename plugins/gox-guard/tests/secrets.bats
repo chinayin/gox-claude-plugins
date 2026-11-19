@@ -202,11 +202,13 @@ EOF
   grep -- '--log-opts=' <<<"$reason" | grep -q -- ' -c .betterleaks.toml '
 }
 
-@test "no repo config, or a config chosen through the environment: the hook adds no -c" {
+@test "no repo config: the plugin's default config is passed; a config chosen through the environment: no -c" {
   stub_betterleaks 0
   add_ahead_commit
   run_pre "git push"
-  [[ "$(cat "$STUB_LOG")" != *" -c "* ]] || { cat "$STUB_LOG"; false; }
+  default_cfg="$(cd "$BATS_TEST_DIRNAME/../lib" && pwd)/betterleaks.toml"
+  [ -f "$default_cfg" ]
+  [[ "$(cat "$STUB_LOG")" == *" -c $default_cfg "* ]] || { cat "$STUB_LOG"; false; }
   printf '[extend]\nuseDefault = true\n' > "$REPO/.betterleaks.toml"
   : > "$STUB_LOG"
   run env BETTERLEAKS_CONFIG=/elsewhere.toml PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$HOOK" PreToolUse <<EOF
@@ -225,6 +227,27 @@ EOF
   echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
   echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason' | grep -q "useDefault = true"
   [ ! -s "$STUB_LOG" ]
+}
+
+@test "real scanner: with no repo config, a mock- value passes and any other value is still reported" {
+  command -v betterleaks >/dev/null 2>&1 || skip "betterleaks is not installed on this machine"
+  # betterleaks:allow 只作用于本文件这两行；生成的 a_test.go 不带注释，仍会被扫到
+  printf 'package x\n\nvar a = cfg{Password: "mock-password"}\n' > "$REPO/a_test.go"  # betterleaks:allow
+  git -C "$REPO" add a_test.go
+  git -C "$REPO" commit -qm mock
+  run env PATH="/usr/bin:/bin:/opt/homebrew/bin:$(dirname "$(command -v betterleaks)")" bash "$HOOK" PreToolUse <<EOF
+{"tool_name":"Bash","cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ "$status" -eq 0 ]
+  [ -z "$output" ] || { echo "output=$output"; false; }
+  printf 'var b = cfg{Password: "other-fixture-pw"}\n' >> "$REPO/a_test.go"  # betterleaks:allow
+  git -C "$REPO" commit -qam other
+  run env PATH="/usr/bin:/bin:/opt/homebrew/bin:$(dirname "$(command -v betterleaks)")" bash "$HOOK" PreToolUse <<EOF
+{"tool_name":"Bash","cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
+  grep -q "Push blocked: 1 potential secret" <<<"$reason" || { echo "reason=$reason"; false; }
+  grep -q "a_test.go:4 " <<<"$reason"
 }
 
 @test "real scanner: a value allowlist in the repo config clears the mock fixture and nothing else" {

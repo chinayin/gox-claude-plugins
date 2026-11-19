@@ -56,9 +56,9 @@ The path is not evidence. Real secrets get pasted into tests and READMEs; judge 
 
 | Situation | Fix |
 |---|---|
-| The line is added by a commit you are still writing or will amend | Rewrite the value to the repo's mock pattern (the `filter` in `.betterleaks.toml`), or as `<password>` / `${PASSWORD}`; or put a `betterleaks:allow` comment on that line |
+| The line is added by a commit you are still writing or will amend | Rewrite the fake value with a `mock-` prefix (`mock-password`); if it must keep a real format, put a `betterleaks:allow` comment on that line |
 | The line is in an earlier pending commit, even if a later commit changed or deleted it | Append its fingerprint to `.betterleaksignore` |
-| The same pattern keeps recurring across commits | Propose a value allowlist in `.betterleaks.toml` to the user (below); do not edit scanner config on your own |
+| A pattern other than `mock-` keeps recurring across commits | Propose a value rule in `.betterleaks.toml` to the user (below); do not edit scanner config on your own |
 
 One finding, one place: a finding the config already clears needs no ignore entry.
 
@@ -73,15 +73,18 @@ fingerprints. An entry clears exactly one finding; the same value in a new commi
 **`.betterleaks.toml`** is team policy, not a per-finding fix. An allowlist there clears a pattern
 in every future commit, and a careless one switches detection off — hence the user's decision.
 
-- The gate passes the repo-root file to the scanner, read from the working tree like the ignore
-  file. `BETTERLEAKS_CONFIG` in the environment replaces it; the two are not merged.
+- A repo without the file needs none: the gate then scans with its own default, the built-in
+  rules plus the `mock-` rule below.
+- A repo-root file replaces that default — nothing is merged — so it must carry the `mock-` rule
+  itself, or `mock-` values get flagged. The gate reads it from the working tree like the ignore
+  file; `BETTERLEAKS_CONFIG` in the environment replaces both.
 - Keep `[extend]` / `useDefault = true`: without it the built-in rules are gone. The gate refuses a
   file that has neither rules nor `[extend]`.
-- Outside the gate, betterleaks 1.10 does not pick the file up by itself: CI and terminal runs
-  need `-c .betterleaks.toml`.
-- Write a mock convention as a top-level `filter` on the value, never on a path. It must sit above
-  `[extend]`: a key below a `[table]` line belongs to that table, and betterleaks 1.x then ignores
-  it without an error.
+- Outside the gate, betterleaks 1.10 loads no config by itself: CI and terminal runs need
+  `-c .betterleaks.toml`, so a repo scanned in CI commits the file.
+- Write a value rule as a top-level `filter`, never on a path. It must sit above `[extend]`: a key
+  below a `[table]` line belongs to that table, and betterleaks 1.x then ignores it without an
+  error.
 
 ```toml
 filter = 'matchesAny(finding["secret"], [`^mock-`])'
@@ -90,7 +93,8 @@ filter = 'matchesAny(finding["secret"], [`^mock-`])'
 useDefault = true
 ```
 
-This reads "drop a finding whose value starts with `mock-`". It is checked on betterleaks 1.10.1
+This reads "drop a finding whose value starts with `mock-`"; a provider-format token is still
+reported with that prefix, because its match starts at the token. It is checked on betterleaks 1.10.1
 and is the form v2 keeps. `[[allowlists]]` works on 1.x only; v2 refuses to load it per its
 migration guide, so move an existing one to `filter` before upgrading. After any change run
 `betterleaks config check .betterleaks.toml`, then rescan: a value that matches must disappear and

@@ -27,7 +27,7 @@ plugins/
     .claude-plugin/plugin.json
     .cursor-plugin/plugin.json
     hooks/                            # Claude 匹配 Bash；Cursor 匹配 Shell
-    lib/                              # 共享仓库/源引用解析，不含平台协议
+    lib/                              # 共享仓库/源引用解析、默认扫描配置，不含平台协议
     skills/secret-triage/             # 拦截后的发现裁定流程
     tests/
 templates/project-settings.json       # Claude 项目配置模板
@@ -108,19 +108,21 @@ betterleaks 1.10 起不再自动发现仓库内的 TOML，由调用方显式选�
 
 1. 环境变量 `BETTERLEAKS_CONFIG` / `BETTERLEAKS_CONFIG_TOML`（及 `GITLEAKS_*` 旧名）已设置时，闸门不干预，由扫描器读取。
 2. 否则仓库根存在 `.betterleaks.toml` 时，以 `-c` 传给扫描器。文件取自工作树，与 `.betterleaksignore` 一致。
-3. 否则使用内置规则。
+3. 否则以 `-c` 传入插件自带的 `gox-guard/lib/betterleaks.toml`：内置规则加一条 mock 约定。
 
-配置之间是替换而非合并。既无 `[[rules]]` 也无 `[extend]` 的仓库配置会让扫描不检查任何内容，闸门直接拒绝。`.betterleaksignore` 从扫描目录读取，与配置叠加生效：发现被配置、行内注释或忽略文件任一排除即不上报。扫描器不在 PATH 时，可用 `GOX_GUARD_BIN` 指定绝对路径。
+配置之间是替换而非合并：仓库自带配置时，mock 约定须由该文件自己写上。既无 `[[rules]]` 也无 `[extend]` 的仓库配置会让扫描不检查任何内容，闸门直接拒绝。`.betterleaksignore` 从扫描目录读取，与配置叠加生效：发现被配置、行内注释或忽略文件任一排除即不上报。扫描器不在 PATH 时，可用 `GOX_GUARD_BIN` 指定绝对路径。
 
-分工：`.betterleaks.toml` 是团队策略（约定的 mock 写法、自定义规则），改动由用户决定；`.betterleaksignore` 记录逐条核实过的例外。同一条发现只在一处处理。
+分工：`.betterleaks.toml` 是团队策略（自定义规则、额外的放行写法），改动由用户决定；`.betterleaksignore` 记录逐条核实过的例外。同一条发现只在一处处理。
 
-同一份 `.betterleaks.toml` 有两个读者：扫描器据此放行，写代码的 agent 据此生成。`gox-code-rules` 的会话提醒里有一条 mock 密钥规则：写之前 grep 其中的 `filter` 行并按它生成，没有约定时写 `<password>` 或 `${PASSWORD}`，误报在产生之前消除；`secret-triage` 只处理漏网的发现。这条规则直接写在提醒里而不做成技能：全文只有一句，做成技能反而多出描述的常驻开销、正文的加载开销和触发不确定性。约定用顶层 `filter` 表达式书写，1.10.1 实测可用，也是 v2 保留的写法；`[[allowlists]]` 仅 1.x 支持。
+mock 约定是固定的：假的密码、token、key 一律以 `mock-` 开头。它分两头落地，互不读取对方：写代码时由 `gox-code-rules` 的会话提醒给出这一句规则，不读扫描器配置；推送前由闸门的默认配置放行值以 `mock-` 开头的发现。规则直接写在提醒里而不做成技能：全文只有一句，做成技能反而多出描述的常驻开销、正文的加载开销和触发不确定性。`secret-triage` 只处理漏网的发现。
+
+默认规则确实会拦这类值（1.10.1 实测：密码字段和带凭证的 URL 里的 `mock-password` 被 `generic-password`、`generic-credential-uri` 报出），所以闸门必须带这条放行；它只按值的开头判断，带 `mock-` 前缀的厂商格式 token 仍会上报，因为匹配从 token 本身开始。必须保留真实格式的值用行内 `betterleaks:allow`。放行写成顶层 `filter` 表达式，1.10.1 实测可用，也是 v2 保留的写法；`[[allowlists]]` 仅 1.x 支持。
 
 betterleaks v2（2026-11-17 为 rc.9，尚未进入 Homebrew）改动了本闸门依赖的接口：报告参数与 JSON 结构、`.betterleaksignore` 改为密钥值的 SHA-256 且不再接受位置指纹。当前脚本只在 1.10.1 上验证，未适配 v2；v2 稳定版发布后闸门会因扫描器报错而拒绝 push，需先适配或用 `GOX_GUARD_BIN` 指向 v1。
 
 拦截结果只返回脱敏后的规则、文件位置、提交与 fingerprint，最多十条；超出时附同一区间的只读重扫命令。裁定与处理步骤只维护在技能 `gox-guard/skills/secret-triage/SKILL.md`，拦截文案保留两句裁定规则并点名该技能；忽略文件与白名单的变更应随代码评审。
 
-插件不携带默认白名单：策略属于各仓库的 `.betterleaks.toml`，CI 以 `-c .betterleaks.toml` 使用同一份文件，闸门与 CI 的结果才一致。规则缺口应向 betterleaks 上游反馈。
+除 `mock-` 这一条约定外，插件不携带其他白名单：其余策略属于各仓库的 `.betterleaks.toml`。CI 不经过闸门，也不会自动加载任何配置；在 CI 里扫描的仓库把这条约定写进自己的 `.betterleaks.toml` 并以 `-c .betterleaks.toml` 使用，闸门与 CI 的结果才一致。规则缺口应向 betterleaks 上游反馈。
 
 执行 `git add` / `git commit` 后，再单独执行 `git push`，让扫描器看到最终提交。子模块逐个推送后，父仓库使用 `--recurse-submodules=no`。扫描范围与保守拒绝的命令形式见上文。
 

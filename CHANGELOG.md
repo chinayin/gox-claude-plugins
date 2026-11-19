@@ -51,8 +51,8 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 - 仓库根的 `.betterleaks.toml` 现在生效：betterleaks 1.10 起不自动发现它，闸门改为以 `-c` 显式传入；环境变量指定的配置优先。既无规则也无 `[extend]` 的配置会让扫描失效，直接拒绝。此前仅创建该文件不起作用。
 - 拦截文案：发现超过十条时附可直接复制的只读重扫命令（同一区间、同一配置、保持脱敏）。误报出口不再列 `.betterleaks.toml`——它是团队策略，由用户决定；改为说明行内注释只对引入该行的提交有效，已提交的行用 fingerprint。
 - 修复：配置无法加载时 betterleaks 1.10.1 的退出码同样是 1 且没有报告，此前会被当成"有发现"，文案里数量为空、看不到错误；现在按扫描器失败处理并带出错误输出。
-- 不携带默认白名单，理由见 DESIGN「扫描器配置与误报处理」。
-- 新增真实 betterleaks 回归（未安装时跳过）：工作树中的 `.betterleaksignore` 能消除旧提交里的发现；仓库配置里的按值白名单只消除约定的 mock。技能触发率未做模型评估。
+- 默认放行 mock 约定：仓库没有 `.betterleaks.toml`、环境变量也未指定配置时，闸门以 `-c` 传入自带的 `lib/betterleaks.toml`（内置规则，加上值以 `mock-` 开头的发现不上报）。带 `mock-` 前缀的厂商格式 token 仍会上报。仓库自带配置时不合并，约定须由该文件自己写上。除此之外不携带其他白名单，理由见 DESIGN「扫描器配置与误报处理」。
+- 新增真实 betterleaks 回归（未安装时跳过）：工作树中的 `.betterleaksignore` 能消除旧提交里的发现；无仓库配置时 `mock-` 值通过、其他值照常上报；仓库配置里的按值放行只消除约定的 mock。技能触发率未做模型评估。
 - 未适配 betterleaks v2（当前为 rc），影响见 DESIGN。
 
 ### 0.1.2 — 2026-11-09
@@ -89,7 +89,7 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ### 0.9.1 — 2026-11-19
 
-- SessionStart / SubagentStart 提醒及 pi 扩展的提醒各加一条 mock 密钥规则：假的密码、token、key 按仓库根 `.betterleaks.toml` 的 `filter` 约定写（只 grep 那一行，不读整个文件），没有约定时写 `<password>` 或 `${PASSWORD}`；必须用真实格式时在该行加 `betterleaks:allow`；不自行修改扫描器配置。写法经 betterleaks 1.10.1 实测。
+- SessionStart / SubagentStart 提醒及 pi 扩展的提醒各加一条 mock 密钥规则：假的密码、token、key 一律以 `mock-` 开头；必须保留真实格式时在该行加 `betterleaks:allow`。约定是固定的，写代码时不读扫描器配置；推送前由 gox-guard 0.1.3 的默认配置放行。
 - 规则直接写在提醒里，不做成技能，理由见 DESIGN「扫描器配置与误报处理」。模型是否照做未做评估。
 
 ### 0.9.0 — 2026-11-18

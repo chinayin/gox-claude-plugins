@@ -45,6 +45,13 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ## gox-guard
 
+### 0.1.3 — 2026-11-19
+
+- 新增技能 `secret-triage`：拦截后的裁定流程——取完整清单、查看被标记的行、真密钥与误报各自的处理、`.betterleaksignore` 的格式与读取位置、扫描器按设计忽略的夹具写法。Cursor 清单与 Pi 包同步声明 `skills/`；Pi 包版本未变。
+- 拦截文案：发现超过十条时附可直接复制的只读重扫命令（同一区间、保持脱敏）。误报出口去掉 `.betterleaks.toml`——betterleaks 1.10 不自动加载仓库内的 TOML，原文案会引导出无效修复；改为说明行内注释只对引入该行的提交有效，已提交的行用 fingerprint。
+- 不携带默认白名单，理由见 DESIGN「扫描器配置与误报处理」。
+- 新增真实 betterleaks 回归（未安装时跳过）：工作树中的 `.betterleaksignore` 能消除旧提交里的发现。技能触发率未做模型评估。
+
 ### 0.1.2 — 2026-11-09
 
 - 修复直接使用绝对 / 相对 Git 可执行文件路径时漏过扫描的问题；带引号及空格的路径仍按实际目录与源引用扫描，缺 jq 时也保守拒绝命中的 push。

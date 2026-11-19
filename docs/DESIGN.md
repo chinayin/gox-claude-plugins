@@ -28,6 +28,7 @@ plugins/
     .cursor-plugin/plugin.json
     hooks/                            # Claude 匹配 Bash；Cursor 匹配 Shell
     lib/                              # 共享仓库/源引用解析，不含平台协议
+    skills/secret-triage/             # 拦截后的发现裁定流程
     tests/
 templates/project-settings.json       # Claude 项目配置模板
 package.json                         # Pi 包：扩展和共享技能入口
@@ -105,11 +106,9 @@ docs/                                # 当前设计、兼容边界、第三方�
 
 没有自定义配置时使用 betterleaks 的内置规则。betterleaks 1.10 的 TOML 配置需显式指定，例如在 agent 进程环境中设置 `BETTERLEAKS_CONFIG=/绝对路径/.betterleaks.toml`；仅创建文件不会启用它。`.betterleaksignore` 从扫描目录读取。扫描器不在 PATH 时，可用 `GOX_GUARD_BIN` 指定绝对路径。
 
-拦截结果只返回脱敏后的规则、文件位置、提交与 fingerprint，最多十条。处理方式：
+拦截结果只返回脱敏后的规则、文件位置、提交与 fingerprint，最多十条；超出时附同一区间的只读重扫命令。裁定与处理步骤只维护在技能 `gox-guard/skills/secret-triage/SKILL.md`，拦截文案保留两句裁定规则并点名该技能；忽略文件与白名单的变更应随代码评审。
 
-- 真密钥：从相关提交中移除，并告知用户该值已进入本地历史、应轮换；不能将真密钥加入白名单。
-- 单行误报：在确认误报后添加 `# betterleaks:allow` 注释。
-- 已提交的误报：将 fingerprint 追加到 `.betterleaksignore`；反复出现的测试夹具等模式，可在显式启用的 TOML 配置中按路径或正则配置白名单。这些变更应随代码评审。
+插件不携带默认白名单：闸门始终使用 betterleaks 的内置规则，或用户显式指定的配置。占位符、格式动词这类确定性误报由各仓库按上述技能处理，规则缺口应向 betterleaks 上游反馈，避免闸门与仓库 CI 的结果分叉。
 
 执行 `git add` / `git commit` 后，再单独执行 `git push`，让扫描器看到最终提交。子模块逐个推送后，父仓库使用 `--recurse-submodules=no`。扫描范围与保守拒绝的命令形式见上文。
 

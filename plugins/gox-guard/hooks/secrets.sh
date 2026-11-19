@@ -26,7 +26,7 @@ MAX_FINDINGS=10
   MSG_NO_JQ='jq is not installed, so gox-guard cannot read hook input. Ask the user to run `brew install jq` (do not install it yourself).'
   MSG_NO_SCANNER='betterleaks is not installed. Ask the user to run `brew install betterleaks` (do not install it yourself).'
   MSG_BYPASS='Bypass only if the user explicitly asks: GOX_GUARD_SKIP=1.'
-  MSG_TRIAGE='Real secret: remove it from the commit(s), then tell the user to rotate it. False positive: `# betterleaks:allow` on that line, append its fp to `.betterleaksignore`, or for a recurring pattern add an allowlist to `.betterleaks.toml`. Never allowlist a real secret.'
+  MSG_TRIAGE='Real secret: remove it from the commit(s), then tell the user to rotate it. False positive: a `betterleaks:allow` comment on that line in the commit that adds it, or its fp in `.betterleaksignore` at the repo root when the line is already committed. Never allowlist a real secret. Steps: skill `secret-triage`.'
 }
 
 # `git [全局选项...] push`：git 与 push 之间只允许 - 开头的选项及其取值（-C dir、-c k=v），
@@ -129,14 +129,17 @@ $ERR
 Fix that (or ask the user to), then retry. $MSG_BYPASS" ;;
 esac
 
-# 报告干净时是 null，有发现时是数组。一行一条：规则 文件:行 @提交 fp=指纹；超过上限只报数量。
-# 只取定位字段，不回显 Secret / Match。
+# 报告干净时是 null，有发现时是数组。一行一条：规则 文件:行 @提交 fp=指纹；超过上限报数量，
+# 并附同一区间、同样脱敏的只读重扫命令。只取定位字段，不回显 Secret / Match。
+# shellcheck disable=SC2016
+LINE_FMT='"\(.RuleID)  \(.File):\(.StartLine)  @\(.Commit[0:8])  fp=\(.Fingerprint)"'
 COUNT="$(printf '%s' "$REPORT" | jq -r '(. // []) | length' 2>/dev/null || echo "?")"
 LIST="$(printf '%s' "$REPORT" | jq -r --argjson n "$MAX_FINDINGS" \
-  '(. // []) | .[:$n][] | "\(.RuleID)  \(.File):\(.StartLine)  @\(.Commit[0:8])  fp=\(.Fingerprint)"' 2>/dev/null || true)"
+  "(. // []) | .[:\$n][] | $LINE_FMT" 2>/dev/null || true)"
 MORE=""
 [ "$COUNT" != "?" ] && [ "$COUNT" -gt "$MAX_FINDINGS" ] 2>/dev/null && MORE="
-... and $((COUNT - MAX_FINDINGS)) more (run the scanner yourself for the full list)."
+... and $((COUNT - MAX_FINDINGS)) more. Full list (read-only):
+$(printf 'cd %q && %q' "$REPO" "$SCANNER") git . --log-opts=\"${RANGE[*]}\" --redact --no-banner --no-color --log-level error -r - -f json | jq -r '.[] | $LINE_FMT'"
 
 emit_deny "$COUNT potential secret(s) in $AHEAD pending commit(s).
 $LIST$MORE

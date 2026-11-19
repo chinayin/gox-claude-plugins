@@ -150,12 +150,17 @@ EOF
   reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
   # 一行一条：规则 文件:行 @提交 fp=指纹
   grep -qE '^aws-access-key +config.txt:3 +@01234567 +fp=0123456789abcdef:config.txt:aws-access-key:3$' <<<"$reason"
-  # 裁定规则：真密钥删除并轮换 / 误报三个出口 / 绝不加白真值
+  # 裁定规则：真密钥删除并轮换 / 误报两个出口 / 绝不加白真值；细则指向随插件发布的技能
   grep -q "rotate" <<<"$reason"
   grep -q "betterleaks:allow" <<<"$reason"
   grep -q ".betterleaksignore" <<<"$reason"
-  grep -q ".betterleaks.toml" <<<"$reason"
   grep -q "Never allowlist a real secret" <<<"$reason"
+  grep -q 'skill `secret-triage`' <<<"$reason"
+  [ -f "$BATS_TEST_DIRNAME/../skills/secret-triage/SKILL.md" ]
+  # betterleaks 1.10 不自动加载仓库里的 TOML，文案不能把它当成直接可用的出口
+  ! grep -q ".betterleaks.toml" <<<"$reason"
+  # 清单完整时不附重扫命令
+  ! grep -q "log-opts" <<<"$reason"
   # 有发现时不提逃生口
   ! grep -q "GOX_GUARD_SKIP" <<<"$reason"
   # 不回显 Secret 字段
@@ -173,6 +178,38 @@ EOF
   [ "$(grep -c '^generic-api-key ' <<<"$reason")" -eq 10 ]
   grep -q "and 4 more" <<<"$reason"
   grep -q "Push blocked: 14 potential secret" <<<"$reason"
+  # 截断时给出可直接复制的完整清单命令：同一区间、保持脱敏、不开在线验证，输出格式与上面一致
+  full="$(grep -- '--log-opts=' <<<"$reason")"
+  head="$(git -C "$REPO" rev-parse HEAD)"
+  [[ "$full" == *"--log-opts=\"$head --not --remotes\""* ]] || { echo "full=$full"; false; }
+  [[ "$full" == *"--redact"* ]]
+  [[ "$full" != *"--validation"* ]]
+  run env PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash -c "$full"
+  [ "$status" -eq 0 ] || { echo "full=$full output=$output"; false; }
+  [ "$(grep -c '^generic-api-key  f[0-9]*\.txt:1  @abcdef01  fp=' <<<"$output")" -eq 14 ] || { echo "output=$output"; false; }
+}
+
+@test "real scanner: a fingerprint in the working-tree .betterleaksignore clears a finding in an older pending commit" {
+  command -v betterleaks >/dev/null 2>&1 || skip "betterleaks is not installed on this machine"
+  printf 'package x\n\nvar c = cfg{Password: "fixture-password"}\n' > "$REPO/a_test.go"  # betterleaks:allow
+  git -C "$REPO" add a_test.go
+  git -C "$REPO" commit -qm fixture
+  git -C "$REPO" rm -q a_test.go
+  git -C "$REPO" commit -qm "drop fixture"
+  # 后续提交删掉该行不会消除发现：扫描读的是每个提交的 diff
+  run env PATH="/usr/bin:/bin:/opt/homebrew/bin:$(dirname "$(command -v betterleaks)")" bash "$HOOK" PreToolUse <<EOF
+{"tool_name":"Bash","cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  reason="$(echo "$output" | jq -er '.hookSpecificOutput.permissionDecisionReason')"
+  fp="$(sed -n 's/.* fp=//p' <<<"$reason")"
+  [[ "$fp" == *":a_test.go:generic-password:3" ]] || { echo "reason=$reason"; false; }
+  # ignore 文件取自工作树（未提交也生效），# 开头为注释
+  printf '# verified fixture\n%s\n' "$fp" > "$REPO/.betterleaksignore"
+  run env PATH="/usr/bin:/bin:/opt/homebrew/bin:$(dirname "$(command -v betterleaks)")" bash "$HOOK" PreToolUse <<EOF
+{"tool_name":"Bash","cwd":"$REPO","tool_input":{"command":"git push"}}
+EOF
+  [ "$status" -eq 0 ]
+  [ -z "$output" ] || { echo "output=$output"; false; }
 }
 
 @test "scanner failure (unexpected exit code) denies with the error, not a silent allow" {

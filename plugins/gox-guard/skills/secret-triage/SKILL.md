@@ -1,6 +1,6 @@
 ---
 name: secret-triage
-description: Triage findings from the gox-guard secrets gate or any betterleaks scan — decide real secret vs false positive and clear each one the right way. Use when a `git push` is blocked with `[gox-guard/secrets]`, when a betterleaks scan reports findings, or when the task involves `.betterleaksignore`, `betterleaks:allow`, or a betterleaks allowlist.
+description: Triage betterleaks findings — decide real secret vs false positive and clear each one the right way. Use when a `git push` is blocked with `[gox-guard/secrets]`, a betterleaks scan reports findings, or the task involves `.betterleaksignore`, `betterleaks:allow`, or a betterleaks allowlist.
 ---
 
 # Secret Finding Triage
@@ -16,9 +16,25 @@ candidate secret to the vendor's API).
 
 ## 2. Judge each finding
 
-Read the flagged line: `git show <commit>:<file> | sed -n '<line>p'`. This prints the value into
-the transcript, which is why the gate redacts — so if it looks real, do not repeat it in replies,
-commit messages, or files.
+Read every flagged line in one command, run from the repo root, with the fingerprints pasted in:
+
+```bash
+while IFS=: read -r commit rest; do
+  line="${rest##*:}"; file="${rest%:*:*}"
+  printf '%s:%s\t%s\n' "$file" "$line" "$(git show "$commit:$file" | sed -n "${line}p")"
+done <<'EOF'
+<fingerprints, one per line>
+EOF
+```
+
+This prints the values into the transcript, which is why the gate redacts — so if one looks real,
+do not repeat it in replies, commit messages, or files.
+
+With more than about five findings and a cheaper subagent available, hand it this step: give it
+the fingerprints and the command, and ask for one line per finding — fingerprint, verdict (`real`,
+`false positive`, `unsure`), reason, never the value. Count `unsure` as real. Prefer a mid-tier
+model over the cheapest: a real secret passed off as a false positive is the costly mistake. What
+to ignore and what to rewrite stays your decision.
 
 - **Real, or you cannot tell**: a provider-format token, a random-looking value, a password next
   to a real host or account. Treat "cannot tell" as real and ask the user.
@@ -48,17 +64,19 @@ The path is not evidence. Real secrets get pasted into tests and READMEs; judge 
 `fp=`; lines starting with `#` are comments — use one to say what was verified, in words: a
 comment that quotes the flagged line gets the ignore file's own commit flagged. The scanner reads
 it from the working tree, not from the commits being pushed, so it covers findings in older
-commits. Commit it so teammates and CI see the same result. A fingerprint embeds the commit ID:
-finish any amend or rebase before collecting fingerprints.
+commits — push from a checkout that contains it. Commit it so teammates and CI see the same
+result. A fingerprint embeds the commit ID: finish any amend or rebase before collecting
+fingerprints. An entry clears exactly one finding; the same value in a new commit is flagged again.
 
 **Forms ignored by design** (checked against betterleaks 1.10.1; re-check after an upgrade):
 passwords written as `<password>`, `${PASSWORD}`, or `your-password`; credential URLs whose host is
 under `example.com` / `example.org` / `example.net`. Still reported: `REPLACE`, `CHANGEME`,
 `replace-me`, and hosts under `.invalid` or `.test`.
 
-**Config allowlist**: betterleaks 1.10 does not load a repo's `.betterleaks.toml` by itself; it
-takes effect only when `BETTERLEAKS_CONFIG` points at it in the agent's environment. The file must
-start with `[extend]` / `useDefault = true`, and an allowlist should match the value
+**Config allowlist**: a `.betterleaks.toml` clears a pattern, in future commits too — and can
+just as easily switch detection off, so betterleaks 1.10 does not load it from the repo by itself.
+It takes effect only when `BETTERLEAKS_CONFIG` points at it in the agent's environment. The file
+must start with `[extend]` / `useDefault = true`, and an allowlist should match the value
 (`regexTarget = "secret"`), not a path.
 
 ## 5. Push again

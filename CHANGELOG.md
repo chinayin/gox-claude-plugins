@@ -50,6 +50,12 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ## gox-guard
 
+### 0.1.5 — 2026-11-26
+
+- SessionStart 在依赖齐全时不再静默，改为给模型一句话：`git push` 单独执行，前面不要接别的命令。push 之前的组合命令必须拒绝（扫描发生在命令执行之前），模型不知道这一点时每次推送都要被拒一次再重试。这一句含前缀共 137 个字符，每个会话都会带上。
+- Haiku 评估（推送被拦的场景）：加提示前两轮共 6 个会话有 7 次形式拒绝，加提示后 5 个会话 0 次；`secret-triage` 的加载和处理结果不变。
+- Cursor 的 sessionStart 同样带上这一句。pi 的扩展只在缺依赖时通知用户，这一句不转给用户，也暂未注入给模型。
+
 ### 0.1.4 — 2026-11-26
 
 - 推送命令后面的输出重定向和后续命令不再导致拒绝：`git push origin main 2>&1`、`git push ... 2>&1; git status`、`git push ... | tail -5` 这类写法只解析开头的 push 一段，照常扫描。此前这些写法一律被形式检查拦下，模型要改成单独的 `git push` 重试一次（Haiku 评估中 3/3 的会话都多了这一个来回）。

@@ -2,7 +2,8 @@
 // stdin 形状交给插件的 hooks/secrets.sh，再把它的输出翻译回 pi。扫描逻辑、正则、文案只在脚本里一份。
 // 依赖是单向的：脚本不知道 pi 存在，pi 只按 Claude hook 的输入输出约定调用它；约定一旦变化，
 // tests/pi/gox-guard.test.mjs 会失败。
-//   session_start → secrets.sh SessionStart，缺依赖时提示用户
+//   session_start → secrets.sh SessionStart，缺依赖时提示用户（依赖齐全时脚本给模型的那句
+//                   push 提示不转给用户；pi 这边暂不注入给模型）
 //   tool_call(bash) → secrets.sh PreToolUse，deny 即 { block: true, reason }
 // 不 catch 脚本调用失败：pi 在 tool_call handler 出错时会拦下这次调用，与脚本的 fail-closed 一致。
 import { execFile } from "node:child_process";
@@ -18,7 +19,7 @@ const TIMEOUT_MS = 90_000;
 export default function goxGuardPiExtension(pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		const message = (await runHook("SessionStart", ""))?.additionalContext;
-		if (message && ctx.hasUI) ctx.ui.notify(message, "warning");
+		if (message?.includes("not installed") && ctx.hasUI) ctx.ui.notify(message, "warning");
 	});
 
 	pi.on("tool_call", async (event, ctx) => {

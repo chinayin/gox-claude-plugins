@@ -50,6 +50,11 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ## gox-guard
 
+### 0.1.4 — 2026-11-26
+
+- 推送命令后面的输出重定向和后续命令不再导致拒绝：`git push origin main 2>&1`、`git push ... 2>&1; git status`、`git push ... | tail -5` 这类写法只解析开头的 push 一段，照常扫描。此前这些写法一律被形式检查拦下，模型要改成单独的 `git push` 重试一次（Haiku 评估中 3/3 的会话都多了这一个来回）。
+- 范围保持收紧：重定向只认 `2>&1` 和指向 `/dev/null` 的；后续命令须由 `;`、`&&`、`|` 引出，且不含 `push`。第二次 push、重定向到文件、后台执行、push 之前的组合命令仍然拒绝。
+
 ### 0.1.3 — 2026-11-19
 
 - 新增技能 `secret-triage`：拦截后的裁定流程——取完整清单、查看被标记的行、真密钥与误报各自的处理、`.betterleaksignore` 的格式与读取位置、`.betterleaks.toml` 中 mock 约定的写法（顶层 `filter`，须在 `[extend]` 之前）。一条命令批量查看全部被标记的行；发现较多时把逐条判断交给便宜的子代理，取舍仍由主代理决定。Cursor 清单与 Pi 包同步声明 `skills/`；Pi 包版本未变。
@@ -91,6 +96,10 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
   marketplace。
 
 ## gox-code-rules
+
+### 0.10.2 — 2026-11-26
+
+- 会话提醒、子代理提醒和 pi 扩展里 `go` 的路由改为以 Go 代码为前提：配置、环境变量、密钥只在"Go 代码读取它们"时才指向 `go`，并写明没有 Go 改动的配置文件不需要技能。此前这三项与 Go 代码并列，写 compose 或 `.env.example` 也会加载 `go`（Haiku 评估中 3/3）。评估结果见 `tests/evals/mock-secret/README.md`。
 
 ### 0.10.1 — 2026-11-26
 

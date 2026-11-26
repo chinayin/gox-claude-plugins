@@ -34,3 +34,21 @@ Three sessions per arm.
   file and none of the scaffold files. The reminder routes "configuration, environment variables,
   or secrets" to `go`; for a compose file that is a skill body read for nothing.
 - `seed-script` loaded `shell` only.
+
+## Observation: 2026-11-26, after the `go` route was narrowed (plugin 0.10.2)
+
+The reminder now sends configuration, environment variables and secrets to `go` only when Go code
+loads them, and says a config file with no Go change needs no skill. Same model, three sessions
+per row.
+
+| What ran | `go` loaded | `scaffold` loaded | Result |
+|---|---|---|---|
+| `compose-env` with the plugin | 0/3 (was 3/3) | 0/3 (was 2/3) | 3/3 passed all checks, with no skill loaded |
+| The `compose-env` prompt as a trigger query | 0/3 | 1/3 | — |
+| "Write a `config.example.yaml`" as a trigger query | 0/3 | 0/3 | — |
+| Five Go tasks as trigger queries: the three `go` rows of `scaffold/triggers.tsv`, reading `PORT` from the environment, reading an API token from config | 15/15, `go` alone | 0/15 | — |
+
+- The rule holds without any skill: the `mock-` line is in the reminder itself.
+- A compose session cost about a quarter less than before (mean $0.0071 against $0.0095).
+- The trigger queries beyond the three existing `go` rows were run from a scratch file and are not
+  in a `triggers.tsv`.

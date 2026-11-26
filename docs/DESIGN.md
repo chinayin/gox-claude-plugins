@@ -90,7 +90,7 @@ docs/                                # 当前设计、兼容边界、第三方�
 
 ## secrets 闸门
 
-`gox-guard/hooks/secrets.sh` 在 `SessionStart` 检查 jq、betterleaks；在 `PreToolUse` 的 Bash 调用中匹配 `git … push`，扫描待推送提交。
+`gox-guard/hooks/secrets.sh` 在 `SessionStart` 检查 jq、betterleaks，依赖齐全时给模型一句"push 单独执行"的提示；在 `PreToolUse` 的 Bash 调用中匹配 `git … push`，扫描待推送提交。
 
 - 直接 Git 调用支持裸 `git` 和末段为 `git` 的字面量路径，包括带空格的引用路径。预筛命中后，`literal-args.jq` 仅为完整的 `echo` / `cat` / `grep` / `rg` 字面量参数、`printf` 的普通文字与 `%s` / `%%` 输出，以及单个 `cat <<'DELIM'` 引用 heredoc 确认文本放行。`printf -v` / `%n`、`rg --pre` / `--hostname-bin` 等可能执行或求值的形式不在此范围。未知程序、组合命令和 shell 展开继续保守检查，不执行输入命令。
 - `lib/literal-args.jq` 只分词字面量参数；`lib/push-scope.sh` 解析 `cd '<repo>' &&`、重复 `-C`、显式源引用和默认 push 配置。源引用解析成提交 ID；`--all`、`--tags`、`--mirror` 分别选分支、tag、全部引用。matching 保守选全部本地分支。最终统一追加 `--not --remotes`，仍按本地远端跟踪引用排除已推送提交，不执行 fetch。

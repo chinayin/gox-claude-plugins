@@ -371,11 +371,17 @@ EOF
   [ "${#ctx}" -lt 300 ] || { echo "context too long: ${#ctx}"; false; }
 }
 
-@test "SessionStart with betterleaks present: silent (no tokens spent)" {
+@test "SessionStart with betterleaks present: one short line telling the model to push in a command of its own" {
   stub_betterleaks 0
-  run env PATH="$STUB_DIR:/usr/bin:/bin" bash "$HOOK" SessionStart
+  run env PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$HOOK" SessionStart
   [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
+  ctx="$(echo "$output" | jq -er '.hookSpecificOutput.additionalContext')"
+  grep -qF 'Run `git push` as its own command' <<<"$ctx"
+  grep -q "nothing chained before it" <<<"$ctx"
+  # 每个会话都会付这一句的开销，必须短；也不能和缺依赖的提示混在一起
+  [ "${#ctx}" -lt 160 ] || { echo "context too long: ${#ctx}"; false; }
+  ! grep -q "not installed" <<<"$ctx"
 }
 
 # ---------- 退出码 ----------

@@ -3,7 +3,8 @@
 # 的那段提交；有发现就拒绝这次 push。不碰 commit，不写用户 repo，不安装任何东西。
 #
 # 事件名由 hooks.json 以 $1 传入：
-#   SessionStart —— 检查依赖（jq、betterleaks），缺失时提示一句，齐全时零输出。
+#   SessionStart —— 检查依赖（jq、betterleaks），缺失时提示一句；齐全时只说一句 push 要单独执行，
+#                   省掉"push 前接了别的命令 → 被拒 → 重试"的那个来回。
 #   PreToolUse   —— 从 stdin 的 hook 输入取 Bash 命令与 cwd，命中 push 才扫描。
 #
 # 退出码永远 0（hook 非零会干扰会话）。拦截写在 stdout，不靠退出码。
@@ -25,6 +26,7 @@ MAX_FINDINGS=10
 {
   MSG_NO_JQ='jq is not installed, so gox-guard cannot read hook input. Ask the user to run `brew install jq` (do not install it yourself).'
   MSG_NO_SCANNER='betterleaks is not installed. Ask the user to run `brew install betterleaks` (do not install it yourself).'
+  MSG_PUSH_ALONE='Run `git push` as its own command, with nothing chained before it: the pending commits are scanned for secrets first.'
   MSG_BYPASS='Bypass only if the user explicitly asks: GOX_GUARD_SKIP=1.'
   MSG_EMPTY_CONFIG='`.betterleaks.toml` has neither `[[rules]]` nor `[extend]`, so the scan would check nothing. It needs `[extend]` with `useDefault = true`; ask the user before changing scanner config.'
   MSG_TRIAGE='Real secret: remove it from the commit(s), then tell the user to rotate it. False positive: a `betterleaks:allow` comment on that line in the commit that adds it, or its fp in `.betterleaksignore` at the repo root when the line is already committed. Never allowlist a real secret. Steps: skill `secret-triage`.'
@@ -71,7 +73,7 @@ command -v jq >/dev/null 2>&1 && HAVE_JQ=1
 if [ "$EVENT" = "SessionStart" ]; then
   [ "$HAVE_JQ" -eq 1 ] || emit_context SessionStart "This session blocks \`git push\` until its secret scan can run. $MSG_NO_JQ"
   find_scanner >/dev/null || emit_context SessionStart "This session scans pending commits for secrets before \`git push\`; pushes are blocked until the scanner is present. $MSG_NO_SCANNER"
-  exit 0
+  emit_context SessionStart "$MSG_PUSH_ALONE"
 fi
 
 # ---------- PreToolUse ----------

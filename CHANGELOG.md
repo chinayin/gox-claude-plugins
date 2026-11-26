@@ -100,7 +100,8 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
   - `.gitignore` 补 CI 写进工作区的 `dist/`、`.cache/`、`.go/`、`.go-build.json`，以及 agent 工具目录和 `/local/`。
   - 新增 GitLab CI 规则：流水线从共享模板的示例复制；CI 镜像预装工具，job 内不安装，项目的版本文件跟随镜像。
   - tag：部署类服务用 `vYY.M.D[-N]`，工具与库用 SemVer。GitHub workflow 加 `permissions`、`concurrency`、`timeout-minutes`，action 大版本更新到当前值。
-- `go` 规则补充：`go.mod` 只写小版本（`go 1.26.0`），不写后续补丁版本和 `toolchain` 行；版本变量固定在 `main` 包。
+- `go` 规则补充：`go.mod` 只写小版本（`go 1.26.0`），不写后续补丁版本和 `toolchain` 行；`go 1.26` 虽合法，但依赖声明 `go 1.26.0` 时 `go mod tidy` 会改写它，所以直接写 `.0`。版本变量固定在 `main` 包。
+- Makefile 骨架（`.DEFAULT_GOAL`、`help`、`.PHONY` 约定）只在 `scaffold` 的 `SKILL.md` 写一份，`go.md` / `shell.md` 只加各自目标；`go` 技能 `cli.md` 删掉重复的 `LDFLAGS` 片段，`rules.md` 删掉重复的根文件清单，均指向 `scaffold`。
 - SessionStart / SubagentStart 提醒及 pi 扩展各加一条 `scaffold` 路由，`go` 那条去掉 "project scaffolding"。
 - 模板验证范围：Makefile 的 `build` / `lint` / `release` / `clean` / `check` / `docker`、`.golangci.yml` 的三个阈值、`.goreleaser.yaml` 与 Dockerfile 在临时 Go 项目里跑通（golangci-lint 2.15.0、goreleaser 2.20.3，两个工具均由 `make install-tools` 下载到 `./bin`）。GitLab 规则依赖的共享模板改动尚未提交。
 - `tests/evals/` 增加 `scaffold`：两个用例（GitLab 上的 Go 服务补发版文件、GitHub 上的 Go 库加 CI）和一份触发提问表；`run-trigger.sh` 改为跟踪 `go` / `shell` / `bashly` / `scaffold` 四个技能，`go` 与 `shell` 要求只加载自己。首轮结果（Haiku，用例为单次样本）见 `tests/evals/scaffold/README.md`：触发 36/36，用例带插件 14/14、11/11，基线 5/13、9/10。提醒里 `scaffold` 一行按复测结果改过两次措辞，"发布脚本"仍偶尔连带加载 `scaffold`。

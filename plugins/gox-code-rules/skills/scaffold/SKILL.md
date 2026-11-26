@@ -106,7 +106,19 @@ tracked directory deeper in the tree may still be called `local`.
 
 ## Makefile
 
-Every repo has a `Makefile` with at least these targets; the language references give the recipes.
+Every repo's `Makefile` starts from this skeleton; the language references add their targets to
+it and list them in `.PHONY`.
+
+```makefile
+.DEFAULT_GOAL := help
+.PHONY: help
+
+help: ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-13s - %s\n", $$1, $$2}'
+```
+
+At least these targets exist:
 
 | Target | Does |
 |---|---|
@@ -115,6 +127,7 @@ Every repo has a `Makefile` with at least these targets; the language references
 | `lint` | Runs the static checks |
 | `check` | Everything to run before a commit — CI runs the same thing |
 
+- Every target is listed in `.PHONY`.
 - Every public target carries a `## ` comment; internal ones (`ensure-*`) omit it and stay out of
   `help`.
 - Recipes are prefixed with `@`.

@@ -89,10 +89,11 @@ formatters:
 
 ## Makefile
 
-`APP` and the `cmd/` path are the project's own; the rest is the standard.
+Added to the skeleton in `SKILL.md` → "Makefile". `APP` and the `cmd/` path are the project's own;
+the rest is the standard.
 
 ```makefile
-.PHONY: help build run clean test lint lint-fix fmt check release docker install-tools ensure-lint ensure-goreleaser
+.PHONY: build run clean test lint lint-fix fmt check release docker install-tools ensure-lint ensure-goreleaser
 
 APP     := <app>
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -109,10 +110,6 @@ KEEP_TOOLS         := golangci-lint goreleaser
 
 # distroless images live on gcr.io; CI passes its own registry mirror instead
 DOCKER_MIRROR ?= gcr.io/
-
-help: ## Show help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-13s - %s\n", $$1, $$2}'
 
 build: clean ## Compile
 	@go build -trimpath -ldflags "$(LDFLAGS)" -o bin/$(APP) ./cmd/$(APP)

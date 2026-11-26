@@ -6,13 +6,10 @@ skill's; this file covers only what surrounds them.
 
 ## Makefile
 
-```makefile
-.DEFAULT_GOAL := help
-.PHONY: help test lint check
+Added to the skeleton in `SKILL.md` → "Makefile":
 
-help: ## Show help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-13s - %s\n", $$1, $$2}'
+```makefile
+.PHONY: test lint check
 
 test: ## Run the offline tests
 	@bash test.sh

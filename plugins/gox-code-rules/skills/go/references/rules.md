@@ -14,7 +14,8 @@ docs file naming).
 - Go version: Go 1.26+ for all projects (services, apps, and public libraries). `go.mod` states
   that minimum by minor only — `go 1.26.0`, never a later patch, and no `toolchain` line. A patch
   there forces every machine, CI image and lint binary up to it; the patch release comes from the
-  build environment instead.
+  build environment instead. `go 1.26` is also valid, but `go mod tidy` rewrites it to
+  `go 1.26.0` as soon as a dependency declares that, so write the `.0` form from the start.
 - Logging: Initialize at entry point with gox/log, use log/slog in business code (see Logging section)
 - JSON struct tags: snake_case (`json:"user_id"`)
 - Protobuf fields: snake_case
@@ -149,8 +150,7 @@ log, config, discovery, trace, metrics, middleware, transport, utils
 
 ## Scaffold Files (MUST)
 
-Every Go project root must have: `.editorconfig`, `.gitignore`, `Makefile`, `.golangci.yml`,
-`.golangci-lint-version`. Templates, CI, release packaging and tags: the `scaffold` skill.
+The required root files, their templates, CI, release packaging and tags: the `scaffold` skill.
 
 ## Documentation (MUST)
 

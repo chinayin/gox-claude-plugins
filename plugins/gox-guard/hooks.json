@@ -1,0 +1,22 @@
+{
+  "gox-guard": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "bash ./hooks/secrets.sh SessionStart </dev/null | jq -c '{injectSteps: [{systemMessage: {systemMessage: .hookSpecificOutput.additionalContext}}]}' 2>/dev/null; exit 0"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./hooks/secrets-antigravity.sh",
+            "timeout": 90
+          }
+        ]
+      }
+    ]
+  }
+}

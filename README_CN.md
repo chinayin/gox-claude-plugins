@@ -1,6 +1,6 @@
 # gox-claude-plugins
 
-面向 Claude Code、Codex、Pi 和 Cursor 的团队代码规范、子代理与推送前密钥检查。
+面向 Claude Code、Codex、Pi、Cursor 和 Antigravity CLI 的团队代码规范、子代理与推送前密钥检查。
 
 [English](README.md)
 
@@ -72,6 +72,15 @@ cursor-agent plugin marketplace add https://github.com/chinayin/gox-claude-plugi
 3. 为每个插件选择 user 或 project 范围。安装后即加载，无需额外启用。
 
 仅添加 marketplace 不会安装插件。IDE 安装与排障见 [Cursor 说明](docs/CURSOR.md#安装)。
+
+## 安装到 Antigravity CLI
+
+```sh
+agy plugin install https://github.com/chinayin/gox-claude-plugins/tree/main/plugins/gox-code-rules
+agy plugin install https://github.com/chinayin/gox-claude-plugins/tree/main/plugins/gox-guard
+```
+
+重新执行同一命令即更新。`token-thrift` 的子代理按 Claude 模型分档，不支持 Antigravity。agy 没有 SubagentStart 事件，子代理只靠任务 brief 获得规范。已在 agy 1.5.18 实测会话提醒注入和含密钥的 push 拦截。
 
 ## 文档
 

@@ -1,6 +1,6 @@
 # gox-claude-plugins
 
-Team coding skills, subagents, and pre-push secret checks for Claude Code, Codex, Pi, and Cursor.
+Team coding skills, subagents, and pre-push secret checks for Claude Code, Codex, Pi, Cursor, and Antigravity CLI.
 
 [中文说明](README_CN.md)
 
@@ -75,6 +75,15 @@ In the `cursor-agent` session:
 3. Choose user or project scope for each plugin. Installation loads the plugin; no separate enable step is needed.
 
 Adding the marketplace alone does not install its plugins. See [Cursor setup](docs/CURSOR.md#安装) for IDE installation and troubleshooting.
+
+## Install in Antigravity CLI
+
+```sh
+agy plugin install https://github.com/chinayin/gox-claude-plugins/tree/main/plugins/gox-code-rules
+agy plugin install https://github.com/chinayin/gox-claude-plugins/tree/main/plugins/gox-guard
+```
+
+Run the same command again to update. `token-thrift` tiers its subagents by Claude model and does not support Antigravity. agy has no SubagentStart event, so subagents get the standards only from their brief. Session reminders and blocking a push that contains a secret are verified on agy 1.5.18.
 
 ## Documentation
 

@@ -1,0 +1,10 @@
+{
+  "gox-code-rules": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "bash ./hooks/session-nudge.sh SessionStart </dev/null | jq -c '{injectSteps: [{systemMessage: {systemMessage: .hookSpecificOutput.additionalContext}}]}' 2>/dev/null; exit 0"
+      }
+    ]
+  }
+}

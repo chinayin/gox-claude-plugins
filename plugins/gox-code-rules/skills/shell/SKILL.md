@@ -13,7 +13,8 @@ Conventions for writing shell scripts in this repo, distilled from mature high-s
 "Status output").**
 
 A project that has a `bashly.yml`, or that the user asked to build with bashly, follows the `bashly`
-skill for its `src/` files; do not pick bashly on your own.
+skill for its `src/` files; do not pick bashly on your own. What surrounds the scripts — the
+`Makefile`, CI, `.editorconfig`, release tags — follows the `scaffold` skill.
 
 ## Core rules
 

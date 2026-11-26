@@ -1,6 +1,6 @@
 # Cursor 安装、模型分档与共享边界
 
-更新：2026-11-08。本文记录当前实现和自动化验证范围；Cursor 客户端验收尚未完成。总览见 [README](../README.zh-CN.md)，另见 [Codex](CODEX.md)、[Pi](PI.md)。
+更新：2026-11-08。本文记录当前实现和自动化验证范围；Cursor 客户端验收尚未完成。总览见 [README](../README_CN.md)，另见 [Codex](CODEX.md)、[Pi](PI.md)。
 
 ## 安装
 

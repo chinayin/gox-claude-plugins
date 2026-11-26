@@ -32,9 +32,10 @@ fi
 if [ "$EVENT" = "SessionStart" ]; then
   MSG=$(cat <<'EOF'
 [gox-code-rules] This repo follows team engineering standards, delivered as Agent Skills (the rules live inside the skills, not here). Before writing or designing code — including small changes — invoke the skill for the kind of file you will touch (usually exactly one):
-- Go code; CLI flags; configuration, environment variables, or secrets; DB migrations; project scaffolding -> the `gox-code-rules:go` skill.
+- Go code; CLI flags; configuration, environment variables, or secrets; DB migrations -> the `gox-code-rules:go` skill.
 - Shell/bash scripts (.sh/.bash files, CLI/helper/CI scripts, flag parsing, stdout/stderr, exit codes) -> the `gox-code-rules:shell` skill.
 - A bashly CLI (the project has a `bashly.yml`, or the user asks for bashly) -> the `gox-code-rules:bashly` skill; do not pick bashly on your own.
+- Repo-level files (Makefile, Dockerfile, .gitignore, .editorconfig, .golangci.yml, .goreleaser.yaml, .gitlab-ci.yml, .github/workflows), setting up a new project or CI, packaging a release, choosing a tag, pinning or upgrading a build tool (golangci-lint, goreleaser) -> the `gox-code-rules:scaffold` skill; a script stays with `shell`.
 - Agent Skills (a SKILL.md, its frontmatter, references/ or scripts/) -> the `gox-code-rules:skill` skill.
 - `gox-code-rules:engineering` (think before coding, simplicity first, surgical changes) only when planning a multi-file change, a refactor, or a design — not for a one-file edit.
 - Also: write every fake password, token or key, in any file, with a `mock-` prefix (`mock-password`, `mock-token-1`) so the secret scan before push passes it; if the value must keep a real format, add a `betterleaks:allow` comment on that line instead.
@@ -46,7 +47,7 @@ EOF
 )
 else
   MSG=$(cat <<'EOF'
-[gox-code-rules] This repo follows team engineering standards, delivered as Agent Skills. Your brief should already state the standards that apply — follow it. Invoke a skill only if the brief names none and you will write code: Go code, configuration, or DB migrations -> the `gox-code-rules:go` skill; shell/bash scripts -> the `gox-code-rules:shell` skill; a project with a `bashly.yml` -> the `gox-code-rules:bashly` skill; a SKILL.md -> the `gox-code-rules:skill` skill. Write every fake password, token or key with a `mock-` prefix (`mock-password`). Do not invoke `gox-code-rules:engineering` or any skill for files you are not touching. If the Skill tool is unavailable, read the relevant installed SKILL.md and needed references; use its bare name when the host omits the plugin prefix. If skills are unavailable, follow your brief.
+[gox-code-rules] This repo follows team engineering standards, delivered as Agent Skills. Your brief should already state the standards that apply — follow it. Invoke a skill only if the brief names none and you will write code: Go code, configuration, or DB migrations -> the `gox-code-rules:go` skill; shell/bash scripts -> the `gox-code-rules:shell` skill; a project with a `bashly.yml` -> the `gox-code-rules:bashly` skill; a Makefile, Dockerfile or CI file -> the `gox-code-rules:scaffold` skill; a SKILL.md -> the `gox-code-rules:skill` skill. Write every fake password, token or key with a `mock-` prefix (`mock-password`). Do not invoke `gox-code-rules:engineering` or any skill for files you are not touching. If the Skill tool is unavailable, read the relevant installed SKILL.md and needed references; use its bare name when the host omits the plugin prefix. If skills are unavailable, follow your brief.
 EOF
 )
 fi

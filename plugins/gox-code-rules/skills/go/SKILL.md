@@ -1,6 +1,6 @@
 ---
 name: go
-description: Team Go microservice architecture and coding standards. Use this whenever designing or writing Go code in this repo — HTTP services and handlers (gin), CLI commands (cobra), configuration (gox/config), database migrations (goose), or project scaffolding (Makefile/CI). Consult it any time you touch Go code or plan a Go module — including small changes like reading a single environment variable, secret, or config value — even if the user never says "standards".
+description: Team Go microservice architecture and coding standards. Use this whenever designing or writing Go code in this repo — HTTP services and handlers (gin), CLI commands (cobra), configuration (gox/config), or database migrations (goose). Consult it any time you touch Go code or plan a Go module — including small changes like reading a single environment variable, secret, or config value — even if the user never says "standards".
 paths: "**/*.go, go.mod, go.work, go.sum"
 ---
 
@@ -20,7 +20,9 @@ Follow team conventions when writing or designing Go code in this repo. **Reply 
 | Configuration loading (`config/**`, `main.go`/`config.go`, `bootstrap/`, gox/config) | `references/config.md` |
 | Database migrations / schema (`migrations/`, `dbmigrate/`, `store.go`, `*migrate*`, `*migration*`, `*schema*`, goose) | `references/db-migrations.md` |
 | Time **persisted or crossing a system boundary**: time/date columns (`DATETIME` vs epoch), GORM `autoCreateTime`/`autoUpdateTime`, DSN `loc`/`time_zone`, parsing external timestamps, time fields in API contracts, daily cutoff / timezone logic. In-process time (durations, timers, `time.Since`, sleeps) does NOT need this | `references/time-and-timezone.md` |
-| Project scaffolding (`Makefile`, `.gitignore`, `.editorconfig`, `.golangci-lint-version`, `.github/workflows/*.yml`) | `references/scaffold.md` |
+
+Repo-level files are not in this skill: `Makefile`, `.golangci.yml`, the version dotfiles, CI,
+`.goreleaser.yaml`, `Dockerfile` and release tags follow the `scaffold` skill.
 
 ## Core rules (highest priority; details in rules.md)
 

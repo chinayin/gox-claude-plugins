@@ -37,6 +37,9 @@ setup() {
   grep -q "gox-code-rules:go" <<<"$ctx"
   grep -q "gox-code-rules:shell" <<<"$ctx"
   grep -q "gox-code-rules:bashly" <<<"$ctx"
+  grep -q "gox-code-rules:scaffold" <<<"$ctx"
+  # 仓库级文件归 scaffold，go 那一行不再认领
+  ! grep -q "project scaffolding" <<<"$ctx"
   grep -q "gox-code-rules:skill\`" <<<"$ctx"
   grep -q "gox-code-rules:engineering" <<<"$ctx"
   # mock 密钥的写法是固定约定，直接写在提醒里：mock- 前缀，与 gox-guard 的默认扫描配置对应
@@ -63,6 +66,7 @@ setup() {
   grep -q "gox-code-rules:go" <<<"$ctx"
   grep -q "gox-code-rules:shell" <<<"$ctx"
   grep -q "gox-code-rules:bashly" <<<"$ctx"
+  grep -q "gox-code-rules:scaffold" <<<"$ctx"
   grep -q "gox-code-rules:skill\`" <<<"$ctx"
   grep -qF 'with a `mock-` prefix' <<<"$ctx"
   grep -q "Do not invoke \`gox-code-rules:engineering\`" <<<"$ctx"

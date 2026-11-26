@@ -1,0 +1,9 @@
+# Build output (includes the golangci-lint binary downloaded by `make lint`)
+bin/
+
+# Local config overrides
+config/*.local.yaml
+.env
+
+# macOS
+.DS_Store

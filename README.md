@@ -2,13 +2,13 @@
 
 Team coding skills, subagents, and pre-push secret checks for Claude Code, Codex, Pi, and Cursor.
 
-[中文说明](README.zh-CN.md)
+[中文说明](README_CN.md)
 
 ## Plugins
 
 | Plugin | Purpose |
 |---|---|
-| `gox-code-rules` | Go, Shell, skill authoring, and general engineering standards. |
+| `gox-code-rules` | Go, Shell, repository scaffold (Makefile, CI, release), skill authoring, and general engineering standards. |
 | `token-thrift` | Delegate large reads and reliable writes to subagents, keeping the main context lean. Supports Claude Code, Cursor, and Codex with selectable subagent models. |
 | `gox-guard` | Scan commits before supported agent push operations and block pushes that contain secrets. |
 | `diagram-design` | Optional third-party diagram plugin. See [details](docs/THIRD_PARTY.md). |

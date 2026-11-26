@@ -138,9 +138,10 @@ var (
 )
 ```
 
-```makefile
-LDFLAGS = -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
-```
+The three variables live in package `main`, under exactly these names — the `Makefile` and
+`.goreleaser.yaml` templates (the `scaffold` skill) inject them. Move them into another package
+only when code outside `main` has to read the version, and then pass the values down from `main`
+where that is enough.
 
 ## Error Handling
 

@@ -1,0 +1,22 @@
+variables:
+  GO_VERSION: "1.26.10"
+  IMAGE_REPOSITORY: ${CC_REGISTRY_NAME}/deploy-go/demo-svc
+
+include:
+  - project: 'platform/ci-templates'
+    file:
+      - '/gitlab-ci-templates/jobs/go-lint.yml'
+      - '/gitlab-ci-templates/jobs/go-test.yml'
+      - '/gitlab-ci-templates/jobs/go-build.yml'
+      - '/gitlab-ci-templates/jobs/docker-build.yml'
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "uat"
+
+stages:
+  - check
+  - build
+  - docker_build

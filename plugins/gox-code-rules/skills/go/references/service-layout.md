@@ -1,7 +1,7 @@
 # Project Layout, Protobuf, gRPC Client
 
 Companion to `references/rules.md`. Read when starting or restructuring a project,
-defining Protobuf schemas, writing a gRPC client, or naming project documentation.
+defining Protobuf schemas, or writing a gRPC client.
 Wire contracts for HTTP (RESTful, versioning, unified body, health probes) stay in
 `rules.md` → "API Design" / "Microservice Governance"; handler-level rules are in
 `references/http.md`.
@@ -17,7 +17,7 @@ internal/<app>/       - core business logic
   errors.go           - package errors
   types.go            - shared types
 config/               - config files (config.local.yaml gitignored)
-docs/                 - project documentation (UPPER_SNAKE_CASE.md)
+docs/                 - project documentation (naming: the scaffold skill)
 bin/                  - build output (gitignored)
 ```
 
@@ -38,7 +38,7 @@ internal/
 ```
 
 For CLI-specific conventions (framework, subcommands, flags, version injection, local config repository), see `references/cli.md`.
-For the mandatory root files (`.editorconfig`, `.gitignore`, `Makefile`), see the `scaffold` skill.
+For the mandatory root files (`.editorconfig`, `.gitignore`, `Makefile`) and document naming, see the `scaffold` skill.
 
 ## Protobuf (MUST)
 
@@ -57,15 +57,3 @@ For the mandatory root files (`.editorconfig`, `.gitignore`, `Makefile`), see th
 - POST operations use idempotency key
 - Use circuit breaker to prevent cascade failures (SHOULD)
 - Propagate OpenTelemetry trace context (SHOULD)
-
-## Documentation file naming
-
-Rules (location, case, required sections, exempt namespaces) are in `rules.md` → "Documentation".
-Conventional names:
-
-- Architecture: ARCHITECTURE.md
-- API: API_REFERENCE.md, API_GUIDE.md
-- Testing: TESTING_*.md, E2E_TEST_*.md
-- Migration: *_MIGRATION_GUIDE.md, *_MIGRATION_STATUS.md
-- Integration: *_INTEGRATION_GUIDE.md, *_INTEGRATION_SUMMARY.md
-- Status: *_STATUS.md, *_SUMMARY.md

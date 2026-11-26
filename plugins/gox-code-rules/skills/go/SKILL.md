@@ -14,7 +14,7 @@ Follow team conventions when writing or designing Go code in this repo. **Reply 
 |---|---|
 | Writing **any** Go code (baseline: versions, logging, errors, concurrency, naming…) | `references/rules.md` ← read first by default |
 | Shaping code beyond the baseline: over a complexity limit, laying out a new package, designing options/structs/interfaces, generics | `references/code-style.md` |
-| Starting or restructuring a project (CLI vs DDD layout), Protobuf schemas, gRPC clients, docs file naming | `references/service-layout.md` |
+| Starting or restructuring a project (CLI vs DDD layout), Protobuf schemas, gRPC clients | `references/service-layout.md` |
 | Writing/designing **HTTP** services: routing, handlers, middleware, request/response, logging, request-id/trace, handler tests (gin) | `references/http.md` |
 | Designing/writing CLI commands under `cmd/**` (cobra + gox/cli) | `references/cli.md` |
 | Configuration loading (`config/**`, `main.go`/`config.go`, `bootstrap/`, gox/config) | `references/config.md` |
@@ -22,7 +22,8 @@ Follow team conventions when writing or designing Go code in this repo. **Reply 
 | Time **persisted or crossing a system boundary**: time/date columns (`DATETIME` vs epoch), GORM `autoCreateTime`/`autoUpdateTime`, DSN `loc`/`time_zone`, parsing external timestamps, time fields in API contracts, daily cutoff / timezone logic. In-process time (durations, timers, `time.Since`, sleeps) does NOT need this | `references/time-and-timezone.md` |
 
 Repo-level files are not in this skill: `Makefile`, `.golangci.yml`, the version dotfiles, CI,
-`.goreleaser.yaml`, `Dockerfile` and release tags follow the `scaffold` skill.
+`.goreleaser.yaml`, `Dockerfile`, release tags and the documents under `docs/` follow the
+`scaffold` skill.
 
 ## Core rules (highest priority; details in rules.md)
 

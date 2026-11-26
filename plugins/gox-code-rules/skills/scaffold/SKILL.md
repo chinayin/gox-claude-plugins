@@ -1,7 +1,7 @@
 ---
 name: scaffold
 description: >-
-  Team standards for repository-level files — everything that is not source code: `Makefile`, `.editorconfig`, `.gitignore`, `.dockerignore`, `Dockerfile`, `.golangci.yml`, `.golangci-lint-version`, `.goreleaser.yaml`, `.goreleaser-version`, `.gitlab-ci.yml`, `.github/workflows/*.yml`, the README, and release tags. Use whenever you create or edit one of these files, start a new project or repo, add or change CI, package a release, build an image, or choose a tag or version number — in a Go, shell, or any other repo, even when the user only says "add CI", "set up the project" or "cut a release".
+  Team standards for repository-level files — everything that is not source code: `Makefile`, `.editorconfig`, `.gitignore`, `.dockerignore`, `Dockerfile`, `.golangci.yml`, `.golangci-lint-version`, `.goreleaser.yaml`, `.goreleaser-version`, `.gitlab-ci.yml`, `.github/workflows/*.yml`, the README, the files under `docs/`, and release tags. Use whenever you create or edit one of these files, start a new project or repo, add or change CI, package a release, build an image, or choose a tag or version number — in a Go, shell, or any other repo, even when the user only says "add CI", "set up the project" or "cut a release".
 paths: "Makefile, .editorconfig, .gitignore, .dockerignore, Dockerfile, .golangci.yml, .golangci-lint-version, .goreleaser.yaml, .goreleaser-version, .gitlab-ci.yml, .github/workflows/*.yml"
 ---
 
@@ -152,5 +152,23 @@ At least these targets exist:
 
 `README.md` is the primary one. A Chinese edition is `README_CN.md` beside it, and each links to
 the other in its first lines.
+
+## Docs
+
+- Every other document lives in `docs/`, named `UPPER_SNAKE_CASE.md`.
+- Each has a title, an overview, then the content.
+- A namespace under `docs/` that a tool or skill manages keeps its own names — do not rename it or
+  its files. `docs/superpowers/`, for one, orders its plans by date as `YYYY-MM-DD-*.md`.
+
+Conventional names:
+
+| Kind | Name |
+|---|---|
+| Architecture | `ARCHITECTURE.md` |
+| API | `API_REFERENCE.md`, `API_GUIDE.md` |
+| Testing | `TESTING_*.md`, `E2E_TEST_*.md` |
+| Migration | `*_MIGRATION_GUIDE.md`, `*_MIGRATION_STATUS.md` |
+| Integration | `*_INTEGRATION_GUIDE.md`, `*_INTEGRATION_SUMMARY.md` |
+| Status | `*_STATUS.md`, `*_SUMMARY.md` |
 
 > These are in-session **soft guidance**; the final enforcement is the repo's CI / PR review.

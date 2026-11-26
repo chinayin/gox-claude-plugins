@@ -319,6 +319,45 @@ assert_denied() {
   [ ! -e "$SCAN_LOG" ]
 }
 
+@test "scope: output redirections and commands after the push are ignored; the push is still scanned" {
+  commit_fixture REVIEW_SECRET
+  for cmd in \
+    'git push origin main 2>&1' \
+    'git push origin main >/dev/null 2>&1' \
+    'git push origin main 2>&1; echo "exit=$?"; git status -sb | head -1' \
+    'git push origin main 2>&1 | tail -5' \
+    'git push origin main && git status' \
+    "cd '$REPO' && git push origin main 2>&1 | tail -3"; do
+    : > "$SCAN_LOG"
+    check_push "$cmd"
+    assert_denied
+    [[ "$output" == *"potential secret"* ]] || { echo "cmd=$cmd output=$output"; false; }
+    [ -s "$SCAN_LOG" ]
+  done
+}
+
+@test "scope: a clean push with a redirection and a trailing command is allowed after scanning" {
+  commit_fixture clean
+  check_push 'git push origin main 2>&1; git status -sb'
+  [ -z "$output" ]
+  [ -s "$SCAN_LOG" ]
+}
+
+@test "scope: a second push, a file redirection or a background push after the first is denied unscanned" {
+  commit_fixture clean
+  for cmd in \
+    'git push origin main; git push origin other' \
+    'git push origin main 2>&1 && git push --force origin main' \
+    'git push origin main > out.txt' \
+    'git push origin main &' \
+    'git push origin main 3>&1'; do
+    check_push "$cmd"
+    assert_denied
+    [[ "$output" == *"separate"* ]] || { echo "cmd=$cmd output=$output"; false; }
+    [ ! -e "$SCAN_LOG" ]
+  done
+}
+
 @test "scope: shell expansions are denied without executing them" {
   marker="$BATS_TEST_TMPDIR/must-not-exist"
   check_push "git -C \"\$(touch '$marker')\" push"

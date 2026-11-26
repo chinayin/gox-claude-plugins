@@ -3,6 +3,35 @@
 # 与 hook 相同，仅 set -u；不在此处输出协议或执行用户命令。
 set -u
 
+# 输出命令里要解析的那一段：开头的 `[cd <dir> &&] git ... push ...`，去掉它后面的输出重定向
+# 和后续命令。模型常写 `git push origin main 2>&1; git status`，这些部分不改变推送内容。
+# 只认 2>&1 与指向 /dev/null 的重定向；后续命令须由 ; && | 引出，且不含 push（否则会有一次
+# 没被扫描的推送）。其余写法返回非零，由调用者拒绝。多行命令原样交回，仍由分词器拒绝。
+push_segment() {
+  local command="$1" head tail
+  local quoted="'[^']*'|\"[^\"]*\"" word="[^'\";|&<>[:space:]]"
+  local head_re="^[[:space:]]*(cd([[:space:]]+($quoted|$word)+)+[[:space:]]*&&)?($quoted|[^'\";|&<>])*"
+  local redirect_re="^[[:space:]]*(2>&1|[12]?>[[:space:]]*/dev/null|&>[[:space:]]*/dev/null)"
+  local separator_re="^[[:space:]]*(;|&&|[|])"
+  if [[ "$command" == *$'\n'* ]] || ! [[ "$command" =~ $head_re ]]; then
+    printf '%s' "$command"
+    return 0
+  fi
+  head="${BASH_REMATCH[0]}"
+  tail="${command:${#head}}"
+  # `2>` 的文件描述符数字会被当成普通字符吃进前一段，还给重定向。
+  if [[ "$tail" == '>'* && "$head" =~ [[:space:]][12]$ ]]; then
+    tail="${head: -1}${tail}"
+    head="${head%?}"
+  fi
+  while [[ "$tail" =~ $redirect_re ]]; do tail="${tail:${#BASH_REMATCH[0]}}"; done
+  if [ -n "${tail//[[:space:]]/}" ]; then
+    [[ "$tail" =~ $separator_re ]] || return 1
+    case "$tail" in *push*) return 1 ;; esac
+  fi
+  printf '%s' "$head"
+}
+
 # 设置 REPO、RANGE 数组和失败原因 SCOPE_ERROR，供 secrets.sh 读取。
 # RANGE 只含 Git 解析出的提交 ID 或固定的 revision 选项。
 # shellcheck disable=SC2034
@@ -12,6 +41,7 @@ resolve_push_scope() {
   local all=0 tags=0 mirror=0 recurse=""
   local -a words sources
   words=() sources=() RANGE=() SCOPE_ERROR=""
+  command="$(push_segment "$command")" || return 1
   tokens="$(printf '%s' "$command" | jq -Rsc -f "$GUARD_LIB_DIR/literal-args.jq" 2>/dev/null)" || return 1
   while IFS= read -r token; do words[${#words[@]}]="$token"; done <<<"$(jq -r '.[]' <<<"$tokens")"
   set -- "${words[@]}"

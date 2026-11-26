@@ -8,7 +8,7 @@
 
 | 插件 | 用途 |
 |---|---|
-| `gox-code-rules` | Go、Shell、技能编写及通用工程规范。 |
+| `gox-code-rules` | Go、Shell、仓库脚手架（Makefile、CI、发版）、技能编写及通用工程规范。 |
 | `token-thrift` | 将大量阅读和可靠写入交给子代理，减少主会话上下文占用。支持 Claude Code、Cursor，以及可选择子代理模型的 Codex。 |
 | `gox-guard` | 在受支持的 Agent 推送操作前扫描提交，发现密钥时阻止推送。 |
 | `diagram-design` | 可选的第三方图表插件，见[详细说明](docs/THIRD_PARTY.md)。 |

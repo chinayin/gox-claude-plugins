@@ -38,7 +38,7 @@ internal/
 ```
 
 For CLI-specific conventions (framework, subcommands, flags, version injection, local config repository), see `references/cli.md`.
-For the mandatory root files (`.editorconfig`, `.gitignore`, `Makefile`), see `references/scaffold.md`.
+For the mandatory root files (`.editorconfig`, `.gitignore`, `Makefile`), see the `scaffold` skill.
 
 ## Protobuf (MUST)
 

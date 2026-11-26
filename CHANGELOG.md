@@ -4,6 +4,8 @@
 
 ## 仓库维护（未发布）
 
+- 中文 README 由 `README.zh-CN.md` 改名为 `README_CN.md`，与 `scaffold` 技能的命名规则一致；`README.md` 和 `docs/` 里的链接同步更新。
+
 - 安装文档面向 main，使用 Cursor CLI 添加 marketplace，再通过 `/plugin` 或 IDE Customize 安装；克隆 / 复制归入本地开发调试，CLI 可用 `--plugin-dir`。移除 PR 引用和评审步骤。DESIGN 补回 `hooks/<闸名>.sh` 约定，说明平台包装和辅助库的命名。delegate 保留原三档、升降档与 3k 阈值，仅增加 Cursor 路由和只读输出约束；未据此宣称委派效果提升。
 
 - Cursor 自定义文件统一 `-cursor` 后缀；token-thrift 用独立 `agents-cursor/` 配置 Composer / Grok 标准速度档及原生只读权限，Claude 代理继续使用原有别名。共用策略区分宿主调用方式，修正只读代理写 scratchpad 的矛盾。
@@ -86,6 +88,22 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
   marketplace。
 
 ## gox-code-rules
+
+### 0.10.0 — 2026-11-26
+
+- 新增 `scaffold` 技能，承接仓库级文件的规则：`SKILL.md` 放所有仓库共用的部分（按 remote 选一套 CI、版本号单一来源、统一的 `.editorconfig`、`.gitignore` 基础块、Makefile 必备目标、tag 规范、`README_CN.md`），`references/` 按仓库形态拆成 `go.md`、`shell.md`、`github.md`、`gitlab.md`。新增一种项目类型只加一份 reference。
+- `go` 技能删除 `references/scaffold.md`，description 与索引不再认领脚手架；`rules.md`、`service-layout.md` 改为指向 `scaffold`。`shell` 技能加一行指路。
+- 相对旧 scaffold 的规则变化：
+  - `clean` 保留 `KEEP_TOOLS` 里的工具，其余 `bin/` 内容全删。原模板 `build: clean` + `rm -rf bin/` 会连钉住版本的 golangci-lint 一起删。
+  - 版本文件不再给默认值，生成时实时查；新增 `.goreleaser-version`，goreleaser 以预编译二进制装到 `./bin`。
+  - 新增 `.golangci.yml` 模板（standard + gofmt + 复杂度与嵌套上限）、`.goreleaser.yaml` 模板、运行时 Dockerfile 与白名单式 `.dockerignore`。
+  - `.gitignore` 补 CI 写进工作区的 `dist/`、`.cache/`、`.go/`、`.go-build.json`，以及 agent 工具目录和 `/local/`。
+  - 新增 GitLab CI 规则：流水线从共享模板的示例复制；CI 镜像预装工具，job 内不安装，项目的版本文件跟随镜像。
+  - tag：部署类服务用 `vYY.M.D[-N]`，工具与库用 SemVer。GitHub workflow 加 `permissions`、`concurrency`、`timeout-minutes`，action 大版本更新到当前值。
+- `go` 规则补充：`go.mod` 只写小版本（`go 1.26.0`），不写后续补丁版本和 `toolchain` 行；版本变量固定在 `main` 包。
+- SessionStart / SubagentStart 提醒及 pi 扩展各加一条 `scaffold` 路由，`go` 那条去掉 "project scaffolding"。
+- 模板验证范围：Makefile 的 `build` / `lint` / `release` / `clean` / `check` / `docker`、`.golangci.yml` 的三个阈值、`.goreleaser.yaml` 与 Dockerfile 在临时 Go 项目里跑通（golangci-lint 2.15.0、goreleaser 2.20.3，两个工具均由 `make install-tools` 下载到 `./bin`）。GitLab 规则依赖的共享模板改动尚未提交。
+- `tests/evals/` 增加 `scaffold`：两个用例（GitLab 上的 Go 服务补发版文件、GitHub 上的 Go 库加 CI）和一份触发提问表；`run-trigger.sh` 改为跟踪 `go` / `shell` / `bashly` / `scaffold` 四个技能，`go` 与 `shell` 要求只加载自己。首轮结果（Haiku，用例为单次样本）见 `tests/evals/scaffold/README.md`：触发 36/36，用例带插件 14/14、11/11，基线 5/13、9/10。提醒里 `scaffold` 一行按复测结果改过两次措辞，"发布脚本"仍偶尔连带加载 `scaffold`。
 
 ### 0.9.1 — 2026-11-19
 

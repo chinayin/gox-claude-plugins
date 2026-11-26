@@ -1,0 +1,13 @@
+scaffold	scaffold/go-service/fixture	给这个服务加上 goreleaser 配置和 Dockerfile
+scaffold	scaffold/go-service/fixture	make build 之后再 make lint，每次都要重新下载 golangci-lint，帮我修一下
+scaffold	scaffold/go-service/fixture	今天已经发过一版 v26.11.26，现在要再发一版，tag 应该打什么？
+scaffold	scaffold/go-service/fixture	把 golangci-lint 升到最新版
+scaffold	scaffold/github-ci/fixture	这个仓库托管在 GitHub，给它加上 CI
+scaffold	-	新建一个 Go 服务 order-svc，先把项目骨架搭起来：Makefile、lint 配置、.gitignore、.editorconfig
+scaffold	-	这是一个放 shell 工具的新仓库，在 GitHub 上，先给它加 Makefile 和 .editorconfig
+go	scaffold/go-service/fixture	给 cmd/demo-svc 加一个 --port 参数，默认 8000
+go	scaffold/go-service/fixture	加一个 /health/live 接口，返回 200
+go	scaffold/go-service/fixture	引入最新版的 gin，把 main 改成用 gin 起一个 HTTP 服务
+shell	scaffold/go-service/fixture	写一个 scripts/smoke.sh：启动服务后请求 /health/live，失败就非零退出
+none	-	解释一下 Makefile 里 .PHONY 是做什么的
+none	-	goreleaser 和 ko 这两个工具有什么区别？

@@ -40,10 +40,11 @@
 | 技能 | 调用名 | 自动触发条件 | 内容 |
 |---|---|---|---|
 | 通用工程准则 | `/gox-code-rules:engineering` | nudge + 描述匹配(无文件限定) | Karpathy 行为准则:先想后写、简单优先、外科手术式改动、目标驱动 |
-| Go 规范 | `/gox-code-rules:go` | 任务涉及 Go(nudge + description 驱动模型自调;`paths` 仅为声明,见下) | Go 架构/编码 + CLI(cobra)/配置(gox/config)/迁移(goose)/脚手架,正文在 `references/` 按需读 |
+| Go 规范 | `/gox-code-rules:go` | 任务涉及 Go(nudge + description 驱动模型自调;`paths` 仅为声明,见下) | Go 架构/编码 + CLI(cobra)/配置(gox/config)/迁移(goose),正文在 `references/` 按需读 |
 | 前端规范 | `/gox-code-rules:frontend` | 前端任务，通过 description 引导模型调用 | React/Vue/TS/JS/样式/状态管理(**骨架,正文 TODO 待填**) |
 | Shell 规范 | `/gox-code-rules:shell` | 任务涉及 Shell 脚本(机制同上) | bash/CLI 脚本约定:stdout·stderr 分流、状态前缀、标准 flag、退出码、`test.sh` 自测(单文件 SKILL.md,无 references) |
 | bashly 规范 | `/gox-code-rules:bashly` | 项目含 `bashly.yml`，或用户明确要求用 bashly；模型不自行选用 | bashly 生成的 CLI：`settings.yml`、生成产物入库、命令文件与 lib 分工、子命令共用 flag、bats 测试；通用输出约定引用 shell 技能(单文件 SKILL.md,无 references) |
+| 仓库脚手架规范 | `/gox-code-rules:scaffold` | 任务涉及仓库级文件、新建项目、CI、发版或打 tag(机制同上) | 所有仓库共用:`.editorconfig`、`.gitignore`、Makefile 必备目标、版本号单一来源、tag 规范、README 命名;按仓库形态读 `references/`:Go(`.golangci.yml`、goreleaser、Dockerfile)、shell、GitHub Actions、GitLab CI |
 | 技能编写规范 | `/gox-code-rules:skill` | 任务涉及写或改 SKILL.md(机制同上) | 命名(一个词是规则集;多词一律对象-动作;不带版本后缀)、正文默认英文、环境事实不入技能;编写过程交给官方 skill-creator,不复述(单文件 SKILL.md,无 references) |
 
 **触发机制(重要)**:实测(见 `docs/MVP_FINDINGS.md`,CC 2.1.183)技能加载由模型**显式调用 Skill 工具**驱动,推动力是两层——每会话/子代理注入的 `[gox-code-rules]` 提示(nudge)+ 技能 `description`。设计期(还没动任何文件)同样能触发。frontmatter 的 `paths` 是声明性字段,实测**未观察到**"按文件自动注入"生效,不要把它当成触发保证。
@@ -64,7 +65,8 @@
 | 读配置 | `这个服务从配置里读 PORT,用 gox/config` | go → `references/config.md` |
 | 数据库迁移 | `用 goose 给 users 表加一版迁移` | go → `references/db-migrations.md` |
 | 时间列/时区 | `新表的时间列用 DATETIME 还是 epoch` / `这个 upsert 的 updated_at 没更新` | go → `references/time-and-timezone.md` |
-| 新建项目骨架 | `给这个 Go 项目补齐 Makefile / golangci / CI` | go → `references/scaffold.md` |
+| 新建项目骨架 | `给这个 Go 项目补齐 Makefile / golangci / CI` | scaffold → `references/go.md` + CI 对应的一份 |
+| 发版/打镜像 | `给这个服务加 goreleaser 和 Dockerfile` / `今天第二次发版 tag 打什么` | scaffold |
 | 写业务代码 | `给这个 handler 加上超时和错误包装` | go → `references/rules.md` |
 | 写前端组件 | `给这个 React 组件加个 loading 状态` | frontend |
 | 设计/重构前 | `我们先想清楚这个模块怎么拆` | engineering |

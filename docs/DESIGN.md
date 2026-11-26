@@ -1,6 +1,6 @@
 # 当前架构与维护约定
 
-本文描述仓库当前实现，更新于 2026-11-09（Cursor 清单见 [CURSOR](CURSOR.md)）。安装见 [README](../README.zh-CN.md)，Claude 使用细节见 [USAGE](../USAGE.md)，Codex 支持范围见 [CODEX](CODEX.md)，pi 见 [PI](PI.md)。历史实验见 [MVP_FINDINGS](MVP_FINDINGS.md)，版本变化见 [CHANGELOG](../CHANGELOG.md)。
+本文描述仓库当前实现，更新于 2026-11-09（Cursor 清单见 [CURSOR](CURSOR.md)）。安装见 [README](../README_CN.md)，Claude 使用细节见 [USAGE](../USAGE.md)，Codex 支持范围见 [CODEX](CODEX.md)，pi 见 [PI](PI.md)。历史实验见 [MVP_FINDINGS](MVP_FINDINGS.md)，版本变化见 [CHANGELOG](../CHANGELOG.md)。
 
 ## 分发与目录
 
@@ -13,7 +13,7 @@ plugins/
   gox-code-rules/
     .claude-plugin/plugin.json
     .cursor-plugin/plugin.json
-    skills/                           # engineering、go、frontend、shell、bashly、skill
+    skills/                           # engineering、go、frontend、shell、bashly、scaffold、skill
     hooks/                            # Claude hooks.json + Cursor hooks-cursor.json
     tests/
   token-thrift/
@@ -57,7 +57,7 @@ docs/                                # 当前设计、兼容边界、第三方�
 
 | 组件 | 当前行为 | 边界 |
 |---|---|---|
-| `gox-code-rules` | 六个技能入口；Go 细则按 `references/` 索引读取；会话和子代理收到轻量提醒 | 软引导，不能保证模型加载或遵守；frontend 仍是占位内容，未提供 Python 技能 |
+| `gox-code-rules` | 七个技能入口；Go 与 scaffold 的细则按 `references/` 索引读取；会话和子代理收到轻量提醒 | 软引导，不能保证模型加载或遵守；frontend 仍是占位内容，未提供 Python 技能 |
 | `token-thrift` | Claude 使用 Haiku / Sonnet，Cursor 使用 agents-cursor 中的 Composer / Grok 标准档；Codex 在共享 delegate 中按任务档位选择当前可用模型，通过原生子代理接口传递任务 | Codex 无合适低价模型时退回主线程；文字只读约束不等于沙箱隔离；实际费用需测量；Pi 尚未适配 |
 | `gox-guard` | 对匹配的工具调用执行外部扫描器，并通过 hook 输出拒绝 push | 仅覆盖受支持且实际触发 hook 的调用；不能替代仓库 CI |
 

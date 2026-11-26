@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 手动评估：统计一批提示词各自让模型加载了哪个技能（shell / bashly）。
+# 手动评估：统计一批提示词各自让模型加载了哪个技能（go / shell / bashly / scaffold）。
 # 会调用模型，耗额度且结果不确定，所以不进 make test。
 set -euo pipefail
 
@@ -8,11 +8,14 @@ usage() {
 Usage: run-trigger.sh [--runs N] <triggers.tsv>
 
 For each query, start a real model session with the plugin loaded and report
-which of the shell / bashly skills it loads before it first writes a file.
-A session that has not written anything after 180 seconds is stopped too.
+which of the go / shell / bashly / scaffold skills it loads before it first
+writes a file. A session that has not written anything after 180 seconds is
+stopped too.
 
   <triggers.tsv>   tab-separated columns: expect, fixture, query
-                     expect   shell (bashly must not load) | bashly | none
+                     expect   go | shell     that skill and no other of the four
+                              bashly | scaffold   that skill, others allowed
+                              none           none of the four
                      fixture  directory copied into the session's cwd, relative
                               to this script; "-" for an empty directory
   --runs N         sessions per query (default: 3)
@@ -79,15 +82,15 @@ loaded_skills() {
   done
   wait "${pid}" 2>/dev/null || true
   out="$(jq -r "${TOOL_USE} | select(.name==\"Skill\") | .input.skill" "${dir}/t.jsonl" 2>/dev/null \
-    | sed 's/^gox-code-rules://' | grep -E '^(shell|bashly)$' | sort -u | paste -sd, - || true)"
+    | sed 's/^gox-code-rules://' | grep -E '^(go|shell|bashly|scaffold)$' | sort -u | paste -sd, - || true)"
   echo "${out:-none}"
 }
 
 passes() {
   local expect="$1" loaded="$2"
   case "${expect}" in
-    shell) [ "${loaded}" = "shell" ] ;;
-    bashly) [[ ",${loaded}," == *,bashly,* ]] ;;
+    go|shell) [ "${loaded}" = "${expect}" ] ;;
+    bashly|scaffold) [[ ",${loaded}," == *,"${expect}",* ]] ;;
     none) [ "${loaded}" = "none" ] ;;
   esac
 }
@@ -97,7 +100,7 @@ FAIL=0
 while IFS=$'\t' read -r expect fixture query; do
   [ -n "${expect}" ] || continue
   case "${expect}" in
-    shell|bashly|none) ;;
+    go|shell|bashly|scaffold|none) ;;
     *) die "unknown expect value: ${expect}" ;;
   esac
   [ "${fixture}" = "-" ] || [ -d "${HERE}/${fixture}" ] || die "no such fixture: ${fixture}"

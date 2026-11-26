@@ -76,6 +76,15 @@ skill_event() {
   [[ "${lines[0]}" == "[FAIL]"$'\t'"shell"$'\t'"bashly,shell"$'\t'* ]]
 }
 
+@test "run-trigger: scaffold passes alongside go; a go row fails when scaffold loads too" {
+  { skill_event go; skill_event scaffold; } >"$BATS_TEST_TMPDIR/stream"
+  printf 'scaffold\t-\tset up the project\ngo\t-\tadd a handler\n' >"$BATS_TEST_TMPDIR/q.tsv"
+  STUB_STREAM="$BATS_TEST_TMPDIR/stream" run bash "$EVALS/run-trigger.sh" --runs 1 "$BATS_TEST_TMPDIR/q.tsv"
+  [ "$status" -eq 1 ]
+  [[ "${lines[0]}" == "[PASS]"$'\t'"scaffold"$'\t'"go,scaffold"$'\t'* ]]
+  [[ "${lines[1]}" == "[FAIL]"$'\t'"go"$'\t'"go,scaffold"$'\t'* ]]
+}
+
 @test "run-trigger: no skill loaded reports none" {
   printf 'none\t-\texplain pipefail\n' >"$BATS_TEST_TMPDIR/q.tsv"
   run bash "$EVALS/run-trigger.sh" --runs 1 "$BATS_TEST_TMPDIR/q.tsv"
@@ -97,7 +106,7 @@ skill_event() {
     [ -s "${d}checks.bats" ] || { echo "missing checks: $d"; false; }
   done
   for f in "$EVALS"/*/triggers.tsv; do
-    run awk -F'\t' 'NF != 3 || $1 !~ /^(shell|bashly|none)$/ { print FILENAME ": " $0; bad = 1 } END { exit bad }' "$f"
+    run awk -F'\t' 'NF != 3 || $1 !~ /^(go|shell|bashly|scaffold|none)$/ { print FILENAME ": " $0; bad = 1 } END { exit bad }' "$f"
     [ "$status" -eq 0 ] || { echo "$output"; false; }
   done
 }

@@ -570,3 +570,55 @@ EOF
     [ ! -s "$STUB_LOG" ]
   done
 }
+
+# ---------- Antigravity 适配 ----------
+
+AGY_HOOK="$BATS_TEST_DIRNAME/../hooks/secrets-antigravity.sh"
+
+# run_agy <command> [Cwd]：以 agy PreToolUse 的 stdin 形状调用适配脚本；.cwd 指向别处，验证 Cwd 优先
+run_agy() {
+  local input
+  input="$(jq -nc --arg c "$1" --arg d "${2:-}" --arg w "$BATS_TEST_TMPDIR" \
+    '{hookEventName: "PreToolUse", cwd: $w, lastUserInput: "git push",
+      toolCall: {name: "run_command", args: ({CommandLine: $c} + (if $d == "" then {} else {Cwd: $d} end))}}')"
+  run env PATH="$STUB_DIR:/usr/bin:/bin:/opt/homebrew/bin" bash "$AGY_HOOK" <<<"$input"
+}
+
+@test "Antigravity adapter denies a push with findings in the Cwd repo, in agy format" {
+  stub_betterleaks 1 "$FINDING"
+  add_ahead_commit
+  run_agy "git push" "$REPO"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.decision == "deny" and (has("hookSpecificOutput") | not)'
+  echo "$output" | jq -er '.reason' | grep -qE '^aws-access-key +config.txt:3 +@01234567 +fp='
+}
+
+@test "Antigravity adapter stays silent for non-push commands and clean pushes" {
+  stub_betterleaks 1 "$FINDING"
+  add_ahead_commit
+  run_agy "git status" "$REPO"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  [ ! -s "$STUB_LOG" ]
+  stub_betterleaks 0
+  run_agy "git push" "$REPO"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  [ -s "$STUB_LOG" ]
+}
+
+@test "Antigravity adapter resolves a relative Cwd against the agent cwd" {
+  stub_betterleaks 1 "$FINDING"
+  add_ahead_commit
+  run_agy "git push" "repo"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.decision == "deny"'
+}
+
+@test "Antigravity adapter without jq still denies a push and names jq" {
+  P="$(nojq_path)"
+  run env PATH="$P" bash "$AGY_HOOK" <<<'{"toolCall":{"name":"run_command","args":{"CommandLine":"git push"}}}'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"decision":"deny"'* ]]
+  [[ "$output" == *jq* ]]
+}

@@ -33,10 +33,11 @@ HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
 @test "every hook script is registered in a platform config and every registered script exists" {
   dir="$BATS_TEST_DIRNAME/../hooks"
   cursor="$dir/hooks-cursor.json"
+  agy="$dir/../hooks.json"
   for s in "$dir"/*.sh; do
-    grep -q "hooks/$(basename "$s")" "$HOOKS" "$cursor" || { echo "script not registered: $(basename "$s")"; false; }
+    grep -q "hooks/$(basename "$s")" "$HOOKS" "$cursor" "$agy" || { echo "script not registered: $(basename "$s")"; false; }
   done
-  for s in $(jq -r '.. | .command? // empty' "$HOOKS" "$cursor" | grep -oE 'hooks/[A-Za-z0-9_-]+\.sh' | sort -u); do
+  for s in $(jq -r '.. | .command? // empty' "$HOOKS" "$cursor" "$agy" | grep -oE 'hooks/[A-Za-z0-9_-]+\.sh' | sort -u); do
     [ -f "$dir/../$s" ] || { echo "registered script missing: $s"; false; }
   done
 }
@@ -55,4 +56,22 @@ HOOKS="$BATS_TEST_DIRNAME/../hooks/hooks.json"
   [ "$status" -eq 0 ]
   run jq -er '.hooks | keys | sort | join(",")' "$cursor"
   [ "$output" = "preToolUse,sessionStart" ]
+}
+
+@test "Antigravity hooks.json gates run_command through the adapter and converts SessionStart" {
+  root="$BATS_TEST_DIRNAME/.."
+  agy="$root/hooks.json"
+  run jq -er '."gox-guard" | keys | sort | join(",")' "$agy"
+  [ "$output" = "PreToolUse,SessionStart" ]
+  run jq -er '."gox-guard".PreToolUse[0].matcher' "$agy"
+  [ "$output" = "run_command" ]
+  run jq -er '."gox-guard".PreToolUse[0].hooks[0].command' "$agy"
+  [ "$output" = "bash ./hooks/secrets-antigravity.sh" ]
+  run jq -e '."gox-guard".PreToolUse[0].hooks[0].timeout >= 30' "$agy"
+  [ "$status" -eq 0 ]
+  # agy 以 sh -c 在插件根执行
+  cmd="$(jq -er '."gox-guard".SessionStart[0].command' "$agy")"
+  run bash -c 'cd "$1" && sh -c "$2"' _ "$root" "$cmd"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.injectSteps[0].systemMessage.systemMessage | startswith("[gox-guard/secrets]")'
 }

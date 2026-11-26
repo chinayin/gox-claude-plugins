@@ -4,6 +4,8 @@
 
 ## 仓库维护（未发布）
 
+- 支持 Antigravity CLI（agy）：`gox-code-rules` 与 `gox-guard` 各加 `.antigravity-plugin/plugin.json` 和插件根的 `hooks.json`，按子目录 URL `agy plugin install` 原生安装，不走 agy 对 Claude 插件的转换（转换后 hook 仍按 Claude 协议读写，guard 会静默放行）。SessionStart 在 `hooks.json` 内把原脚本输出转成 `injectSteps`；guard 的 PreToolUse 由 `secrets-antigravity.sh` 薄包装转换 `toolCall.args.CommandLine` / `Cwd` 与 `{decision, reason}`，适配失败一律拒绝。`token-thrift` 不支持。已在 agy 1.5.18 实测提醒注入和含密钥 push 的拦截；插件版本未变。
+
 - `session-nudge.bats` 在 setup 里关闭标准输入：SubagentStart 会读 stdin，不带输入的用例继承到一个不关闭的 stdin 时会一直等待，`make test` 因此卡住过。
 - 新增 `tests/evals/mock-secret/`：两个用例评估会话提醒里的 mock 密钥规则，判分包含用 gox-guard 默认配置做的扫描。首轮结果（Haiku，每组 3 个会话）：带插件 6/6 全部以 `mock-` 开头并通过扫描，基线 0/6。详见该目录 README。
 

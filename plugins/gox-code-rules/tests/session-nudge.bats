@@ -5,6 +5,8 @@ setup() {
   CURSOR_HOOK="$BATS_TEST_DIRNAME/../hooks/session-nudge-cursor.sh"
   # 协议由入口决定；默认清空变量，另测两种变量共存的情况。
   unset CURSOR_PLUGIN_ROOT
+  # SubagentStart 会读 stdin；不带输入的用例若继承了一个不关闭的 stdin 会一直等，这里统一关掉。
+  exec </dev/null
 }
 
 @test "every skill named by either nudge exists in the installed plugin" {

@@ -4,6 +4,9 @@
 
 ## 仓库维护（未发布）
 
+- `session-nudge.bats` 在 setup 里关闭标准输入：SubagentStart 会读 stdin，不带输入的用例继承到一个不关闭的 stdin 时会一直等待，`make test` 因此卡住过。
+- 新增 `tests/evals/mock-secret/`：两个用例评估会话提醒里的 mock 密钥规则，判分包含用 gox-guard 默认配置做的扫描。首轮结果（Haiku，每组 3 个会话）：带插件 6/6 全部以 `mock-` 开头并通过扫描，基线 0/6。详见该目录 README。
+
 - 中文 README 由 `README.zh-CN.md` 改名为 `README_CN.md`，与 `scaffold` 技能的命名规则一致；`README.md` 和 `docs/` 里的链接同步更新。
 
 - 安装文档面向 main，使用 Cursor CLI 添加 marketplace，再通过 `/plugin` 或 IDE Customize 安装；克隆 / 复制归入本地开发调试，CLI 可用 `--plugin-dir`。移除 PR 引用和评审步骤。DESIGN 补回 `hooks/<闸名>.sh` 约定，说明平台包装和辅助库的命名。delegate 保留原三档、升降档与 3k 阈值，仅增加 Cursor 路由和只读输出约束；未据此宣称委派效果提升。

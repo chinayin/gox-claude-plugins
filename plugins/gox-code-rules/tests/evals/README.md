@@ -5,13 +5,15 @@ Manual evaluation of the `shell`, `bashly` and `scaffold` skills with a real mod
 produced. `../evals.bats` covers the two runner scripts with a stub model and does run in
 `make test`.
 
-One directory per skill; each holds its cases, its trigger queries and its results:
+One directory per skill, plus `mock-secret/` for the mock-secret rule of the session reminder;
+each holds its cases, its trigger queries (skills only) and its results:
 
 ```
 run-case.sh  run-trigger.sh  helpers.bash
 shell/   glue/  cleanup/  multi-command/   triggers.tsv  README.md
 bashly/  new-cli/  add-command/            triggers.tsv  README.md
 scaffold/  go-service/  github-ci/         triggers.tsv  README.md
+mock-secret/  compose-env/  seed-script/                 README.md
 ```
 
 A case is a `prompt.md` (what a user would type), an optional `fixture/` (the project the model

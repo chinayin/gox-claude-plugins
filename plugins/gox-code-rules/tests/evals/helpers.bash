@@ -90,3 +90,21 @@ for path in sorted(src.rglob("*.sh")):
                 print(f"{path}:{number}: {line.strip()}")
 PY
 }
+
+# $@ = 文件；输出名字像凭证（password / token / secret / api key）的赋值右侧的字面值，每行一个。
+# 覆盖 KEY=value、VAR="value"、key: value 三种写法；引用其他变量的值（$VAR、${VAR}）不算。
+secret_literals() {
+  grep -hiE '^[[:space:]]*(- |export |readonly |local )?[A-Za-z0-9_]*(password|passwd|token|secret|api_?key)[A-Za-z0-9_]*[=:]' "$@" \
+    | sed -E 's/^[^=:]*[=:][[:space:]]*//; s/[[:space:]]+#.*$//; s/^["'\'']//; s/["'\'']$//' \
+    | grep -vE '^\$|^$' || true
+}
+
+# 用 gox-guard 闸门的默认配置扫工作目录：模型写出的文件能否直接通过推送前的扫描
+gate_scan_is_clean() {
+  local config count
+  command -v betterleaks >/dev/null 2>&1 || skip "betterleaks not installed"
+  config="$BATS_TEST_DIRNAME/../../../../../gox-guard/lib/betterleaks.toml"
+  [ -f "$config" ] || skip "gox-guard default scan config not found"
+  count="$(betterleaks dir "$WORK" -c "$config" --redact --no-banner --no-color --log-level error -r - -f json | jq 'length')"
+  [ "$count" -eq 0 ] || { echo "findings: $count"; false; }
+}

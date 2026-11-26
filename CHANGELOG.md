@@ -89,6 +89,11 @@ marketplace 新增 `diagram-design`（cathrynlavery/diagram-design，MIT），�
 
 ## gox-code-rules
 
+### 0.10.1 — 2026-11-26
+
+- 文档规则（`docs/` 目录、`UPPER_SNAKE_CASE.md` 命名、必备内容、工具管理的命名空间例外、常用文件名）从 `go` 技能挪到 `scaffold` 技能的 `SKILL.md`。规则与语言无关，此前只有写 Go 代码的会话能读到；`go` 的 `rules.md`、`service-layout.md`、`SKILL.md` 只留指向。规则内容不变。
+- `scaffold` 的 description 加上 `docs/` 下的文件；会话提醒的路由不变。写文档时模型是否加载 `scaffold` 未做评估。
+
 ### 0.10.0 — 2026-11-26
 
 - 新增 `scaffold` 技能，承接仓库级文件的规则：`SKILL.md` 放所有仓库共用的部分（按 remote 选一套 CI、版本号单一来源、统一的 `.editorconfig`、`.gitignore` 基础块、Makefile 必备目标、tag 规范、`README_CN.md`），`references/` 按仓库形态拆成 `go.md`、`shell.md`、`github.md`、`gitlab.md`。新增一种项目类型只加一份 reference。

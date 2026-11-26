@@ -6,8 +6,7 @@ Reply and write code comments in Chinese.
 This file is the baseline for any Go change. Load the companions only when the task
 needs them: `references/code-style.md` (complexity patterns, package file layout
 details, options/struct/interface/generics design, pitfall examples) and
-`references/service-layout.md` (CLI vs DDD project structure, Protobuf, gRPC client,
-docs file naming).
+`references/service-layout.md` (CLI vs DDD project structure, Protobuf, gRPC client).
 
 ## Top Priority
 
@@ -148,16 +147,7 @@ Examples: `references/code-style.md`.
 Use github.com/chinayin/gox for:
 log, config, discovery, trace, metrics, middleware, transport, utils
 
-## Scaffold Files (MUST)
+## Scaffold Files and Docs (MUST)
 
-The required root files, their templates, CI, release packaging and tags: the `scaffold` skill.
-
-## Documentation (MUST)
-
-- All docs in `docs/` directory
-- Filename: UPPER_SNAKE_CASE.md
-- Must contain: title, overview, main content
-
-Exception: tool/skill-managed namespaces under `docs/` are excluded from this rule — do not rename them or their files. E.g. `docs/superpowers/` is a date-ordered namespace whose plans use `YYYY-MM-DD-*.md`; leave such subdirectories as-is.
-
-Conventional file names: `references/service-layout.md`.
+The required root files, their templates, CI, release packaging and tags, and where documents go
+and how they are named (`docs/`): the `scaffold` skill.
